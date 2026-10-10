@@ -1,11 +1,4 @@
-import {
-  E2E_USERS,
-  addMember,
-  me,
-  personalCompanyId,
-  setActiveCompany,
-  signOut,
-} from "./auth"
+import { E2E_USERS, setActiveCompany, setupSharedWorkspace, signOut } from "./auth"
 import { createCalendar, selectCalendar, showListView, test, expect } from "./fixtures"
 
 test.describe("event invitations", () => {
@@ -13,14 +6,13 @@ test.describe("event invitations", () => {
     page,
     loginAs,
   }) => {
-    // member_a 첫 로그인 (로컬 사용자 행 생성) → admin 의 워크스페이스에 멤버로 추가
-    await loginAs("member_a")
-    const memberSub = (await me(page)).sub
-    await signOut(page)
-
-    await loginAs("admin")
-    const companyId = await personalCompanyId(page)
-    await addMember(page, companyId, E2E_USERS.member_a.email)
+    // admin 의 공유 워크스페이스(계정 서버에서 생성·초대)에 member_a 가 들어온다.
+    const { companyId, memberSub } = await setupSharedWorkspace(
+      page,
+      E2E_USERS.admin,
+      E2E_USERS.member_a,
+      `초대 팀 ${Date.now()}`,
+    )
     await setActiveCompany(page, companyId)
     await page.goto("/calendar")
 

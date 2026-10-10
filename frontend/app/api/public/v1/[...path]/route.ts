@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = (
-  process.env.BACKEND_INTERNAL_URL || "http://localhost:8000"
+  process.env.BACKEND_INTERNAL_URL || "http://localhost:8100"
 ).replace(/\/$/, "")
 
 async function proxy(

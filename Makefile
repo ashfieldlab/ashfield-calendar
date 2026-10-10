@@ -8,8 +8,8 @@
 -include .env
 
 # dev 서버 포트 — .env에 없으면 기본값 사용.
-BACKEND_PORT ?= 8000
-FRONTEND_PORT ?= 3000
+BACKEND_PORT ?= 8100
+FRONTEND_PORT ?= 3100
 
 .PHONY: help \
         infra stop \
@@ -41,10 +41,10 @@ stop:  ## 인프라 컨테이너 중지
 # 앱 실행 (호스트에서, hot-reload)
 # -----------------------------------------------------------------------------
 
-backend:  ## FastAPI dev 서버 (BACKEND_PORT, 기본 8000)
+backend:  ## FastAPI dev 서버 (BACKEND_PORT, 기본 8100)
 	cd backend && . .venv/bin/activate && uvicorn app.main:app --reload --port $(BACKEND_PORT)
 
-frontend:  ## Next.js dev 서버 (FRONTEND_PORT, 기본 3000)
+frontend:  ## Next.js dev 서버 (FRONTEND_PORT, 기본 3100)
 	cd frontend && PORT=$(FRONTEND_PORT) npm run dev
 
 worker:  ## arq worker (백그라운드 잡 + cron 디스패치)
@@ -58,7 +58,7 @@ worker:  ## arq worker (백그라운드 잡 + cron 디스패치)
 migrate:  ## alembic upgrade head
 	cd backend && . .venv/bin/activate && alembic upgrade head
 
-auth-migrate:  ## Better Auth 테이블 생성·갱신 (Postgres 스키마 auth, Better Auth CLI — ADR-0023)
+auth-migrate:  ## Better Auth 테이블 생성·갱신 (Postgres 스키마 auth: 세션·계정 서버 토큰, ADR-0024)
 	cd frontend && npx auth migrate --config lib/auth/server.ts --yes
 
 migration:  ## 새 alembic revision 생성 (msg="..." 인자 필수)
@@ -83,7 +83,7 @@ lint:  ## 프론트 eslint + 백엔드 ruff
 	cd frontend && npm run lint
 	cd backend && . .venv/bin/activate && ruff check .
 
-e2e:  ## Playwright E2E (전제: infra + migrate + auth-migrate + backend 기동, frontend .env 에 AUTH_DEV_PASSWORD_LOGIN=true)
+e2e:  ## Playwright E2E (전제: 계정 서버 :3300 기동(AUTH_DEV_PASSWORD_LOGIN=true) + infra·migrate·auth-migrate·backend, frontend .env 의 ASHFIELD_CLIENT_SECRET)
 	cd frontend && PORT=$(FRONTEND_PORT) npx playwright test
 
 e2e-ui:  ## Playwright UI 모드

@@ -51,7 +51,7 @@ BookingType 의 가용 규칙에서 계산되는 예약 가능 시간 단위. **
 ## Relationships
 
 - **Workspace = 회사** (skeleton의 Company와 동일)
-- 한 **User**는 1~N개의 **Workspace**(회사)에 속함 (`user_company_memberships`). 첫 로그인 시 개인 워크스페이스(`personal-{sub}`, 본인 admin)가 생기고, 회사 admin 이 이메일로 다른 사용자를 추가한다.
+- 한 **User**는 1~N개의 **Workspace**(회사)에 속함 (`user_company_memberships`). 소속의 원천은 Ashfield 계정 서버: 가입 때 개인 워크스페이스가 생기고, 초대·역할은 계정 서버에서 관리한다. 앱은 토큰 `workspaces` 클레임으로 로컬 멤버십을 동기화한다 (owner·admin → admin, member → member, ADR-0024).
 - 한 **User**는 한 **Workspace** 안에 N개의 personal **Calendar** 보유 가능
 - **Workspace** 안에 N개의 shared **Calendar** — 회사 전 멤버 자동 노출
 - **Event**는 한 **Calendar**에 속함

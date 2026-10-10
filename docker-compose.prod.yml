@@ -63,11 +63,10 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Ashfield}
       SMTP_ENCRYPTION_KEY: ${SMTP_ENCRYPTION_KEY:-}
-      # 인증 — Better Auth JWT 검증 (ADR-0023). JWKS 는 컨테이너 내부 주소, iss/aud 는 공개 주소.
-      AUTH_JWKS_URL: http://frontend:3000/api/auth/jwks
-      AUTH_ISSUER: ${BETTER_AUTH_URL}
+      # 인증: Ashfield 계정 서버 액세스 토큰 검증 (ADR-0024). iss = ACCOUNT_URL, aud ∋ 이 앱 공개 주소.
+      AUTH_JWKS_URL: ${ACCOUNT_URL:?ACCOUNT_URL 필요}/api/auth/jwks
+      AUTH_ISSUER: ${ACCOUNT_URL}
       AUTH_AUDIENCE: ${BETTER_AUTH_URL}
-      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
       SYSTEM_ADMIN_EMAILS: ${SYSTEM_ADMIN_EMAILS:-}
       PUBLIC_RATE_LIMIT_PER_IP: ${PUBLIC_RATE_LIMIT_PER_IP:-1000}
       PUBLIC_RATE_LIMIT_PER_EMAIL: ${PUBLIC_RATE_LIMIT_PER_EMAIL:-1}
@@ -139,15 +138,13 @@ services:
         NEXT_PUBLIC_COOKIE_DOMAIN: ${NEXT_PUBLIC_COOKIE_DOMAIN:-}
     <<: *restart_policy
     environment:
-      # 인증 (Better Auth, ADR-0023). 런타임 서버 변수라 빌드 arg 아님.
+      # 인증 (Better Auth = Ashfield 계정 서버 OIDC 클라이언트, ADR-0024). 런타임 서버 변수라 빌드 arg 아님.
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET 필요}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?BETTER_AUTH_URL 필요}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
-      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
+      ACCOUNT_URL: ${ACCOUNT_URL:?ACCOUNT_URL 필요}
+      ASHFIELD_CLIENT_ID: ${ASHFIELD_CLIENT_ID:-ashfield-calendar}
+      ASHFIELD_CLIENT_SECRET: ${ASHFIELD_CLIENT_SECRET:?ASHFIELD_CLIENT_SECRET 필요}
       BACKEND_INTERNAL_URL: http://backend:8000
     ports:
       - "127.0.0.1:${FRONTEND_HOST_PORT:-3000}:3000"

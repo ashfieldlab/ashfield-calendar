@@ -17,11 +17,11 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        "localhost:3000",
-        "127.0.0.1:3000",
-        "192.168.*.*:3000",
-        "10.*.*.*:3000",
-        "172.16.*.*:3000",
+        "localhost:3100",
+        "127.0.0.1:3100",
+        "192.168.*.*:3100",
+        "10.*.*.*:3100",
+        "172.16.*.*:3100",
         ...(process.env.BETTER_AUTH_URL
           ? [new URL(process.env.BETTER_AUTH_URL).host]
           : []),
