@@ -54,4 +54,26 @@ test.describe("event invitations", () => {
     await page.getByTestId("notification-bell").click()
     await expect(page.getByTestId("notification-panel")).toBeVisible()
   })
+
+  test("새 일정에서 고른 참석자는 저장하면 초대된다", async ({ page, loginAs }) => {
+    await loginAs("member_a")
+    await page.goto("/calendar")
+    const calName = `참석-${Date.now()}`
+    await createCalendar(page, calName)
+
+    const title = `참석이벤트-${Date.now()}`
+    const guest = `guest-${Date.now()}@example.com`
+    await page.getByTestId("calendar-new-event-button").click()
+    await page.getByTestId("event-form-title-input").fill(title)
+    await selectCalendar(page, calName)
+    await page.getByTestId("event-form-attendee-email-input").fill(guest)
+    await page.getByTestId("event-form-attendee-email-add").click()
+    await expect(page.getByTestId("event-form-attendee-list")).toContainText(guest)
+    await page.getByTestId("event-form-save-button").click()
+    await expect(page.getByTestId("event-form")).toHaveCount(0)
+
+    await showListView(page)
+    await page.getByText(title).first().click()
+    await expect(page.locator(`[data-testid^="invitation-row-"]`).filter({ hasText: guest })).toBeVisible()
+  })
 })

@@ -11,6 +11,7 @@ import { api, apiDownload } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { useConfirm } from "@/components/ui-custom/use-confirm"
 import { InvitationsPanel } from "@/components/calendar/invitations-panel"
+import { DraftAttendees, sendDraftInvitations, type DraftAttendee } from "@/components/calendar/draft-attendees"
 import { useToast } from "@/components/ui-custom/use-toast"
 import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
 import type {
@@ -104,6 +105,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     editing?.reminder_minutes_before ?? null,
   )
   const [busy, setBusy] = useState(false)
+  const [attendees, setAttendees] = useState<DraftAttendee[]>([])
   // 반복 일정 삭제 시 "이 일정만 / 전체" 선택 모달
   const [showRecurDelete, setShowRecurDelete] = useState(false)
   // 반복 일정 수정 시 "이 회차만 / 전체" 선택 모달
@@ -199,8 +201,10 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
           scope === "occurrence" ? "이 회차를 수정했습니다" : "일정을 수정했습니다",
         )
       } else {
-        await api("/api/v1/events", { method: "POST", body })
-        toast.success("일정을 만들었습니다")
+        const created = await api<EventResponse>("/api/v1/events", { method: "POST", body })
+        const failed = attendees.length ? await sendDraftInvitations(created.id, attendees) : 0
+        if (failed) toast.error(`일정은 만들었지만 ${failed}명에게 초대를 보내지 못했습니다`)
+        else toast.success("일정을 만들었습니다")
       }
       invalidateApi("/api/v1/events")
       onClose()
@@ -380,6 +384,9 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
             )}
 
             {editing && !readOnly && <InvitationsPanel event={editing} />}
+            {!editing && (
+              <DraftAttendees value={attendees} onChange={setAttendees} startAt={startAt} endAt={endAt} />
+            )}
           </div>
 
           <aside className="space-y-5 border-t bg-muted/40 p-5 md:border-t-0 md:border-l">
