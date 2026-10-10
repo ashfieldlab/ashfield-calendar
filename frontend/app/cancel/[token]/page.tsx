@@ -39,14 +39,14 @@ export default function CancelPage({
   if (done) {
     return (
       <div
-        className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-6"
+        className="space-y-3 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-6"
         data-testid="cancel-page-success"
       >
-        <div className="flex items-center gap-2 text-emerald-800">
+        <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
           <CheckCircle2 size={20} />
           <h1 className="text-base font-semibold">예약이 취소되었습니다</h1>
         </div>
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-foreground/80">
           이메일로 취소 확인 안내를 발송했습니다.
         </p>
       </div>
@@ -55,15 +55,15 @@ export default function CancelPage({
 
   return (
     <div
-      className="space-y-4 rounded-lg border border-gray-200 bg-white p-6"
+      className="space-y-4 rounded-lg border border-border bg-card p-6"
       data-testid="cancel-page"
     >
-      <h1 className="text-base font-semibold text-gray-900">
+      <h1 className="text-base font-semibold text-foreground">
         예약을 취소하시겠습니까?
       </h1>
       {error && (
         <div
-          className="flex items-start gap-2 rounded border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
+          className="flex items-start gap-2 rounded border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs text-rose-700 dark:text-rose-300"
           data-testid="cancel-page-error"
         >
           <XCircle size={14} className="mt-0.5 shrink-0" />

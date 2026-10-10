@@ -38,11 +38,11 @@ export default function NewBookingTypePage() {
       <Link
         href="/booking-types"
         data-testid="booking-types-back"
-        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft size={12} /> 예약 양식 목록
       </Link>
-      <h1 className="text-2xl font-bold text-gray-900">새 예약 양식</h1>
+      <h1 className="text-2xl font-bold text-foreground">새 예약 양식</h1>
       <BookingTypeForm onSubmit={submit} busy={busy} submitLabel="생성" />
     </div>
   )

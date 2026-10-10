@@ -42,7 +42,7 @@ export default function WorkspaceMembersView({
   if (!isWorkspaceAdmin) {
     return (
       <div
-        className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
+        className="rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-6 text-sm text-amber-800 dark:text-amber-200"
         data-testid="workspace-members-settings-no-permission"
       >
         워크스페이스 관리자만 접근할 수 있습니다.
@@ -62,13 +62,13 @@ export default function WorkspaceMembersView({
     >
       <Link
         href="/settings"
-        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         data-testid="workspace-members-settings-back"
       >
         <ArrowLeft size={12} /> 설정으로
       </Link>
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-foreground">
           {workspaceNames[workspaceId] ?? workspaceId} 멤버
         </h1>
         {manageUrl && (
@@ -76,7 +76,7 @@ export default function WorkspaceMembersView({
             href={manageUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-gray-900 px-3 text-sm font-medium text-white hover:bg-gray-800"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             data-testid="workspace-members-manage-link"
           >
             Ashfield 계정에서 관리
@@ -87,7 +87,7 @@ export default function WorkspaceMembersView({
 
       {data && !manageUrl && (
         <div
-          className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+          className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
           data-testid="workspace-members-settings-account-notice"
         >
           이 워크스페이스는 멤버를 변경할 수 없습니다.
@@ -95,45 +95,45 @@ export default function WorkspaceMembersView({
       )}
 
       {error ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300">
           불러오지 못했습니다. 잠시 후 다시 시도해주세요.
         </div>
       ) : isLoading ? (
-        <div className="text-sm text-gray-500">불러오는 중…</div>
+        <div className="text-sm text-muted-foreground">불러오는 중…</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table
             className="w-full text-sm"
             data-testid="workspace-members-settings-list"
           >
-            <thead className="bg-gray-50 text-left text-xs text-gray-500">
+            <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 font-medium">이름</th>
                 <th className="px-4 py-2 font-medium">이메일</th>
                 <th className="w-32 px-4 py-2 font-medium">역할</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/60">
               {data?.members.map((m) => {
                 const isAdmin = m.role === "admin"
                 return (
                   <tr
                     key={m.user_sub}
                     data-testid={`workspace-members-settings-row-${m.user_sub}`}
-                    className="hover:bg-gray-50"
+                    className="hover:bg-muted/50"
                   >
-                    <td className="px-4 py-2 text-gray-900">
+                    <td className="px-4 py-2 text-foreground">
                       {m.name ?? m.user_sub}
                     </td>
-                    <td className="px-4 py-2 text-gray-600">
+                    <td className="px-4 py-2 text-muted-foreground">
                       {m.email ?? "-"}
                     </td>
                     <td className="px-4 py-2">
                       <span
                         className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${
                           isAdmin
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-700"
+                            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
+                            : "bg-muted text-foreground/80"
                         }`}
                       >
                         {isAdmin ? (

@@ -90,24 +90,24 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
       data-testid="calendar-subscription-modal"
     >
       <div
-        className="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl"
+        className="w-full max-w-lg rounded-lg bg-card p-5 shadow-xl dark:ring-1 dark:ring-foreground/10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="min-w-0 truncate text-sm font-semibold text-gray-900">
+          <h3 className="min-w-0 truncate text-sm font-semibold text-foreground">
             외부 캘린더 구독 ({calendar.name})
           </h3>
           <button
             onClick={onClose}
             data-testid="calendar-subscription-close"
-            className="rounded p-1 text-gray-500 hover:bg-gray-100"
+            className="rounded p-1 text-muted-foreground hover:bg-muted"
           >
             <X size={16} />
           </button>
         </div>
 
         <div className="space-y-3 text-sm">
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
             <p className="font-medium">⚠ 사용 전 확인</p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4">
               <li>URL 은 비밀번호처럼 다뤄주세요. 유출 시 캘린더 일정이 외부에 노출됩니다.</li>
@@ -116,17 +116,17 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
           </div>
 
           {isLoading || !data ? (
-            <p className="text-gray-500">불러오는 중…</p>
+            <p className="text-muted-foreground">불러오는 중…</p>
           ) : !data.enabled ? (
             <div className="space-y-2">
-              <p className="text-gray-700">
+              <p className="text-foreground/80">
                 외부 구독이 꺼져 있습니다.
               </p>
               <button
                 onClick={enable}
                 disabled={busy}
                 data-testid="calendar-subscription-enable"
-                className="w-full rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                className="w-full rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 외부 구독 활성화
               </button>
@@ -134,7 +134,7 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   구독 URL
                 </label>
                 <div className="flex gap-2">
@@ -143,28 +143,28 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
                     value={data.url ?? ""}
                     readOnly
                     data-testid="calendar-subscription-url"
-                    className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 font-mono text-xs"
+                    className="w-full rounded border border-input bg-muted/50 px-3 py-2 font-mono text-xs"
                     onClick={(e) => (e.target as HTMLInputElement).select()}
                   />
                   <button
                     onClick={copyUrl}
                     data-testid="calendar-subscription-copy"
-                    className="rounded border border-gray-300 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                    className="rounded border border-input px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50"
                   >
                     <Copy size={14} />
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   외부 캘린더 앱의 “URL 구독” 기능에 이 주소를 붙여넣으세요.
                 </p>
               </div>
 
-              <div className="flex justify-between gap-2 border-t border-gray-100 pt-3">
+              <div className="flex justify-between gap-2 border-t border-border/60 pt-3">
                 <button
                   onClick={rotate}
                   disabled={busy}
                   data-testid="calendar-subscription-rotate"
-                  className="inline-flex items-center gap-1 rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded border border-input px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted/50 disabled:opacity-50"
                 >
                   <RefreshCw size={12} /> 토큰 재발급
                 </button>
@@ -172,7 +172,7 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
                   onClick={disable}
                   disabled={busy}
                   data-testid="calendar-subscription-disable"
-                  className="rounded px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                  className="rounded px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-50"
                 >
                   외부 구독 끄기
                 </button>

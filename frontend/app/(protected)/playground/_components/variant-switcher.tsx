@@ -46,7 +46,7 @@ export function PrototypeSwitcher({ variants }: { variants: PrototypeVariant[] }
   }, [go])
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-1 rounded-full bg-zinc-950 px-1.5 py-1.5 text-sm text-white shadow-2xl ring-1 ring-white/10">
+    <div className="fixed bottom-5 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-1 rounded-full bg-zinc-950 dark:bg-zinc-800 px-1.5 py-1.5 text-sm text-white shadow-2xl ring-1 ring-white/10">
       <button
         type="button"
         onClick={() => go(-1)}

@@ -70,10 +70,10 @@ export function WeeklyScheduleEditor({ value, onChange }: Props) {
         return (
           <div
             key={key}
-            className="flex items-start gap-3 rounded border border-gray-200 px-3 py-2"
+            className="flex items-start gap-3 rounded border border-border px-3 py-2"
             data-testid={`weekly-day-${key}`}
           >
-            <label className="flex w-12 shrink-0 items-center gap-1 pt-1 text-sm font-medium text-gray-700">
+            <label className="flex w-12 shrink-0 items-center gap-1 pt-1 text-sm font-medium text-foreground/80">
               <input
                 type="checkbox"
                 checked={enabled}
@@ -98,7 +98,7 @@ export function WeeklyScheduleEditor({ value, onChange }: Props) {
                         value={b[0]}
                         onChange={(e) => setTime(key, i, 0, e.target.value)}
                         data-testid={`weekly-day-${key}-block-${i}-start`}
-                        className="rounded border border-gray-300 px-2 py-1"
+                        className="rounded border border-input px-2 py-1"
                       />
                       <span>–</span>
                       <input
@@ -106,13 +106,13 @@ export function WeeklyScheduleEditor({ value, onChange }: Props) {
                         value={b[1]}
                         onChange={(e) => setTime(key, i, 1, e.target.value)}
                         data-testid={`weekly-day-${key}-block-${i}-end`}
-                        className="rounded border border-gray-300 px-2 py-1"
+                        className="rounded border border-input px-2 py-1"
                       />
                       <button
                         onClick={() => removeBlock(key, i)}
                         title="블록 제거"
                         data-testid={`weekly-day-${key}-block-${i}-remove`}
-                        className="rounded p-1 text-gray-400 hover:bg-rose-50 hover:text-rose-600"
+                        className="rounded p-1 text-muted-foreground/70 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
                       >
                         <X size={14} />
                       </button>
@@ -121,13 +121,13 @@ export function WeeklyScheduleEditor({ value, onChange }: Props) {
                   <button
                     onClick={() => addBlock(key)}
                     data-testid={`weekly-day-${key}-add`}
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     <Plus size={12} /> 시간대 추가
                   </button>
                 </>
               ) : (
-                <span className="text-xs text-gray-400">받지 않음</span>
+                <span className="text-xs text-muted-foreground/70">받지 않음</span>
               )}
             </div>
           </div>

@@ -42,15 +42,15 @@ export function QrModal({ url, title, onClose }: Props) {
       data-testid="qr-modal"
     >
       <div
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-lg bg-card p-6 shadow-xl dark:ring-1 dark:ring-foreground/10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="min-w-0 truncate text-sm font-semibold text-gray-900">{title} QR 코드</h3>
+          <h3 className="min-w-0 truncate text-sm font-semibold text-foreground">{title} QR 코드</h3>
           <button
             onClick={onClose}
             data-testid="qr-modal-close"
-            className="rounded p-1 text-gray-500 hover:bg-gray-100"
+            className="rounded p-1 text-muted-foreground hover:bg-muted"
           >
             <X size={16} />
           </button>
@@ -58,7 +58,7 @@ export function QrModal({ url, title, onClose }: Props) {
 
         <div className="flex flex-col items-center gap-3">
           {error && (
-            <p className="text-xs text-rose-600">QR 생성 실패: {error}</p>
+            <p className="text-xs text-rose-600 dark:text-rose-400">QR 생성 실패: {error}</p>
           )}
           {dataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -66,17 +66,17 @@ export function QrModal({ url, title, onClose }: Props) {
               src={dataUrl}
               alt="QR"
               data-testid="qr-modal-image"
-              className="h-64 w-64 rounded border border-gray-200"
+              className="h-64 w-64 rounded border border-border"
             />
           ) : (
-            <div className="h-64 w-64 animate-pulse rounded bg-gray-100" />
+            <div className="h-64 w-64 animate-pulse rounded bg-muted" />
           )}
-          <p className="break-all text-center text-xs text-gray-500">{url}</p>
+          <p className="break-all text-center text-xs text-muted-foreground">{url}</p>
           <button
             onClick={download}
             disabled={!dataUrl}
             data-testid="qr-modal-download"
-            className="inline-flex items-center gap-1 rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <Download size={14} /> PNG 다운로드
           </button>

@@ -61,12 +61,12 @@ export default function SettingsPage() {
       className="h-full space-y-6 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8"
       data-testid="settings-page"
     >
-      <h1 className="text-2xl font-bold text-gray-900">설정</h1>
+      <h1 className="text-2xl font-bold text-foreground">설정</h1>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">알림</h2>
+      <section className="rounded-lg border border-border bg-card p-5">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">알림</h2>
         {isLoading || !data ? (
-          <p className="text-sm text-gray-500">불러오는 중…</p>
+          <p className="text-sm text-muted-foreground">불러오는 중…</p>
         ) : (
           <div className="space-y-4">
             <label className="flex items-start gap-3 text-sm">
@@ -75,13 +75,13 @@ export default function SettingsPage() {
                 checked={data.email_enabled}
                 onChange={toggleEmail}
                 data-testid="settings-email-toggle"
-                className="mt-0.5 rounded border-gray-300"
+                className="mt-0.5 rounded border-input"
               />
-              <span className="font-medium text-gray-900">이메일 알림</span>
+              <span className="font-medium text-foreground">이메일 알림</span>
             </label>
 
-            <div className="ml-7 space-y-2 border-l border-gray-100 pl-4">
-              <p className="text-xs font-medium text-gray-500">
+            <div className="ml-7 space-y-2 border-l border-border/60 pl-4">
+              <p className="text-xs font-medium text-muted-foreground">
                 받을 이메일 종류
               </p>
               {EMAIL_CATEGORIES.map((c) => (
@@ -96,10 +96,10 @@ export default function SettingsPage() {
                     disabled={!data.email_enabled}
                     onChange={() => toggleCategory(c.key)}
                     data-testid={`settings-email-category-${c.key}-toggle`}
-                    className="mt-0.5 rounded border-gray-300 disabled:opacity-40"
+                    className="mt-0.5 rounded border-input disabled:opacity-40"
                   />
                   <span className={data.email_enabled ? "" : "opacity-40"}>
-                    <span className="block text-gray-900">{c.label}</span>
+                    <span className="block text-foreground">{c.label}</span>
                   </span>
                 </label>
               ))}
@@ -108,11 +108,11 @@ export default function SettingsPage() {
         )}
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white">
-        <header className="border-b border-gray-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-gray-900">외부 연동</h2>
+      <section className="rounded-lg border border-border bg-card">
+        <header className="border-b border-border/60 px-5 py-3">
+          <h2 className="text-sm font-semibold text-foreground">외부 연동</h2>
         </header>
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-border/60">
           <SettingsRow
             href="/settings/caldav"
             icon={<CalendarSync size={16} />}
@@ -123,11 +123,11 @@ export default function SettingsPage() {
       </section>
 
       {isSystemAdmin && (
-        <section className="rounded-lg border border-gray-200 bg-white">
-          <header className="border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-900">시스템 관리</h2>
+        <section className="rounded-lg border border-border bg-card">
+          <header className="border-b border-border/60 px-5 py-3">
+            <h2 className="text-sm font-semibold text-foreground">시스템 관리</h2>
           </header>
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-border/60">
             <SettingsRow
               href="/admin/workspaces"
               icon={<Building2 size={16} />}
@@ -157,13 +157,13 @@ export default function SettingsPage() {
       )}
 
       {isWorkspaceAdmin && workspaceBase && (
-        <section className="rounded-lg border border-gray-200 bg-white">
-          <header className="border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-900">
+        <section className="rounded-lg border border-border bg-card">
+          <header className="border-b border-border/60 px-5 py-3">
+            <h2 className="text-sm font-semibold text-foreground">
               워크스페이스 관리 ({activeWorkspaceId})
             </h2>
           </header>
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-border/60">
             <SettingsRow
               href={`${workspaceBase}/profile`}
               icon={<Building2 size={16} />}
@@ -223,13 +223,13 @@ function SettingsRow({
       <Link
         href={href}
         data-testid={testid}
-        className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50"
+        className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-muted/50"
       >
         <div className="flex items-center gap-3">
-          <span className="text-gray-500">{icon}</span>
-          <div className="text-sm font-medium text-gray-900">{title}</div>
+          <span className="text-muted-foreground">{icon}</span>
+          <div className="text-sm font-medium text-foreground">{title}</div>
         </div>
-        <ChevronRight size={16} className="shrink-0 text-gray-400" />
+        <ChevronRight size={16} className="shrink-0 text-muted-foreground/70" />
       </Link>
     </li>
   )

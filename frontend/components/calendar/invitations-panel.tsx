@@ -111,10 +111,10 @@ export function InvitationsPanel({ event }: Props) {
 
       {myInvitation && (
         <div
-          className="rounded border border-blue-200 bg-blue-50 p-2"
+          className="rounded border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 p-2"
           data-testid="invitation-response-panel"
         >
-          <div className="mb-1.5 text-xs text-blue-700">
+          <div className="mb-1.5 text-xs text-blue-700 dark:text-blue-300">
             이 일정에 초대받았습니다. 현재 응답:{" "}
             <strong>{RESPONSE_LABELS[myInvitation.response]}</strong>
           </div>
@@ -127,8 +127,8 @@ export function InvitationsPanel({ event }: Props) {
                   data-testid={`invitation-respond-${r}`}
                   className={`rounded px-2 py-1 text-xs font-medium ${
                     myInvitation.response === r
-                      ? "bg-gray-900 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-foreground/80 hover:bg-muted border border-input"
                   }`}
                 >
                   {RESPONSE_LABELS[r]}
@@ -141,7 +141,7 @@ export function InvitationsPanel({ event }: Props) {
 
       {conflicts.length > 0 && (
         <div
-          className="flex items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800"
+          className="flex items-start gap-1.5 rounded border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-200"
           data-testid="invitation-conflicts-warning"
         >
           <AlertTriangle size={13} className="mt-0.5 shrink-0" />
@@ -165,7 +165,7 @@ export function InvitationsPanel({ event }: Props) {
                   {inv.invitee_name ?? inv.invitee_email ?? inv.invitee_sub}
                 </span>
                 {inv.external && (
-                  <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                  <span className="shrink-0 rounded bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-200">
                     외부
                   </span>
                 )}

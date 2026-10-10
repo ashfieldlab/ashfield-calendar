@@ -90,19 +90,19 @@ export default function CalDavTokensPage() {
       <Link
         href="/settings"
         data-testid="caldav-tokens-back"
-        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft size={12} /> 설정으로
       </Link>
 
       <header className="flex items-center gap-2">
-        <CalendarSync size={20} className="text-gray-600" />
-        <h1 className="text-2xl font-bold text-gray-900">
+        <CalendarSync size={20} className="text-muted-foreground" />
+        <h1 className="text-2xl font-bold text-foreground">
           외부 캘린더 앱 연결
         </h1>
       </header>
 
-      <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+      <div className="rounded border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
         <p className="font-medium">⚠ 사용 전 확인</p>
         <ul className="mt-1 list-disc space-y-0.5 pl-4">
           <li>비밀번호는 발급 시 한 번만 보입니다.</li>
@@ -111,24 +111,24 @@ export default function CalDavTokensPage() {
         </ul>
       </div>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
+      <section className="rounded-lg border border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">발급된 비밀번호</h2>
+          <h2 className="text-sm font-semibold text-foreground">발급된 비밀번호</h2>
           <button
             onClick={() => setShowCreate(true)}
             data-testid="caldav-token-new-button"
-            className="inline-flex items-center gap-1 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+            className="inline-flex items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Plus size={12} /> 새로 발급
           </button>
         </div>
 
         {!data || data.items.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             아직 발급된 비밀번호가 없습니다.
           </p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-border/60">
             {data.items.map((t) => (
               <li
                 key={t.id}
@@ -136,10 +136,10 @@ export default function CalDavTokensPage() {
                 className="flex items-center justify-between py-2.5"
               >
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-foreground">
                     {t.name}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     만든 날: {new Date(t.created_at).toLocaleDateString("ko-KR")} ·
                     마지막 사용:{" "}
                     {t.last_used_at
@@ -151,7 +151,7 @@ export default function CalDavTokensPage() {
                   onClick={() => revoke(t)}
                   data-testid={`caldav-token-revoke-${t.id}`}
                   title="폐기"
-                  className="rounded p-1 text-gray-400 hover:bg-rose-50 hover:text-rose-600"
+                  className="rounded p-1 text-muted-foreground/70 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -169,13 +169,13 @@ export default function CalDavTokensPage() {
           data-testid="caldav-token-create-modal"
         >
           <div
-            className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-lg bg-card p-5 shadow-xl dark:ring-1 dark:ring-foreground/10"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-3 text-sm font-semibold text-gray-900">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">
               새 비밀번호 발급
             </h3>
-            <label className="mb-1 block text-xs font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               이름
             </label>
             <input
@@ -184,14 +184,14 @@ export default function CalDavTokensPage() {
               onChange={(e) => setNewName(e.target.value)}
               placeholder="예: 아이폰 캘린더, 업무용 노트북 Thunderbird"
               data-testid="caldav-token-name-input"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded border border-input px-3 py-2 text-sm"
               autoFocus
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setShowCreate(false)}
                 disabled={busy}
-                className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                className="rounded px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
               >
                 취소
               </button>
@@ -199,7 +199,7 @@ export default function CalDavTokensPage() {
                 onClick={create}
                 disabled={busy || !newName.trim()}
                 data-testid="caldav-token-create-confirm"
-                className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 만들기
               </button>
@@ -214,11 +214,11 @@ export default function CalDavTokensPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           data-testid="caldav-token-secret-modal"
         >
-          <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl">
-            <h3 className="mb-2 text-sm font-semibold text-gray-900">
+          <div className="w-full max-w-lg rounded-lg bg-card p-5 shadow-xl dark:ring-1 dark:ring-foreground/10">
+            <h3 className="mb-2 text-sm font-semibold text-foreground">
               비밀번호가 만들어졌습니다
             </h3>
-            <p className="mb-4 text-xs text-rose-700">
+            <p className="mb-4 text-xs text-rose-700 dark:text-rose-300">
               ⚠ 이 비밀번호는 이 화면에서만 보입니다.
             </p>
             <div className="space-y-3">
@@ -246,7 +246,7 @@ export default function CalDavTokensPage() {
               <button
                 onClick={() => setCreated(null)}
                 data-testid="caldav-token-show-close"
-                className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
                 닫기
               </button>
@@ -273,7 +273,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">
         {label}
       </label>
       <div className="flex gap-2">
@@ -283,7 +283,7 @@ function Field({
           readOnly
           data-testid={testid}
           onClick={(e) => (e.target as HTMLInputElement).select()}
-          className={`w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs ${
+          className={`w-full rounded border border-input bg-muted/50 px-3 py-2 text-xs ${
             mono ? "font-mono" : ""
           }`}
         />
@@ -291,7 +291,7 @@ function Field({
           onClick={onCopy}
           data-testid={`${testid}-copy`}
           aria-label="복사"
-          className="shrink-0 rounded border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50"
+          className="shrink-0 rounded border border-input px-3 py-2 text-muted-foreground hover:bg-muted/50"
         >
           <Copy size={14} />
         </button>

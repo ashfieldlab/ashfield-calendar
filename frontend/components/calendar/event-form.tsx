@@ -5,6 +5,7 @@ import DatePicker, { registerLocale } from "react-datepicker"
 import { ArrowRight, Download, Users } from "lucide-react"
 import { ko } from "date-fns/locale/ko"
 import "react-datepicker/dist/react-datepicker.css"
+import "./datepicker-theme.css"
 
 import { Button } from "@/components/ui/button"
 import { api, apiDownload } from "@/lib/api-client"
@@ -344,6 +345,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
                   timeIntervals={15}
                   dateFormat={allDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"}
                   timeFormat="HH:mm"
+                  timeCaption="시간"
                   locale="ko"
                   wrapperClassName="w-full"
                   disabled={readOnly}
@@ -363,6 +365,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
                   timeIntervals={15}
                   dateFormat={allDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"}
                   timeFormat="HH:mm"
+                  timeCaption="시간"
                   locale="ko"
                   wrapperClassName="w-full"
                   disabled={readOnly}
@@ -560,12 +563,12 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
         onClick={() => !busy && setShowRecurEdit(false)}
       >
         <div
-          className="w-80 space-y-3 rounded-lg bg-white p-5 shadow-lg"
+          className="w-80 space-y-3 rounded-lg bg-card p-5 shadow-lg dark:ring-1 dark:ring-foreground/10"
           onClick={(e) => e.stopPropagation()}
           data-testid="event-recur-edit"
         >
-          <h3 className="text-base font-semibold text-gray-900">반복 일정 수정</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-base font-semibold text-foreground">반복 일정 수정</h3>
+          <p className="text-sm text-muted-foreground">
             이 회차만 수정할까요, 전체 반복 일정을 수정할까요?
           </p>
           <div className="space-y-2 pt-1">
@@ -573,7 +576,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
               onClick={() => doSave("occurrence")}
               disabled={busy}
               data-testid="event-recur-edit-one"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+              className="w-full rounded border border-input px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
             >
               이 회차만 수정
             </button>
@@ -581,7 +584,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
               onClick={() => doSave("series")}
               disabled={busy}
               data-testid="event-recur-edit-series"
-              className="w-full rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className="w-full rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               전체 반복 일정 수정
             </button>
@@ -589,7 +592,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
               onClick={() => setShowRecurEdit(false)}
               disabled={busy}
               data-testid="event-recur-edit-cancel"
-              className="w-full rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="w-full rounded px-3 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
             >
               취소
             </button>
@@ -604,12 +607,12 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
         onClick={() => !busy && setShowRecurDelete(false)}
       >
         <div
-          className="w-80 space-y-3 rounded-lg bg-white p-5 shadow-lg"
+          className="w-80 space-y-3 rounded-lg bg-card p-5 shadow-lg dark:ring-1 dark:ring-foreground/10"
           onClick={(e) => e.stopPropagation()}
           data-testid="event-recur-delete"
         >
-          <h3 className="text-base font-semibold text-gray-900">반복 일정 삭제</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-base font-semibold text-foreground">반복 일정 삭제</h3>
+          <p className="text-sm text-muted-foreground">
             이 일정만 삭제할까요, 전체 반복 일정을 삭제할까요?
           </p>
           <div className="space-y-2 pt-1">
@@ -617,7 +620,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
               onClick={() => doDelete("occurrence")}
               disabled={busy}
               data-testid="event-recur-delete-one"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+              className="w-full rounded border border-input px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
             >
               이 일정만 삭제
             </button>
@@ -633,7 +636,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
               onClick={() => setShowRecurDelete(false)}
               disabled={busy}
               data-testid="event-recur-delete-cancel"
-              className="w-full rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="w-full rounded px-3 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
             >
               취소
             </button>

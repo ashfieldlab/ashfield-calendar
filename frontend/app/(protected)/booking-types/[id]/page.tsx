@@ -129,13 +129,13 @@ export default function BookingTypeDetailPage({
 
   if (error) {
     return (
-      <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+      <div className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300">
         불러오지 못했습니다. 잠시 후 다시 시도해주세요.
       </div>
     )
   }
   if (isLoading || !bt) {
-    return <p className="text-sm text-gray-500">불러오는 중…</p>
+    return <p className="text-sm text-muted-foreground">불러오는 중…</p>
   }
 
   return (
@@ -143,12 +143,12 @@ export default function BookingTypeDetailPage({
       <Link
         href="/booking-types"
         data-testid="booking-type-detail-back"
-        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft size={12} /> 예약 양식 목록
       </Link>
       <header className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 truncate text-2xl font-bold text-gray-900" title={bt.title}>
+        <h1 className="min-w-0 truncate text-2xl font-bold text-foreground" title={bt.title}>
           {bt.title}
         </h1>
         <div className="flex shrink-0 items-center gap-1">
@@ -156,7 +156,7 @@ export default function BookingTypeDetailPage({
             onClick={copyLink}
             title="공개 URL 복사"
             data-testid="booking-type-detail-copy"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <Copy size={16} />
           </button>
@@ -166,7 +166,7 @@ export default function BookingTypeDetailPage({
             rel="noopener noreferrer"
             title="공개 페이지 열기"
             data-testid="booking-type-detail-open"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <ExternalLink size={16} />
           </a>
@@ -174,7 +174,7 @@ export default function BookingTypeDetailPage({
             onClick={() => setShowQr(true)}
             title="QR 코드"
             data-testid="booking-type-detail-qr"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <QrCode size={16} />
           </button>
@@ -182,7 +182,7 @@ export default function BookingTypeDetailPage({
             onClick={rotateKey}
             title="공개 URL 재발급"
             data-testid="booking-type-detail-rotate"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <RotateCw size={16} />
           </button>
@@ -190,24 +190,24 @@ export default function BookingTypeDetailPage({
             onClick={deleteBT}
             title="삭제"
             data-testid="booking-type-detail-delete"
-            className="rounded p-1.5 text-gray-500 hover:bg-rose-50 hover:text-rose-600"
+            className="rounded p-1.5 text-muted-foreground hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
           >
             <Trash2 size={16} />
           </button>
         </div>
       </header>
-      <p className="text-xs text-gray-500">
-        공개 URL: <code className="rounded bg-gray-100 px-1.5 py-0.5">{publicUrl(bt.public_key)}</code>
+      <p className="text-xs text-muted-foreground">
+        공개 URL: <code className="rounded bg-muted px-1.5 py-0.5">{publicUrl(bt.public_key)}</code>
       </p>
 
       <BookingTypeForm initial={bt} onSubmit={save} busy={busy} />
 
       {/* Booking 목록 */}
       <section className="space-y-2 pt-4">
-        <h2 className="text-base font-semibold text-gray-900">들어온 예약</h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <h2 className="text-base font-semibold text-foreground">들어온 예약</h2>
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm" data-testid="bookings-list">
-            <thead className="bg-gray-50 text-left text-xs text-gray-500">
+            <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 font-medium">일시</th>
                 <th className="px-4 py-2 font-medium">고객</th>
@@ -216,36 +216,36 @@ export default function BookingTypeDetailPage({
                 <th className="w-24 px-4 py-2 text-right" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/60">
               {(bookings?.items ?? []).map((b) => (
                 <tr
                   key={b.id}
                   data-testid={`booking-row-${b.id}`}
-                  className="hover:bg-gray-50"
+                  className="hover:bg-muted/50"
                 >
-                  <td className="px-4 py-2 text-gray-700">
+                  <td className="px-4 py-2 text-foreground/80">
                     {formatDateTime(b.slot_start_at)}
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex flex-col">
-                      <span className="text-gray-900">
+                      <span className="text-foreground">
                         {b.customer_name ?? "-"}
                       </span>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-[11px] text-muted-foreground">
                         {b.customer_email ?? "-"}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-gray-600 truncate max-w-md">
+                  <td className="px-4 py-2 text-muted-foreground truncate max-w-md">
                     {b.customer_message || "-"}
                   </td>
                   <td className="px-4 py-2">
                     {b.status === "active" ? (
-                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">
+                      <span className="rounded bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
                         예약
                       </span>
                     ) : (
-                      <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-700">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground/80">
                         취소
                       </span>
                     )}
@@ -257,7 +257,7 @@ export default function BookingTypeDetailPage({
                           onClick={() => setRescheduling(b)}
                           title="시간 변경"
                           data-testid={`booking-row-${b.id}-reschedule`}
-                          className="rounded p-1 text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+                          className="rounded p-1 text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400"
                         >
                           <CalendarClock size={14} />
                         </button>
@@ -265,7 +265,7 @@ export default function BookingTypeDetailPage({
                           onClick={() => cancelBooking(b.id)}
                           title="취소"
                           data-testid={`booking-row-${b.id}-cancel`}
-                          className="rounded p-1 text-gray-500 hover:bg-rose-50 hover:text-rose-600"
+                          className="rounded p-1 text-muted-foreground hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
                         >
                           <XCircle size={14} />
                         </button>
@@ -278,7 +278,7 @@ export default function BookingTypeDetailPage({
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-8 text-center text-sm text-gray-500"
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     아직 예약이 없습니다.
                   </td>

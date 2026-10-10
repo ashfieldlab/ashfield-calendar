@@ -28,7 +28,7 @@ export default function RoomsSettingsPage() {
   if (!isWorkspaceAdmin) {
     return (
       <div
-        className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
+        className="rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-6 text-sm text-amber-800 dark:text-amber-200"
         data-testid="rooms-no-permission"
       >
         워크스페이스 관리자만 접근할 수 있습니다.
@@ -86,30 +86,30 @@ export default function RoomsSettingsPage() {
     >
       <Link
         href="/settings"
-        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         data-testid="rooms-settings-back"
       >
         <ArrowLeft size={12} /> 설정으로
       </Link>
       <header className="flex items-center gap-2">
-        <DoorOpen size={20} className="text-gray-600" />
-        <h1 className="text-2xl font-bold text-gray-900">회의실 관리</h1>
+        <DoorOpen size={20} className="text-muted-foreground" />
+        <h1 className="text-2xl font-bold text-foreground">회의실 관리</h1>
       </header>
 
-      <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-white p-4">
+      <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card p-4">
         <div className="flex-1 min-w-[10rem]">
-          <label className="mb-1 block text-xs font-medium text-gray-600">이름</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">이름</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="예: 회의실 A"
             data-testid="rooms-name-input"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </div>
         <div className="w-28">
-          <label className="mb-1 block text-xs font-medium text-gray-600">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
             정원 (선택)
           </label>
           <input
@@ -119,32 +119,32 @@ export default function RoomsSettingsPage() {
             onChange={(e) => setCapacity(e.target.value)}
             placeholder="6"
             data-testid="rooms-capacity-input"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </div>
         <button
           onClick={add}
           disabled={busy || !name.trim()}
           data-testid="rooms-add-button"
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           추가
         </button>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300">
           불러오지 못했습니다. 잠시 후 다시 시도해주세요.
         </div>
       ) : isLoading ? (
-        <div className="text-sm text-gray-500">불러오는 중…</div>
+        <div className="text-sm text-muted-foreground">불러오는 중…</div>
       ) : rooms.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-input p-8 text-center text-sm text-muted-foreground">
           등록된 회의실이 없습니다.
         </div>
       ) : (
         <ul
-          className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white"
+          className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border bg-card"
           data-testid="rooms-list"
         >
           {rooms.map((r) => (
@@ -154,15 +154,15 @@ export default function RoomsSettingsPage() {
               className="flex items-center justify-between px-4 py-3"
             >
               <div className="min-w-0">
-                <span className="truncate font-medium text-gray-900">{r.name}</span>
+                <span className="truncate font-medium text-foreground">{r.name}</span>
                 {r.capacity != null && (
-                  <span className="ml-2 text-xs text-gray-500">{r.capacity}인</span>
+                  <span className="ml-2 text-xs text-muted-foreground">{r.capacity}인</span>
                 )}
               </div>
               <button
                 onClick={() => remove(r.id, r.name)}
                 data-testid={`rooms-row-${r.id}-delete`}
-                className="shrink-0 rounded p-1.5 text-gray-400 hover:bg-rose-50 hover:text-rose-600"
+                className="shrink-0 rounded p-1.5 text-muted-foreground/70 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
                 aria-label="삭제"
               >
                 <Trash2 size={16} />

@@ -44,9 +44,9 @@ function Row({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">
         {label}
-        {hint && <span className="ml-2 text-gray-400">{hint}</span>}
+        {hint && <span className="ml-2 text-muted-foreground/70">{hint}</span>}
       </label>
       {children}
     </div>
@@ -169,7 +169,7 @@ export function BookingTypeForm({
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6" data-testid="booking-type-form">
+    <div className="space-y-4 rounded-lg border border-border bg-card p-6" data-testid="booking-type-form">
       {!initial && (
         <Row label="소유">
           <div className="flex gap-3 text-sm">
@@ -202,7 +202,7 @@ export function BookingTypeForm({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="예: 30분 상담"
           data-testid="booking-type-form-title"
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded border border-input px-3 py-2 text-sm"
         />
       </Row>
       <Row label="안내 문구">
@@ -211,7 +211,7 @@ export function BookingTypeForm({
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
           data-testid="booking-type-form-description"
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded border border-input px-3 py-2 text-sm"
         />
       </Row>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -223,7 +223,7 @@ export function BookingTypeForm({
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
             data-testid="booking-type-form-duration"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </Row>
         <Row label="정원">
@@ -233,7 +233,7 @@ export function BookingTypeForm({
             value={capacity}
             onChange={(e) => setCapacity(Number(e.target.value))}
             data-testid="booking-type-form-capacity"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </Row>
       </div>
@@ -247,7 +247,7 @@ export function BookingTypeForm({
             value={availableFrom}
             onChange={(e) => setAvailableFrom(e.target.value)}
             data-testid="booking-type-form-available-from"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </Row>
         <Row label="종료 날짜">
@@ -256,7 +256,7 @@ export function BookingTypeForm({
             value={availableTo}
             onChange={(e) => setAvailableTo(e.target.value)}
             data-testid="booking-type-form-available-to"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </Row>
         <Row label="최소 예약 전 (분)">
@@ -266,7 +266,7 @@ export function BookingTypeForm({
             value={minimumNotice}
             onChange={(e) => setMinimumNotice(Number(e.target.value))}
             data-testid="booking-type-form-min-notice"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-input px-3 py-2 text-sm"
           />
         </Row>
       </div>
@@ -278,7 +278,7 @@ export function BookingTypeForm({
           value={lookaheadDays}
           onChange={(e) => setLookaheadDays(Number(e.target.value))}
           data-testid="booking-type-form-lookahead-days"
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded border border-input px-3 py-2 text-sm"
         />
       </Row>
       <Row label="예약 들어갈 캘린더">
@@ -286,7 +286,7 @@ export function BookingTypeForm({
           value={targetCalendarId}
           onChange={(e) => setTargetCalendarId(e.target.value)}
           data-testid="booking-type-form-target-cal"
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded border border-input px-3 py-2 text-sm"
         >
           <option value="">선택</option>
           {targetCandidates.map((c) => (
@@ -297,9 +297,9 @@ export function BookingTypeForm({
         </select>
       </Row>
       <Row label="충돌 체크 캘린더" hint="겹치는 슬롯을 자동 제외">
-        <div className="space-y-1 rounded border border-gray-200 bg-gray-50 p-2">
+        <div className="space-y-1 rounded border border-border bg-muted/50 p-2">
           {blockingCandidates.length === 0 ? (
-            <p className="text-xs text-gray-500">사용 가능한 캘린더 없음</p>
+            <p className="text-xs text-muted-foreground">사용 가능한 캘린더 없음</p>
           ) : (
             blockingCandidates.map((c) => (
               <label
@@ -321,7 +321,7 @@ export function BookingTypeForm({
       </Row>
       <Row label="예약 알림 받을 사람">
         {ownerType === "workspace" && workspaceMembers.length > 0 ? (
-          <div className="space-y-1 rounded border border-gray-200 bg-gray-50 p-2">
+          <div className="space-y-1 rounded border border-border bg-muted/50 p-2">
             {workspaceMembers.map((m) => {
               const checked = notifyUserSubs.includes(m.user_sub)
               return (
@@ -342,12 +342,12 @@ export function BookingTypeForm({
                     }
                     data-testid={`booking-type-form-notify-${m.user_sub}-input`}
                   />
-                  <span className="text-gray-900">
+                  <span className="text-foreground">
                     {m.name ?? m.user_sub}
                   </span>
-                  <span className="text-[11px] text-gray-500">{m.email ?? ""}</span>
+                  <span className="text-[11px] text-muted-foreground">{m.email ?? ""}</span>
                   {m.role === "admin" && (
-                    <span className="rounded bg-blue-100 px-1 py-0.5 text-[10px] text-blue-800">
+                    <span className="rounded bg-blue-100 dark:bg-blue-900/40 px-1 py-0.5 text-[10px] text-blue-800 dark:text-blue-300">
                       admin
                     </span>
                   )}
@@ -356,7 +356,7 @@ export function BookingTypeForm({
             })}
           </div>
         ) : (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {ownerType === "user"
               ? "본인"
               : "선택할 멤버가 없습니다."}
@@ -370,7 +370,7 @@ export function BookingTypeForm({
           onChange={(e) => setPrivacyUrl(e.target.value)}
           placeholder="https://..."
           data-testid="booking-type-form-privacy-url"
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded border border-input px-3 py-2 text-sm"
         />
       </Row>
       <Row label="시간대">
@@ -379,15 +379,15 @@ export function BookingTypeForm({
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
           data-testid="booking-type-form-timezone"
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded border border-input px-3 py-2 text-sm"
         />
       </Row>
-      <div className="flex justify-end border-t border-gray-200 pt-4">
+      <div className="flex justify-end border-t border-border pt-4">
         <button
           onClick={save}
           disabled={busy}
           data-testid="booking-type-form-save"
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {submitLabel}
         </button>

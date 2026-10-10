@@ -45,7 +45,7 @@ export function DraftAttendees({ value, onChange, startAt, endAt }: Props) {
 
       {conflicts.length > 0 && (
         <div
-          className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800"
+          className="flex items-start gap-1.5 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-200"
           data-testid="event-form-attendee-conflicts"
         >
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />

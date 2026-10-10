@@ -152,7 +152,7 @@ export default function PublicBookPage({
   if (loadError) {
     return (
       <div
-        className="rounded-lg border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"
+        className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-6 text-sm text-rose-700 dark:text-rose-300"
         data-testid="book-page-error"
       >
         {loadError}
@@ -161,29 +161,29 @@ export default function PublicBookPage({
   }
 
   if (!bt) {
-    return <p className="text-sm text-gray-500">불러오는 중…</p>
+    return <p className="text-sm text-muted-foreground">불러오는 중…</p>
   }
 
   if (success) {
     return (
       <div
-        className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50 p-6"
+        className="space-y-4 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-6"
         data-testid="book-page-success"
       >
-        <div className="flex items-center gap-2 text-emerald-800">
+        <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
           <CheckCircle2 size={22} />
           <h1 className="text-lg font-semibold">예약 접수 완료</h1>
         </div>
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-foreground/80">
           <strong>{success.title}</strong> 예약이 정상 접수되었습니다.
           <br />
           일시: {formatLocal(success.slot_start_at)}
         </p>
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-foreground/80">
           입력하신 이메일로 안내 메일을 발송했습니다. 변경·취소가 필요하시면
           메일의 링크를 사용해주세요.
         </p>
-        <p className="text-xs text-gray-500">감사합니다.</p>
+        <p className="text-xs text-muted-foreground">감사합니다.</p>
       </div>
     )
   }
@@ -191,28 +191,28 @@ export default function PublicBookPage({
   return (
     <div className="space-y-6" data-testid="book-page">
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-wide text-gray-500">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {bt.organization_name}
         </p>
         <div className="flex items-center gap-2">
-          <CalendarClock size={20} className="text-gray-600" />
-          <h1 className="break-words text-xl font-bold text-gray-900">{bt.title}</h1>
+          <CalendarClock size={20} className="text-muted-foreground" />
+          <h1 className="break-words text-xl font-bold text-foreground">{bt.title}</h1>
         </div>
-        <p className="text-sm text-gray-600">{bt.duration_minutes}분 소요</p>
+        <p className="text-sm text-muted-foreground">{bt.duration_minutes}분 소요</p>
         {bt.description && (
-          <p className="whitespace-pre-line pt-2 text-sm text-gray-700">
+          <p className="whitespace-pre-line pt-2 text-sm text-foreground/80">
             {bt.description}
           </p>
         )}
       </header>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-900">시간 선택</h2>
+        <h2 className="text-sm font-semibold text-foreground">시간 선택</h2>
         {slotsLoading ? (
-          <p className="text-sm text-gray-500">슬롯 조회 중…</p>
+          <p className="text-sm text-muted-foreground">슬롯 조회 중…</p>
         ) : slots.length === 0 ? (
           <p
-            className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500"
+            className="rounded border border-dashed border-input p-6 text-center text-sm text-muted-foreground"
             data-testid="book-page-no-slots"
           >
             가능한 시간이 없습니다. 잠시 후 다시 시도해주세요.
@@ -228,10 +228,10 @@ export default function PublicBookPage({
 
       {chosen && (
         <section
-          className="space-y-3 rounded-lg border border-gray-200 bg-white p-4"
+          className="space-y-3 rounded-lg border border-border bg-card p-4"
           data-testid="book-page-form"
         >
-          <h2 className="text-sm font-semibold text-gray-900">
+          <h2 className="text-sm font-semibold text-foreground">
             정보 입력 ({formatLocal(chosen)})
           </h2>
           <Field label="이름">
@@ -240,7 +240,7 @@ export default function PublicBookPage({
               value={name}
               onChange={(e) => setName(e.target.value)}
               data-testid="book-page-name"
-              className="w-full rounded border border-gray-300 px-3 py-2.5 text-base"
+              className="w-full rounded border border-input px-3 py-2.5 text-base"
               required
             />
           </Field>
@@ -250,7 +250,7 @@ export default function PublicBookPage({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               data-testid="book-page-email"
-              className="w-full rounded border border-gray-300 px-3 py-2.5 text-base"
+              className="w-full rounded border border-input px-3 py-2.5 text-base"
               required
             />
           </Field>
@@ -260,7 +260,7 @@ export default function PublicBookPage({
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
               data-testid="book-page-message"
-              className="w-full rounded border border-gray-300 px-3 py-2.5 text-base"
+              className="w-full rounded border border-input px-3 py-2.5 text-base"
             />
           </Field>
 
@@ -284,7 +284,7 @@ export default function PublicBookPage({
           />
 
           {submitError && (
-            <p className="rounded border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+            <p className="rounded border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-2 text-xs text-rose-700 dark:text-rose-300">
               {submitError}
             </p>
           )}
@@ -292,7 +292,7 @@ export default function PublicBookPage({
             onClick={submit}
             disabled={submitting || !name || !email || !consent}
             data-testid="book-page-submit"
-            className="w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white hover:bg-gray-800 active:bg-black disabled:opacity-50"
+            className="w-full rounded-md bg-primary px-4 py-3 text-base font-medium text-primary-foreground hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50"
           >
             {submitting ? "처리 중…" : "예약하기"}
           </button>
@@ -461,7 +461,7 @@ const SlotGrid = memo(function SlotGrid({
         <div className="min-w-0 space-y-2">
           {selectedBucket ? (
             <>
-              <p className="text-sm font-semibold text-gray-700">
+              <p className="text-sm font-semibold text-foreground/80">
                 {selectedBucket.date.toLocaleDateString("ko-KR", {
                   month: "long",
                   day: "numeric",
@@ -479,7 +479,7 @@ const SlotGrid = memo(function SlotGrid({
                       className={`rounded-md border px-2 py-3 text-sm font-medium transition ${
                         isChosen
                           ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                          : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 active:bg-gray-100"
+                          : "border-input bg-card text-foreground/80 hover:border-muted-foreground/50 active:bg-muted"
                       }`}
                     >
                       {s.time}
@@ -494,7 +494,7 @@ const SlotGrid = memo(function SlotGrid({
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-500">날짜를 선택해주세요.</p>
+            <p className="text-sm text-muted-foreground">날짜를 선택해주세요.</p>
           )}
         </div>
       </div>
@@ -555,7 +555,7 @@ function MonthCalendar({
 
   return (
     <div
-      className="rounded-lg border border-gray-200 bg-white p-3"
+      className="rounded-lg border border-border bg-card p-3"
       data-testid="book-page-calendar"
     >
       <div className="mb-2 flex items-center justify-between">
@@ -564,22 +564,22 @@ function MonthCalendar({
           disabled={!onPrev}
           aria-label="이전 달"
           data-testid="book-page-calendar-prev"
-          className="rounded p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+          className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
         >
           ‹
         </button>
-        <span className="text-sm font-semibold text-gray-900">{monthLabel}</span>
+        <span className="text-sm font-semibold text-foreground">{monthLabel}</span>
         <button
           onClick={onNext ?? undefined}
           disabled={!onNext}
           aria-label="다음 달"
           data-testid="book-page-calendar-next"
-          className="rounded p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+          className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
         >
           ›
         </button>
       </div>
-      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-gray-400">
+      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted-foreground/70">
         {["일", "월", "화", "수", "목", "금", "토"].map((d, i) => (
           <span
             key={d}
@@ -604,10 +604,10 @@ function MonthCalendar({
               data-testid={`book-page-day-${c.ymd}`}
               className={`aspect-square rounded text-sm transition ${
                 isSelected
-                  ? "bg-gray-900 font-semibold text-white"
+                  ? "bg-primary font-semibold text-primary-foreground"
                   : isAvail
-                    ? "bg-blue-50 font-medium text-blue-700 hover:bg-blue-100"
-                    : "text-gray-300"
+                    ? "bg-blue-50 dark:bg-blue-950/40 font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                    : "text-muted-foreground/50"
               }`}
             >
               {c.day}
@@ -643,8 +643,8 @@ function DateChips({
             data-testid={`book-page-day-chip-${b.ymd}`}
             className={`flex shrink-0 snap-start flex-col items-center rounded-lg border px-3 py-2 text-center transition ${
               isSelected
-                ? "border-gray-900 bg-gray-900 text-white"
-                : "border-gray-200 bg-white text-gray-700 active:bg-gray-100"
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-card text-foreground/80 active:bg-muted"
             }`}
           >
             <span className="text-[10px] font-medium opacity-70">
@@ -672,7 +672,7 @@ function ConsentBox({
 }) {
   return (
     <label
-      className="flex gap-2 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700"
+      className="flex gap-2 rounded border border-border bg-muted/50 p-3 text-xs text-foreground/80"
       data-testid="book-page-consent-label"
     >
       <input
@@ -695,7 +695,7 @@ function ConsentBox({
               target="_blank"
               rel="noopener noreferrer"
               data-testid="book-page-privacy-link"
-              className="text-blue-700 underline"
+              className="text-blue-700 dark:text-blue-300 underline"
             >
               개인정보 처리방침
             </a>
@@ -717,9 +717,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">
         {label}
-        {hint && <span className="ml-2 text-gray-400">{hint}</span>}
+        {hint && <span className="ml-2 text-muted-foreground/70">{hint}</span>}
       </label>
       {children}
     </div>

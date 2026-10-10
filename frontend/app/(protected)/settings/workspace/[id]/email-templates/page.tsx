@@ -81,7 +81,7 @@ export default function EmailTemplatesPage({
   if (!isWorkspaceAdmin) {
     return (
       <div
-        className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
+        className="rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-6 text-sm text-amber-800 dark:text-amber-200"
         data-testid="email-templates-no-permission"
       >
         워크스페이스 관리자만 접근할 수 있습니다.
@@ -90,10 +90,10 @@ export default function EmailTemplatesPage({
   }
 
   if (isLoading || !list)
-    return <div className="p-6 text-sm text-gray-500">불러오는 중…</div>
+    return <div className="p-6 text-sm text-muted-foreground">불러오는 중…</div>
   if (error)
     return (
-      <div className="m-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+      <div className="m-6 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300">
         불러오지 못했습니다. 잠시 후 다시 시도해주세요.
       </div>
     )
@@ -183,22 +183,22 @@ export default function EmailTemplatesPage({
       className="h-full space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
       data-testid="email-templates-page"
     >
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link
           href={`/settings/workspace/${workspaceId}/smtp`}
           data-testid="email-templates-back-link"
-          className="inline-flex items-center gap-1 rounded p-1 hover:bg-gray-100"
+          className="inline-flex items-center gap-1 rounded p-1 hover:bg-muted"
         >
           <ArrowLeft size={14} /> 워크스페이스 설정
         </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">이메일 템플릿</h1>
+        <span className="text-muted-foreground/50">/</span>
+        <h1 className="text-2xl font-bold text-foreground">이메일 템플릿</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
         {/* 좌측: 이벤트 종류 리스트 */}
         <nav
-          className="space-y-1 rounded-lg border border-gray-200 bg-white p-2"
+          className="space-y-1 rounded-lg border border-border bg-card p-2"
           data-testid="email-templates-list"
         >
           {list.items.map((item) => {
@@ -210,8 +210,8 @@ export default function EmailTemplatesPage({
                 data-testid={`email-templates-row-${item.event_type}`}
                 className={`flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm ${
                   active
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/80 hover:bg-muted/50"
                 }`}
               >
                 <span>{item.label}</span>
@@ -219,8 +219,8 @@ export default function EmailTemplatesPage({
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] ${
                       active
-                        ? "bg-white/20 text-white"
-                        : "bg-blue-50 text-blue-700"
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                     }`}
                   >
                     커스텀
@@ -229,8 +229,8 @@ export default function EmailTemplatesPage({
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] ${
                       active
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     기본
@@ -243,9 +243,9 @@ export default function EmailTemplatesPage({
 
         {/* 우측: 편집기 */}
         {detail && (
-          <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+          <div className="space-y-3 rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-900">
+              <h2 className="text-sm font-semibold text-foreground">
                 {detail.label}
               </h2>
               {detail.overridden && (
@@ -253,7 +253,7 @@ export default function EmailTemplatesPage({
                   onClick={resetToDefault}
                   disabled={busy}
                   data-testid="email-templates-reset-button"
-                  className="inline-flex items-center gap-1 rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted/50 disabled:opacity-50"
                 >
                   <RotateCcw size={12} /> 기본값으로
                 </button>
@@ -261,7 +261,7 @@ export default function EmailTemplatesPage({
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 제목
               </label>
               <input
@@ -269,16 +269,16 @@ export default function EmailTemplatesPage({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 data-testid="email-templates-subject-input"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded border border-input px-3 py-2 text-sm"
               />
             </div>
 
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="block text-xs font-medium text-gray-600">
+                <label className="block text-xs font-medium text-muted-foreground">
                   본문 {isHtml ? "(HTML)" : "(텍스트)"}
                 </label>
-                <label className="flex items-center gap-1 text-xs text-gray-600">
+                <label className="flex items-center gap-1 text-xs text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={isHtml}
@@ -293,7 +293,7 @@ export default function EmailTemplatesPage({
                 onChange={(e) => setBody(e.target.value)}
                 rows={10}
                 data-testid="email-templates-body-input"
-                className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm"
+                className="w-full rounded border border-input px-3 py-2 font-mono text-sm"
                 placeholder={
                   isHtml
                     ? "<p>안녕하세요 {customer_name}님...</p>"
@@ -304,9 +304,9 @@ export default function EmailTemplatesPage({
 
             {isHtml && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   대체 본문 (텍스트){" "}
-                  <span className="text-gray-400">
+                  <span className="text-muted-foreground/70">
                     비우면 HTML 태그 자동 strip
                   </span>
                 </label>
@@ -315,14 +315,14 @@ export default function EmailTemplatesPage({
                   onChange={(e) => setTextFallback(e.target.value)}
                   rows={4}
                   data-testid="email-templates-text-fallback-input"
-                  className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm"
+                  className="w-full rounded border border-input px-3 py-2 font-mono text-sm"
                   placeholder="HTML 미지원 메일 클라이언트용 대체 본문"
                 />
               </div>
             )}
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 사용 가능한 변수
               </label>
               <div className="flex flex-wrap gap-1">
@@ -331,7 +331,7 @@ export default function EmailTemplatesPage({
                     key={v}
                     onClick={() => insertVar(v)}
                     data-testid={`email-templates-var-${v}`}
-                    className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-xs text-gray-700 hover:bg-gray-100"
+                    className="rounded border border-border bg-muted/50 px-2 py-0.5 font-mono text-xs text-foreground/80 hover:bg-muted"
                   >
                     {`{${v}}`}
                   </button>
@@ -339,12 +339,12 @@ export default function EmailTemplatesPage({
               </div>
             </div>
 
-            <div className="flex gap-2 border-t border-gray-100 pt-3">
+            <div className="flex gap-2 border-t border-border/60 pt-3">
               <button
                 onClick={runPreview}
                 disabled={busy}
                 data-testid="email-templates-preview-button"
-                className="inline-flex items-center gap-1 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded border border-input px-3 py-1.5 text-sm text-foreground/80 hover:bg-muted/50 disabled:opacity-50"
               >
                 <Eye size={14} /> 미리보기
               </button>
@@ -352,7 +352,7 @@ export default function EmailTemplatesPage({
                 onClick={save}
                 disabled={busy}
                 data-testid="email-templates-save-button"
-                className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 저장
               </button>
@@ -360,13 +360,13 @@ export default function EmailTemplatesPage({
 
             {preview && (
               <div
-                className="rounded border border-blue-100 bg-blue-50/40 p-3 text-sm"
+                className="rounded border border-blue-100 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/30 p-3 text-sm"
                 data-testid="email-templates-preview"
               >
-                <div className="mb-1 text-xs font-medium text-gray-500">
+                <div className="mb-1 text-xs font-medium text-muted-foreground">
                   미리보기
                 </div>
-                <div className="mb-2 font-semibold text-gray-900">
+                <div className="mb-2 font-semibold text-foreground">
                   {preview.subject}
                 </div>
                 {preview.is_html ? (
@@ -374,11 +374,11 @@ export default function EmailTemplatesPage({
                     srcDoc={preview.body}
                     sandbox=""
                     data-testid="email-templates-preview-iframe"
-                    className="h-72 w-full rounded border border-gray-200 bg-white"
+                    className="h-72 w-full rounded border border-border bg-card"
                     title="이메일 미리보기"
                   />
                 ) : (
-                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
                     {preview.body}
                   </pre>
                 )}
