@@ -10,7 +10,7 @@
 [ADR-0013](0013-ics-subscription.md) 의 ICS subscription 으로 단방향 read 는 커버되지만, 운영자가 본인 자체 호스팅 Nextcloud / Apple Calendar / Thunderbird 에서 일정을 **만들고·수정**하길 원하는 요구. 양방향 sync 가 필요.
 
 핵심 제약:
-- **외부 CalDAV 클라이언트는 HTTP Basic 만 보냄** (OAuth 받는 클라이언트 거의 없음 — DAVx5 일부 제외). NextAuth/Keycloak JWT 직접 전송 불가.
+- **외부 CalDAV 클라이언트는 HTTP Basic 만 보냄** (OAuth 받는 클라이언트 거의 없음 — DAVx5 일부 제외). 웹 로그인용 JWT(Better Auth, 5분 수명) 직접 전송 불가.
 - **JWT exp 가 짧음** (수십 분). 캘린더 앱은 수년간 한 번 등록하고 쓰는 패턴.
 - **CalDAV 풀구현은 1-2개월**, 클라이언트 quirk 매트릭스 큼.
 - **Python 생태계에 동급 CalDAV 라이브러리 없음**. Radicale 도 호환성 충분하지만 우리 도메인 모델과 통합 시 plugin API ergonomic 떨어짐.
@@ -28,7 +28,7 @@ Sabre 의 12년치 클라이언트 quirk 패치 (Nextcloud·iCloud 기반) 그�
                                           PostgreSQL
 ```
 
-### 2. 인증 = DB-backed App Token (NextAuth JWT 와 별도)
+### 2. 인증 = DB-backed App Token (웹 로그인 JWT 와 별도)
 
 외부 클라이언트가 OAuth 못 보내므로 long-lived 토큰 발급 모델. GitHub PAT·Nextcloud App Password 패턴.
 
@@ -39,7 +39,7 @@ CalDavToken {
 }
 ```
 
-- 토큰 발급: FastAPI 의 `/api/v1/me/caldav-tokens` (NextAuth JWT 인증 + active_company 강제)
+- 토큰 발급: FastAPI 의 `/api/v1/me/caldav-tokens` (Better Auth JWT 인증 + active_company 강제)
 - 발급 시 임의 secret (`secrets.token_urlsafe(32)`) 생성 → bcrypt hash 만 DB 저장 → 평문은 **한 번만** 사용자에게 표시
 - 사용자가 캘린더 앱에 HTTP Basic 으로 입력:
   - username = `user_sub`
@@ -131,7 +131,7 @@ private function currentUserSub(): ?string {
 | Radicale (Python) + custom plugin | X | plugin API ergonomic 약함. 클라이언트 호환성 운영 검증 적음 |
 | Baïkal (PHP Sabre 래퍼) + DB sync | X | sync 어댑터가 CalDAV 절반 작업. Baïkal storage 가 master 라 우리 도메인 모델과 어긋남 |
 | Python 으로 CalDAV 풀구현 | X | 1-2개월 + 클라이언트 quirk 매트릭스. Sabre 12년치 무시 |
-| App Token 대신 NextAuth JWT 직전송 | X | 외부 클라 OAuth 못 함, exp 짧음 |
+| App Token 대신 웹 로그인 JWT 직전송 | X | 외부 클라 OAuth 못 함, exp 짧음 |
 | App Token 대신 self-contained JWT | X | revoke 어려움 (blacklist 운영 부담) |
 | 회사 격리 = 모든 회사 통합 view | X | 같은 user 가 회사 A·B 멤버일 때 캘린더 섞임. 토큰 분리가 명확 |
 

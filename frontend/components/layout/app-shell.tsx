@@ -21,7 +21,7 @@ import { signOutAction } from "@/lib/actions/auth"
 import { APP } from "@/lib/apps"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { authUser, companies, activeCompanyId, setActiveCompany, isSystemAdmin } =
+  const { authUser, companies, companyNames, activeCompanyId, setActiveCompany, isSystemAdmin } =
     useAppContext()
   const pathname = usePathname() ?? ""
   const router = useRouter()
@@ -37,8 +37,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 
   const companyOptions: CompanyOption[] = useMemo(
-    () => companies.map((c) => ({ id: c, name: c })),
-    [companies],
+    () => companies.map((c) => ({ id: c, name: companyNames[c] ?? c })),
+    [companies, companyNames],
   )
 
   const sidebarRenderLink = (
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         user={{ name: authUser.name ?? authUser.email ?? undefined }}
         isServiceAdmin={isSystemAdmin}
         onLogout={async () => {
-          // 게이트웨이 세션·Keycloak SSO 종료 주소를 받아 하드 이동 (외부 URL 이라 router X).
+          // Better Auth 세션 종료 후 받은 주소로 하드 이동 (가드·AppContext 를 새로 태움).
           window.location.href = await signOutAction()
         }}
         onBasicSettings={() => router.push("/settings")}

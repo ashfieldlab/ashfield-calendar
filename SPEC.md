@@ -1,6 +1,8 @@
 # Ashfield Calendar — Implementation Spec
 
 이 문서는 Ashfield Calendar의 구현 spec — 초기 스켈레톤에서 상속된 기반(§1~§8) + 도메인 모델(§9~). 일부 기반 절(NextAuth·Item 예제·파일 스토리지)은 역사적 기록이며 현재 코드와 다를 수 있다.
+
+> **인증 개정 (2026-10)**: 인증·테넌시 관련 절(§2.1~2.2 NextAuth/Keycloak, §3.3~3.9 JWKS·revocation·lazy upsert, §4.4~4.5 `SKIP_AUTH`·dev-keys)은 **Better Auth + JWKS** 로 대체되었다 — [ADR-0023](docs/adr/0023-better-auth-jwks.md), 개정된 [ADR-0003](docs/adr/0003-backend-jwt-validation-and-redis-revocation.md)·[ADR-0004](docs/adr/0004-tenancy-via-jwt-groups-with-lazy-upsert-cache.md). `SKIP_AUTH`·dev-keys·게이트웨이 세션·Keycloak 은 더 이상 없다. 아래 해당 절은 역사적 기록이다.
 도메인 용어는 [CONTEXT.md](CONTEXT.md), 핵심 아키텍처 결정은 [docs/adr/](docs/adr/) 참조.
 
 ---
@@ -30,9 +32,6 @@ ashfield-calendar/
 ├── .env.example                   ← 모든 환경변수 예시
 ├── docs/
 │   └── adr/                       ← 아키텍처 결정 기록
-├── dev-keys/                      ← SKIP_AUTH용 RSA 키 페어 (commit)
-│   ├── private.pem
-│   └── public.pem
 ├── frontend/                      ← Next.js 16
 │   ├── CLAUDE.md
 │   ├── package.json
@@ -75,7 +74,7 @@ ashfield-calendar/
 │   │   ├── api-client.ts          ← 클라이언트 사이드 fetch
 │   │   ├── env.ts
 │   │   ├── session.ts
-│   │   ├── dev-jwt.ts             ← SKIP_AUTH 모드 JWT 발급
+│   │   ├── auth/                  ← Better Auth (server.ts·session.ts·client.ts)
 │   │   ├── constants/
 │   │   ├── types/
 │   │   ├── hooks/
@@ -903,16 +902,16 @@ make frontend   # localhost:3000
 | # | 항목 | 본 문서 섹션 |
 |---|------|------|
 | 1 | 프로젝트 정체성 | 0 |
-| 2 | NextAuth + JWT 다이렉트 (이후 게이트웨이 세션으로 대체, Auth.js 로 재도입 예정) | 2.1 |
+| 2 | ~~NextAuth + JWT 다이렉트~~ → Better Auth (Google·GitHub) + BFF JWT | ADR-0023 |
 | 3 | 모노레포 frontend/+backend/ | 1, ADR-0002 |
-| 4 | 백엔드 JWT 검증 + Redis revocation | 3.3-3.6, ADR-0003 |
-| 5 | sid 기반 back-channel logout | 3.6, ADR-0003 |
+| 4 | 백엔드 JWT 검증 (JWKS) — Redis revocation 폐기 | ADR-0003, ADR-0023 |
+| 5 | ~~sid 기반 back-channel logout~~ (폐기, JWT 5분) | ADR-0003 |
 | 6 | 로그 카테고리 6/4개 | 2.7, 3.11 |
 | 7 | Hybrid 워크플로우 | 4.1, 4.2 |
 | 8 | 레벨 2 + admin 예제 | 3.10, 6 |
-| 9 | 즉시 IDP 리다이렉트 | 2.2 |
-| 10 | 멀티테넌트 JWT groups + X-Active-Company-Id | 2.5, 3.8, ADR-0004 |
-| 11 | users/companies 캐시 + lazy upsert (Redis throttle) | 3.7, 3.9, ADR-0004 |
+| 9 | ~~즉시 IDP 리다이렉트~~ → 자체 로그인 화면 (소셜 버튼) | ADR-0023 |
+| 10 | 멀티테넌트 로컬 DB 멤버십 + X-Active-Company-Id | 2.5, ADR-0004 |
+| 11 | users upsert + 개인 워크스페이스 자동 생성 | ADR-0004, ADR-0023 |
 | 12 | UI: shadcn + Pretendard | 2.8, 2.12 |
 | 13 | Testing: pytest + Vitest + Playwright + Storybook | 2.10, 2.11, 3.13 |
 | 14 | Error: sonner + 글로벌 에러 페이지 + SWR 핸들러 | 2.6, 3.12 |
@@ -923,7 +922,7 @@ make frontend   # localhost:3000
 | 19 | testid 컨벤션 | 2.9, 5.4 |
 | 20 | CLAUDE.md 모노레포 계층 | 5.5 |
 | 21 | ESLint testid 강제 rule | 5.3 |
-| 22 | SKIP_AUTH = signed dev JWT | 2.1, 3.3, 4.5 |
+| 22 | ~~SKIP_AUTH = signed dev JWT~~ → `AUTH_DEV_PASSWORD_LOGIN` (비운영 전용) | ADR-0023 |
 
 
 

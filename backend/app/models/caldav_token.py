@@ -1,7 +1,7 @@
 """CalDAV App Token (ADR-0014) — long-lived bcrypt 해시 토큰.
 
 외부 캘린더 클라이언트가 HTTP Basic 으로 보낼 username:password 의 password 자리.
-NextAuth/Keycloak JWT 와 별도 (외부 클라 OAuth 못 보냄, JWT exp 짧음).
+웹 로그인 JWT(Better Auth)와 별도 (외부 클라 OAuth 못 보냄, JWT exp 짧음).
 
 발급:
   - 사용자가 우리 앱에서 발급 → 평문은 응답 1회만 노출 → bcrypt hash 만 DB 저장

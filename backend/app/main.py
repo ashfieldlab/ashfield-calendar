@@ -8,7 +8,6 @@ from fastapi import FastAPI
 import app.services.calendar_sync_log  # noqa: F401
 from app.api.public_router import public_api_router
 from app.api.router import api_router
-from app.auth.backchannel import router as backchannel_router
 from app.core.logging import logger, setup_logging
 from app.core.redis import close_redis
 from app.middleware.error_handler import register_error_handlers
@@ -31,8 +30,8 @@ ashfield-calendar 백엔드: 일정·예약 SaaS.
 
 | 헤더 | 값 | 비고 |
 |------|----|------|
-| `Authorization` | `Bearer <JWT>` | OIDC IdP 발급. JWKS 로 서명 검증. |
-| `X-Active-Company-Id` | JWT `groups[i]` 중 하나 | 멀티 테넌트. 헤더가 JWT groups 에 없으면 403. |
+| `Authorization` | `Bearer <JWT>` | Better Auth(JWT 플러그인) 발급. `AUTH_JWKS_URL` 로 서명·iss·aud 검증. |
+| `X-Active-Company-Id` | 소속 회사 ID 중 하나 | 멀티 테넌트. `/api/v1/me` 의 `groups`. 소속이 아니면 403. |
 | `X-Request-ID` | UUID 등 trace id | 로그/응답 헤더에 echo. 없으면 자동 발급. |
 
 ## 표준 응답 코드
@@ -43,7 +42,7 @@ ashfield-calendar 백엔드: 일정·예약 SaaS.
 | 201 | 생성됨. body 에 새 리소스. |
 | 204 | OK, body 없음 |
 | 400 | 요청 자체가 잘못됨 |
-| 401 | 인증 실패 (토큰 없음·만료·서명 불일치·revoke) |
+| 401 | 인증 실패 (토큰 없음·만료·서명·iss·aud 불일치) |
 | 403 | 인증은 됐지만 권한 없음 |
 | 404 | 리소스 없음 — 다른 회사 리소스도 404 로 마스킹 |
 | 409 | 상태 충돌 (예: 회의실 시간 겹침) |
@@ -55,7 +54,7 @@ ashfield-calendar 백엔드: 일정·예약 SaaS.
 """
 
 _TAGS_METADATA = [
-    {"name": "auth", "description": "현재 사용자(JWT) 정보."},
+    {"name": "auth", "description": "현재 사용자 정보 (첫 호출 시 개인 워크스페이스 생성)."},
     {"name": "calendars", "description": "캘린더 CRUD + 개인 가시 토글. 외부 ICS 구독은 source=external_ics."},
     {"name": "events", "description": "일정 CRUD + 범위 occurrence 풀어보기 + .ics export + 초대."},
     {"name": "notifications", "description": "in-app 알림 목록·읽음 처리·이메일 수신 설정."},
@@ -63,7 +62,7 @@ _TAGS_METADATA = [
     {"name": "audit", "description": "관리자 전용. 회사 mutation 감사 로그."},
     {"name": "activity", "description": "본인 관련 변경 타임라인 (audit_logs 중 본인 행동/본인 관련 entity)."},
     {"name": "search", "description": "일정 검색."},
-    {"name": "company", "description": "회사 멤버 자동완성용 캐시 조회."},
+    {"name": "company", "description": "회사 멤버 자동완성·멤버 관리."},
 ]
 
 
@@ -85,7 +84,6 @@ register_error_handlers(app)
 # 라우터
 app.include_router(api_router)
 app.include_router(public_api_router)  # ADR-0011 — 비인증, JWT dependency 없음
-app.include_router(backchannel_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["meta"], summary="헬스 체크")

@@ -2,7 +2,7 @@
 
 멀티테넌트 일정·예약 앱. 파일 앱(ashfield-drive)과는 레포·백엔드·DB가 별개. FastAPI + Next.js, 회사(Tenant) 단위 격리.
 
-회원가입·회사 등록은 외부 IdP 책임. 본 서비스는 검증된 신원(JWT 또는 게이트웨이 세션)을 받아 처리만.
+로그인은 앱 안의 Better Auth(Google·GitHub)가 담당하고, 백엔드는 Better Auth JWT 를 JWKS 로 검증한다 (ADR-0023). 회사 소속은 로컬 DB 가 원천 — 첫 로그인 시 개인 워크스페이스가 자동으로 생긴다 (ADR-0004).
 
 ## Language
 
@@ -51,7 +51,7 @@ BookingType 의 가용 규칙에서 계산되는 예약 가능 시간 단위. **
 ## Relationships
 
 - **Workspace = 회사** (skeleton의 Company와 동일)
-- 한 **User**는 0~N개의 **Workspace**(회사)에 속함 (JWT.groups)
+- 한 **User**는 1~N개의 **Workspace**(회사)에 속함 (`user_company_memberships`). 첫 로그인 시 개인 워크스페이스(`personal-{sub}`, 본인 admin)가 생기고, 회사 admin 이 이메일로 다른 사용자를 추가한다.
 - 한 **User**는 한 **Workspace** 안에 N개의 personal **Calendar** 보유 가능
 - **Workspace** 안에 N개의 shared **Calendar** — 회사 전 멤버 자동 노출
 - **Event**는 한 **Calendar**에 속함
@@ -64,5 +64,5 @@ BookingType 의 가용 규칙에서 계산되는 예약 가능 시간 단위. **
 - "**Workspace**"는 회사 단위 테넌트. UI 측은 "현재 회사", "활성 회사"로 호칭.
 - "**캘린더 공유**"는 Phase 1엔 `scope='shared'`만 의미. Phase 1.5에 명시 grant 도입.
 - "**예약**"이 (1) 외부 고객의 Booking (2) 운영자가 본인 캘린더에 만든 일정 두 가지로 호칭될 수 있음. 본 문서는 (1)만 Booking, (2)는 Event 로 명확 구분. 한국어 UI 도 일관 — "예약 양식" 은 BookingType, "예약" 은 Booking, 운영자 직접 입력은 "일정".
-- "**Admin**" 이 (1) IdP realm role 'admin' = System Admin (2) `user_company_memberships.role='admin'` = Company Admin 두 축. JWT 의 admin role 은 (1), DB 의 role 컬럼은 (2). UI 에서 "관리자"라고 단독 호칭 시엔 (1) 디폴트, "회사 관리자"는 (2).
+- "**Admin**" 이 (1) System Admin (`users.is_system_admin` 또는 `SYSTEM_ADMIN_EMAILS`) (2) `user_company_memberships.role='admin'` = Company Admin 두 축. UI 에서 "관리자"라고 단독 호칭 시엔 (1) 디폴트, "회사 관리자"는 (2).
 - "**알림**" 이 (1) NotificationBell in-app (`Notification` 테이블) (2) 이메일 발송 (`send_for_event`) (3) Webhook 발송 (4) 캘린더 reminder cron 네 채널 다 의미. emit 시 셋 다 자동 fan-out 되도록 dispatcher 가 묶음 — 직접 호출 X.

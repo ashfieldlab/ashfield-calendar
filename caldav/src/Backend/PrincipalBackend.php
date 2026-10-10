@@ -6,7 +6,7 @@ use Sabre\DAVACL\PrincipalBackend\AbstractBackend;
 use Sabre\DAV\PropPatch;
 
 /**
- * Principal = Sabre 의 user 식별자. 우리에겐 user_sub (Keycloak) 가 곧 principal.
+ * Principal = Sabre 의 user 식별자. 우리에겐 user_sub (Better Auth 사용자 ID = users.id) 가 곧 principal.
  *
  * principal URI 규약: 'principals/{user_sub}'
  *
