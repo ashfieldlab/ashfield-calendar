@@ -289,7 +289,7 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:px-5">
-          <Button variant="outline" size="sm" onClick={() => fcApi()?.today()} data-testid="calendar-today-button">
+          <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => fcApi()?.today()} data-testid="calendar-today-button">
             오늘
           </Button>
           <div className="flex">
@@ -319,7 +319,7 @@ export default function CalendarPage() {
           </span>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="inline-flex rounded-lg bg-muted p-0.5 text-sm" role="radiogroup" aria-label="보기">
+            <div className="inline-flex h-8 items-center rounded-lg bg-muted p-0.5 text-sm" role="radiogroup" aria-label="보기">
               {VIEW_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -330,15 +330,15 @@ export default function CalendarPage() {
                   data-testid={`calendar-view-${opt.value}`}
                   className={
                     view === opt.value
-                      ? "rounded-md bg-background px-3 py-1 font-medium shadow-sm"
-                      : "rounded-md px-3 py-1 font-medium text-muted-foreground hover:text-foreground"
+                      ? "h-7 rounded-md bg-background px-3 font-medium shadow-sm"
+                      : "h-7 rounded-md px-3 font-medium text-muted-foreground hover:text-foreground"
                   }
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <Button onClick={openNewEvent} size="sm" className="gap-1.5" data-testid="calendar-new-event-button">
+            <Button onClick={openNewEvent} size="sm" className="h-8 gap-1.5 px-3" data-testid="calendar-new-event-button">
               <Plus className="size-4" />
               <span className="hidden sm:inline">새 일정</span>
             </Button>
