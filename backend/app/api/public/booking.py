@@ -1,12 +1,12 @@
 """공개 booking 라우트: 비인증 (ADR-0011/0012).
 
 엔드포인트:
-  GET    /booking/{public_key}               : BookingType 공개 정보 (회사 이름 + 양식)
+  GET    /booking/{public_key}               : BookingType 공개 정보 (워크스페이스 이름 + 양식)
   GET    /booking/{public_key}/slots         : 가용 슬롯 (range_from/range_to)
   POST   /booking/{public_key}/submit        : 예약 제출 (honeypot + rate limit + 동의)
   POST   /booking/cancel/{cancel_token}      : 취소
 
-노출 정보 최소화 (ADR-0011): 회사 이름 + 양식 title/description/duration 만.
+노출 정보 최소화 (ADR-0011): 워크스페이스 이름 + 양식 title/description/duration 만.
 운영자 신원·이메일 노출 X. 다른 예약자 정보 노출 X.
 
 보호: honeypot 필드 + rate limit (IP + email) + audit log.
@@ -30,8 +30,8 @@ from app.middleware.rate_limit import (
     get_rate_limits,
 )
 from app.models.booking_type import BookingType
-from app.models.company import Company
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.services.audit import write_audit
 from app.services.booking import (
     available_slots,
@@ -62,7 +62,7 @@ class PublicBookingTypeResponse(BaseModel):
     minimum_notice_minutes: int
     lookahead_days: int
     privacy_policy_url: str | None
-    # 회사 이름만 (운영자 이름·이메일은 X)
+    # 워크스페이스 이름만 (운영자 이름·이메일은 X)
     organization_name: str
 
 
@@ -117,11 +117,11 @@ async def _organization_branding(
     db: AsyncSession, bt: BookingType
 ) -> tuple[str, str | None]:
     """노출용: (name, logo_url). user-owned 면 logo_url 없음."""
-    if bt.owner_company_id:
-        c = await db.get(Company, bt.owner_company_id)
+    if bt.owner_workspace_id:
+        c = await db.get(Workspace, bt.owner_workspace_id)
         if c is not None:
             return c.name, c.logo_url
-        return bt.owner_company_id, None
+        return bt.owner_workspace_id, None
     # user-owned: 운영자 이름 노출 X. 도메인만 fallback, logo 없음.
     if bt.owner_user_sub:
         u = await db.get(User, bt.owner_user_sub)
@@ -150,7 +150,7 @@ def _client_ip(request: Request, x_forwarded_for: str | None) -> str:
 @router.get(
     "/{public_key}",
     response_model=PublicBookingTypeResponse,
-    summary="공개 BookingType 정보 (회사 이름 + 양식)",
+    summary="공개 BookingType 정보 (워크스페이스 이름 + 양식)",
 )
 async def get_public_booking_type(
     request: Request,
@@ -269,7 +269,7 @@ async def submit_booking(
     )
     await write_audit(
         db,
-        company_id=bt.owner_company_id,  # NULL OK (D-1)
+        workspace_id=bt.owner_workspace_id,  # NULL OK (D-1)
         actor=None,
         actor_type="public",              # 공개 라우트 (ADR-0011)
         action="create",
@@ -325,11 +325,11 @@ async def cancel(
     await check_ip_limit(ip, per_ip)
 
     booking = await cancel_booking(db, cancel_token=cancel_token, by="customer")
-    # audit: booking_type 의 owner 회사로 연결 가능하면
+    # audit: booking_type 의 owner 워크스페이스로 연결 가능하면
     bt = await db.get(BookingType, booking.booking_type_id)
     await write_audit(
         db,
-        company_id=bt.owner_company_id if bt else None,
+        workspace_id=bt.owner_workspace_id if bt else None,
         actor=None,
         actor_type="public",
         action="delete",

@@ -19,7 +19,7 @@ const ENTITY_LABEL: Record<string, string> = {
   event: "일정",
   notification: "알림",
   webhook: "Webhook",
-  company_membership: "회사 멤버",
+  workspace_membership: "워크스페이스 멤버",
   system_smtp_config: "전역 SMTP 설정",
   booking_type: "예약 양식",
   booking: "예약",

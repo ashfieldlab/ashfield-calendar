@@ -1,6 +1,6 @@
-"""/api/v1/companies/{id}/members: Company Admin 의 멤버 조회 (읽기 전용).
+"""/api/v1/workspaces/{id}/members: Workspace Admin 의 멤버 조회 (읽기 전용).
 
-System Admin 도 통과 (require_company_admin super-set). 다른 회사 침범은 path
+System Admin 도 통과 (require_workspace_admin super-set). 다른 워크스페이스 침범은 path
 검증으로 막힘.
 
 멤버 추가·제거·역할 변경은 Ashfield 계정 서버에서 한다 (ADR-0024): 앱의 멤버십은
@@ -17,26 +17,26 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import require_company_admin
+from app.auth.dependencies import require_workspace_admin
 from app.core.db import get_db
-from app.models.company import Company
 from app.models.user import User
-from app.models.user_company_membership import UserCompanyMembership
+from app.models.user_workspace_membership import UserWorkspaceMembership
+from app.models.workspace import Workspace
 
-router = APIRouter(prefix="/companies/{company_id}/members", tags=["company"])
+router = APIRouter(prefix="/workspaces/{workspace_id}/members", tags=["workspace"])
 
-CompanyRole = Literal["admin", "member"]
+WorkspaceRole = Literal["admin", "member"]
 
 
 class MemberItem(BaseModel):
     user_sub: str
     email: str | None
     name: str | None
-    role: CompanyRole
+    role: WorkspaceRole
 
 
 class MemberListResponse(BaseModel):
-    # 계정 서버 워크스페이스 ID. NULL = 로컬(레거시) 회사: 계정 서버에서 관리할 수 없음.
+    # 계정 서버 워크스페이스 ID. NULL = 로컬(레거시) 워크스페이스: 계정 서버에서 관리할 수 없음.
     account_workspace_id: str | None = None
     members: list[MemberItem]
 
@@ -44,25 +44,25 @@ class MemberListResponse(BaseModel):
 @router.get(
     "",
     response_model=MemberListResponse,
-    summary="회사 멤버 + role 목록 (Company Admin)",
+    summary="워크스페이스 멤버 + role 목록 (Workspace Admin)",
 )
 async def list_members(
-    company_id: str = Path(...),
-    _: UserContext = Depends(require_company_admin),
+    workspace_id: str = Path(...),
+    _: UserContext = Depends(require_workspace_admin),
     db: AsyncSession = Depends(get_db),
 ) -> MemberListResponse:
-    company = await db.get(Company, company_id)
-    if company is None:
-        raise HTTPException(404, "Company not found")
+    workspace = await db.get(Workspace, workspace_id)
+    if workspace is None:
+        raise HTTPException(404, "Workspace not found")
     stmt = (
-        select(UserCompanyMembership, User)
-        .join(User, User.id == UserCompanyMembership.user_sub)
-        .where(UserCompanyMembership.company_id == company_id)
-        .order_by(UserCompanyMembership.role.desc(), User.name)
+        select(UserWorkspaceMembership, User)
+        .join(User, User.id == UserWorkspaceMembership.user_sub)
+        .where(UserWorkspaceMembership.workspace_id == workspace_id)
+        .order_by(UserWorkspaceMembership.role.desc(), User.name)
     )
     rows = (await db.execute(stmt)).all()
     return MemberListResponse(
-        account_workspace_id=company.account_workspace_id,
+        account_workspace_id=workspace.account_workspace_id,
         members=[
             MemberItem(
                 user_sub=m.user_sub,

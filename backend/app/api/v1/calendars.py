@@ -1,6 +1,6 @@
 """/api/v1/calendars: 캘린더 CRUD + 개인 가시 토글 + 외부 ICS 구독.
 
-자동 가시 (ADR-0007): 회사의 모든 shared 캘린더 + 본인 personal 캘린더 자동 노출.
+자동 가시 (ADR-0007): 워크스페이스의 모든 shared 캘린더 + 본인 personal 캘린더 자동 노출.
 ICS URL 구독 방식의 재공유 불가 한계를 우회.
 
 외부 ICS:
@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import get_current_user, require_active_company
+from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.models.calendar import Calendar
 from app.models.calendar_event import CalendarEvent
@@ -51,7 +51,7 @@ def _to_response(
 ) -> CalendarResponse:
     return CalendarResponse(
         id=cal.id,
-        company_id=cal.company_id,
+        workspace_id=cal.workspace_id,
         owner_id=cal.owner_id,
         scope=cal.scope,
         source=cal.source,
@@ -73,12 +73,12 @@ def _to_response(
 )
 async def list_calendars(
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalendarListResponse:
     # 기본 공휴일 캘린더 idempotent 시드 (없으면 생성 후 목록에 포함).
-    await ensure_holidays_calendar(db, company_id=company_id, actor_sub=user.sub)
-    visible = await list_visible_calendars(db, company_id=company_id, user=user)
+    await ensure_holidays_calendar(db, workspace_id=workspace_id, actor_sub=user.sub)
+    visible = await list_visible_calendars(db, workspace_id=workspace_id, user=user)
     return CalendarListResponse(
         calendars=[_to_response(c, p) for c, p in visible]
     )
@@ -98,13 +98,13 @@ async def list_calendars(
 async def create_calendar(
     body: CalendarCreate,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalendarResponse:
     is_external = bool(body.external_ics_url)
     cal = Calendar(
         id=new_id(),
-        company_id=company_id,
+        workspace_id=workspace_id,
         owner_id=user.sub,
         scope=body.scope,
         source="external_ics" if is_external else "native",
@@ -122,7 +122,7 @@ async def create_calendar(
 
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="create",
         entity_type="calendar",
@@ -144,18 +144,18 @@ async def create_calendar(
     summary="캘린더 메타 수정 (이름·색·설명)",
     responses={
         403: {"description": "write 권한 없음: personal 의 owner 아님"},
-        404: {"description": "없거나 다른 회사"},
+        404: {"description": "없거나 다른 워크스페이스"},
     },
 )
 async def patch_calendar(
     calendar_id: str,
     body: CalendarPatch,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalendarResponse:
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.managed:
         raise HTTPException(403, "관리형 캘린더는 편집할 수 없습니다")
     for k, v in body.model_dump(exclude_unset=True).items():
@@ -177,7 +177,7 @@ async def patch_calendar(
 async def export_calendar_ics(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """단일 VCALENDAR 안에 캘린더의 모든 활성 이벤트 VEVENT 로 export.
@@ -189,7 +189,7 @@ async def export_calendar_ics(
     from app.api.v1.events import _event_to_vevent
 
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
 
     events = list(
         (
@@ -237,19 +237,19 @@ async def export_calendar_ics(
 async def delete_calendar(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     from datetime import UTC, datetime
 
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.managed:
         raise HTTPException(403, "관리형 캘린더는 삭제할 수 없습니다 (숨김만 가능)")
     cal.deleted_at = datetime.now(UTC)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="delete",
         entity_type="calendar",
@@ -269,11 +269,11 @@ async def patch_preferences(
     calendar_id: str,
     body: CalendarPreferencePatch,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalendarResponse:
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
     fields = body.model_dump(exclude_unset=True)
     pref = await upsert_preference(
         db,
@@ -300,16 +300,16 @@ async def patch_preferences(
 async def refresh_calendar(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalendarResponse:
     """외부 ICS 캘린더 재동기화: owner 또는 admin 만."""
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     await refresh_external_calendar(db, cal=cal, actor_sub=user.sub)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="update",
         entity_type="calendar",
@@ -339,19 +339,19 @@ async def import_ics(
     calendar_id: str,
     file: UploadFile = File(..., description="ICS 파일"),
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> IcsImportResponse:
     """업로드된 .ics 파일의 master VEVENT 들을 캘린더에 적재. 파일 자체는 저장 안 함."""
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.source != "native":
         raise HTTPException(400, "Only native calendars accept ICS import")
     body = await file.read()
     imported = await import_ics_bytes(db, cal=cal, body=body, actor_sub=user.sub)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="import_ics",
         entity_type="calendar",
@@ -376,7 +376,7 @@ class SubscriptionResponse(BaseModel):
 async def _assert_can_manage_subscription(
     db: AsyncSession, cal: Calendar, user: UserContext
 ) -> None:
-    """ADR-0013 권한 분기: personal=소유자, shared=company admin."""
+    """ADR-0013 권한 분기: personal=소유자, shared=workspace admin."""
     if cal.scope == "personal":
         if cal.owner_id != user.sub:
             raise HTTPException(403, "Forbidden")
@@ -384,9 +384,9 @@ async def _assert_can_manage_subscription(
     # shared
     if user.is_system_admin:
         return
-    from app.models.user_company_membership import UserCompanyMembership
+    from app.models.user_workspace_membership import UserWorkspaceMembership
 
-    membership = await db.get(UserCompanyMembership, (user.sub, cal.company_id))
+    membership = await db.get(UserWorkspaceMembership, (user.sub, cal.workspace_id))
     if membership is not None and membership.role == "admin":
         return
     raise HTTPException(403, "Forbidden")
@@ -412,11 +412,11 @@ def _subscription_response(cal: Calendar) -> SubscriptionResponse:
 async def get_subscription(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> SubscriptionResponse:
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
     await _assert_can_manage_subscription(db, cal, user)
     return _subscription_response(cal)
 
@@ -429,20 +429,20 @@ async def get_subscription(
 async def enable_subscription(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> SubscriptionResponse:
     from app.services.ics_subscription import new_subscription_token
 
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     await _assert_can_manage_subscription(db, cal, user)
     if not cal.subscription_token:
         cal.subscription_token = new_subscription_token()
     cal.subscription_enabled = True
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="ics_subscription_enable",
         entity_type="calendar",
@@ -461,20 +461,20 @@ async def enable_subscription(
 async def rotate_subscription(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> SubscriptionResponse:
     from app.services.ics_subscription import new_subscription_token
 
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     await _assert_can_manage_subscription(db, cal, user)
     if not cal.subscription_enabled:
         raise HTTPException(400, "Subscription is not enabled")
     cal.subscription_token = new_subscription_token()
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="ics_subscription_rotate",
         entity_type="calendar",
@@ -493,17 +493,17 @@ async def rotate_subscription(
 async def disable_subscription(
     calendar_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     cal = await get_calendar_or_404(db, calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     await _assert_can_manage_subscription(db, cal, user)
     cal.subscription_enabled = False
     cal.subscription_token = None
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="ics_subscription_disable",
         entity_type="calendar",

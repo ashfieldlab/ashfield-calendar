@@ -1,6 +1,6 @@
 """UserCalendarPreference: 캘린더별 개인 토글 (hidden, color override).
 
-자동 가시 (ADR-0007): 회사 shared 캘린더는 별도 구독 없이 모두 보임. 사용자가 안 보고 싶으면 hidden=true.
+자동 가시 (ADR-0007): 워크스페이스 shared 캘린더는 별도 구독 없이 모두 보임. 사용자가 안 보고 싶으면 hidden=true.
 """
 
 from sqlalchemy import Boolean, ForeignKey, String

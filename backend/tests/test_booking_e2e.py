@@ -25,7 +25,7 @@ _TO = _MON + timedelta(days=1)
 
 
 async def _setup(client, auth_headers):
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
     res = await client.post(
         "/api/v1/calendars",
         headers=h,

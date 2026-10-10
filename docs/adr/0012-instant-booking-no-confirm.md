@@ -57,7 +57,7 @@
 
 ## 동의·보관
 
-PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권리)을 폼 안에 인라인 표시. 별도 약관 페이지 X: 회사 측 부담 최소화. 동의 미체크 시 제출 차단. `Booking.agreed_at` 에 timestamp 기록.
+PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권리)을 폼 안에 인라인 표시. 별도 약관 페이지 X: 워크스페이스 측 부담 최소화. 동의 미체크 시 제출 차단. `Booking.agreed_at` 에 timestamp 기록.
 
 보관 기간은 `slot_end_at + 30일`. `purge_expired_booking_pii` cron (기존 trash purge 패턴) 이 매일 1회 만료 row 의 `customer_name/customer_email/message/cancel_token` NULL 로 마스킹: row 자체는 통계용 보존.
 
@@ -97,5 +97,5 @@ PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권�
 ## 참고
 
 - ADR-0007: 캘린더 모델 (Booking 이 여기 CalendarEvent 로 매핑)
-- ADR-0010: 회사 admin 권한 (BookingType.owner_type=company 인 경우 require_company_admin)
+- ADR-0010: 워크스페이스 admin 권한 (BookingType.owner_type=workspace 인 경우 require_workspace_admin)
 - ADR-0011: 공개 라우트 카브-아웃 (이 모델이 위에서 동작)

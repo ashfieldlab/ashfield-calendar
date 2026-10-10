@@ -43,7 +43,7 @@ def mock_ics(monkeypatch):
 async def test_create_external_ics_fetches_and_imports(
     client: AsyncClient, auth_headers, mock_ics
 ):
-    h = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    h = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     r = await client.post(
         "/api/v1/calendars",
         json={
@@ -74,7 +74,7 @@ async def test_create_external_ics_fetches_and_imports(
 async def test_cannot_add_event_to_external_calendar(
     client: AsyncClient, auth_headers, mock_ics
 ):
-    h = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    h = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",
@@ -105,7 +105,7 @@ async def test_refresh_reloads_events(
     client: AsyncClient, auth_headers, monkeypatch
 ):
     """refresh 호출 시 새 응답으로 이벤트가 교체된다."""
-    h = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    h = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
 
     state = {"body": SAMPLE_ICS}
 

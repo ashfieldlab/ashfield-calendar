@@ -1,7 +1,7 @@
-"""회사별 이메일 템플릿 override: 외부 고객용 3종(booking_*_customer)만 대상.
+"""워크스페이스별 이메일 템플릿 override: 외부 고객용 3종(booking_*_customer)만 대상.
 
 resolve 순서 (services/email_template.py):
-  CompanyEmailTemplate[company_id, event_type] → app/services/email.py 의 _TEMPLATES
+  WorkspaceEmailTemplate[workspace_id, event_type] → app/services/email.py 의 _TEMPLATES
 
 내부 알림(event_invited 등)은 운영자만 보므로 커스텀 가치 낮음 → 화이트리스트
 외부.
@@ -15,12 +15,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
 
-class CompanyEmailTemplate(Base):
-    __tablename__ = "company_email_templates"
+class WorkspaceEmailTemplate(Base):
+    __tablename__ = "workspace_email_templates"
 
-    company_id: Mapped[str] = mapped_column(
+    workspace_id: Mapped[str] = mapped_column(
         String(128),
-        ForeignKey("companies.id", ondelete="CASCADE"),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
         primary_key=True,
     )
     event_type: Mapped[str] = mapped_column(String(64), primary_key=True)

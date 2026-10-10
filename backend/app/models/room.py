@@ -1,4 +1,4 @@
-"""Room: 회사 회의실 등 예약 가능한 물리 자원 (ADR-0019).
+"""Room: 워크스페이스 회의실 등 예약 가능한 물리 자원 (ADR-0019).
 
 Event 가 room_id 로 참조만 한다(캘린더에 묶이지 않음). 같은 Room 을 시간 겹치게
 예약하면 저장 차단(이중예약 불가): 충돌 체크는 services/rooms.py.
@@ -16,9 +16,9 @@ class Room(Base):
     __tablename__ = "rooms"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    company_id: Mapped[str] = mapped_column(
+    workspace_id: Mapped[str] = mapped_column(
         String(128),
-        ForeignKey("companies.id", ondelete="CASCADE"),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

@@ -20,10 +20,10 @@ def new_room_id() -> str:
 
 
 async def get_room_or_404(
-    db: AsyncSession, *, room_id: str, company_id: str
+    db: AsyncSession, *, room_id: str, workspace_id: str
 ) -> Room:
     room = await db.get(Room, room_id)
-    if room is None or room.company_id != company_id:
+    if room is None or room.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Room not found")
     return room
 
@@ -34,11 +34,11 @@ async def assert_room_free(
     room_id: str,
     start_at: datetime,
     end_at: datetime,
-    company_id: str,
+    workspace_id: str,
     exclude_event_id: str | None = None,
 ) -> None:
-    """room_id 가 [start, end) 에 이미 점유돼 있으면 409. 방이 회사 것이 아니면 404."""
-    await get_room_or_404(db, room_id=room_id, company_id=company_id)
+    """room_id 가 [start, end) 에 이미 점유돼 있으면 409. 방이 워크스페이스 것이 아니면 404."""
+    await get_room_or_404(db, room_id=room_id, workspace_id=workspace_id)
     conds = [
         CalendarEvent.room_id == room_id,
         CalendarEvent.deleted_at.is_(None),

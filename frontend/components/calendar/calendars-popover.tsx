@@ -174,7 +174,7 @@ export function CalendarsPopover({ calendars }: Props) {
               onSubscribe={setSubscribingCal}
             />
             <Section
-              title="회사 공유"
+              title="워크스페이스"
               items={shared}
               onToggle={togglePref}
               onRefresh={refreshIcs}
@@ -227,7 +227,7 @@ export function CalendarsPopover({ calendars }: Props) {
                   onChange={() => setScope("shared")}
                   data-testid="calendar-new-scope-shared"
                 />
-                회사 공유
+                워크스페이스
               </label>
             </div>
             <div className="flex items-center gap-2">

@@ -15,7 +15,7 @@ from app.models.calendar_object_change import CalendarObjectChange
 
 
 async def _make_calendar(client, auth_headers, db_session, sub="u1"):
-    h = auth_headers(sub, groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers(sub, groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     res = await client.post(
         "/api/v1/calendars",

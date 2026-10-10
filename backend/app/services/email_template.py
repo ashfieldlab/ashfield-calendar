@@ -1,6 +1,6 @@
 """이메일 템플릿 resolver + 변수 검증.
 
-회사 override 우선, 없으면 services/email.py 의 _TEMPLATES 시스템 기본.
+워크스페이스 override 우선, 없으면 services/email.py 의 _TEMPLATES 시스템 기본.
 
 대상 (CUSTOMIZABLE_EVENT_TYPES) 은 외부 고객용 3종만: 내부 알림은 운영자가 받기
 때문에 커스텀 가치 낮음. event_type 화이트리스트로 confused-deputy 방지.
@@ -14,14 +14,14 @@ import re
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessError
-from app.models.email_template import CompanyEmailTemplate
+from app.models.email_template import WorkspaceEmailTemplate
 
 
 def make_brand_html(organization_name: str, logo_url: str | None) -> str:
-    """헤더에 들어갈 회사 로고/이름 HTML 조각.
+    """헤더에 들어갈 워크스페이스 로고/이름 HTML 조각.
 
-    logo_url 등록 시 <img>, 미등록 시 회사명 텍스트로 fallback.
-    더미 이미지 사용 X: 등록 안 한 회사는 텍스트만 보임.
+    logo_url 등록 시 <img>, 미등록 시 워크스페이스 이름 텍스트로 fallback.
+    더미 이미지 사용 X: 등록 안 한 워크스페이스는 텍스트만 보임.
     """
     name_esc = html.escape(organization_name or "")
     if logo_url:
@@ -240,14 +240,14 @@ def validate_template(
 
 
 async def resolve_template(
-    db: AsyncSession, *, event_type: str, company_id: str | None
+    db: AsyncSession, *, event_type: str, workspace_id: str | None
 ) -> tuple[str, str] | None:
-    """company override → 시스템 기본 (_TEMPLATES). 둘 다 없으면 None.
+    """workspace override → 시스템 기본 (_TEMPLATES). 둘 다 없으면 None.
 
     리턴: (subject_template, body_template). 호환용: render 는 resolve_full_template 사용.
     """
     full = await resolve_full_template(
-        db, event_type=event_type, company_id=company_id
+        db, event_type=event_type, workspace_id=workspace_id
     )
     if full is None:
         return None
@@ -256,14 +256,14 @@ async def resolve_template(
 
 
 async def resolve_full_template(
-    db: AsyncSession, *, event_type: str, company_id: str | None
+    db: AsyncSession, *, event_type: str, workspace_id: str | None
 ) -> tuple[str, str, bool, str | None] | None:
-    """company override → 시스템 기본. 시스템 기본은 항상 plain text.
+    """workspace override → 시스템 기본. 시스템 기본은 항상 plain text.
 
     리턴: (subject, body, is_html, text_fallback_template_or_None).
     """
-    if company_id:
-        row = await db.get(CompanyEmailTemplate, (company_id, event_type))
+    if workspace_id:
+        row = await db.get(WorkspaceEmailTemplate, (workspace_id, event_type))
         if row is not None:
             return row.subject, row.body, row.is_html, row.text_fallback
     # lazy import to avoid circular

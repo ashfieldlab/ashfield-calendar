@@ -23,7 +23,7 @@ async def test_no_holidays_calendar_when_url_empty(
     client: AsyncClient, auth_headers, monkeypatch
 ):
     monkeypatch.setattr(settings, "holidays_ics_url", "")
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     r = await client.get("/api/v1/calendars", headers=a)
     assert r.status_code == 200
     assert [c for c in r.json()["calendars"] if c["managed"]] == []
@@ -32,7 +32,7 @@ async def test_no_holidays_calendar_when_url_empty(
 async def test_holidays_calendar_seeded_and_idempotent(
     client: AsyncClient, auth_headers, holidays_url
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     r = await client.get("/api/v1/calendars", headers=a)
     assert r.status_code == 200
     managed = [c for c in r.json()["calendars"] if c["managed"]]
@@ -50,7 +50,7 @@ async def test_holidays_calendar_seeded_and_idempotent(
 async def test_managed_calendar_undeletable_and_uneditable(
     client: AsyncClient, auth_headers, holidays_url
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cals = (await client.get("/api/v1/calendars", headers=a)).json()["calendars"]
     hol = next(c for c in cals if c["managed"])
 
@@ -67,7 +67,7 @@ async def test_managed_calendar_hideable_via_preference(
     client: AsyncClient, auth_headers, holidays_url
 ):
     """삭제는 못 해도 개인 숨김(preference)은 가능해야 한다."""
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cals = (await client.get("/api/v1/calendars", headers=a)).json()["calendars"]
     hol = next(c for c in cals if c["managed"])
     r = await client.patch(

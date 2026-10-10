@@ -1,4 +1,4 @@
-"""CalDAV App Token API (ADR-0014): 발급·목록·revoke + 회사 격리 + bcrypt 검증."""
+"""CalDAV App Token API (ADR-0014): 발급·목록·revoke + 워크스페이스 격리 + bcrypt 검증."""
 
 import bcrypt
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_create_returns_secret_once(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     res = await client.post(
         "/api/v1/me/caldav-tokens",
@@ -16,7 +16,7 @@ async def test_create_returns_secret_once(client, auth_headers):
     assert res.status_code == 201
     j = res.json()
     assert j["username"] == "u1"
-    assert j["company_id"] == "acme-corp"
+    assert j["workspace_id"] == "acme-corp"
     assert j["secret"].startswith("cdv_")
     assert len(j["secret"]) > 30
     assert j["server_url"].endswith("/caldav/")
@@ -25,7 +25,7 @@ async def test_create_returns_secret_once(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_list_excludes_secret(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     await client.post(
         "/api/v1/me/caldav-tokens", headers=h, json={"name": "Token A"}
@@ -42,7 +42,7 @@ async def test_secret_bcrypt_verifiable(client, auth_headers, db_session):
     """DB 의 hash 가 발급된 평문 secret 으로 verify 가능해야."""
     from app.models.caldav_token import CalDavToken
 
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     res = await client.post(
         "/api/v1/me/caldav-tokens", headers=h, json={"name": "verify-me"}
@@ -58,7 +58,7 @@ async def test_secret_bcrypt_verifiable(client, auth_headers, db_session):
 
 @pytest.mark.asyncio
 async def test_revoke_excludes_from_list(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     create = await client.post(
         "/api/v1/me/caldav-tokens", headers=h, json={"name": "to-revoke"}
@@ -74,14 +74,14 @@ async def test_revoke_excludes_from_list(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_cannot_revoke_others_token(client, auth_headers):
-    h1 = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h1 = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h1)
     create = await client.post(
         "/api/v1/me/caldav-tokens", headers=h1, json={"name": "u1-token"}
     )
     tid = create.json()["id"]
     # u2 가 u1 토큰 폐기 시도
-    h2 = auth_headers("u2", groups=["acme-corp"], active_company="acme-corp")
+    h2 = auth_headers("u2", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h2)
     res = await client.delete(
         f"/api/v1/me/caldav-tokens/{tid}", headers=h2
@@ -90,10 +90,10 @@ async def test_cannot_revoke_others_token(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_company_isolation_in_list(client, auth_headers):
-    """같은 user 가 두 회사 멤버여도 active company 의 토큰만 목록에 보임."""
+async def test_workspace_isolation_in_list(client, auth_headers):
+    """같은 user 가 두 워크스페이스 멤버여도 active workspace 의 토큰만 목록에 보임."""
     h_acme = auth_headers(
-        "u1", groups=["acme-corp", "beta-co"], active_company="acme-corp"
+        "u1", groups=["acme-corp", "beta-co"], active_workspace="acme-corp"
     )
     await client.get("/api/v1/me", headers=h_acme)
     await client.post(
@@ -101,7 +101,7 @@ async def test_company_isolation_in_list(client, auth_headers):
     )
 
     h_beta = auth_headers(
-        "u1", groups=["acme-corp", "beta-co"], active_company="beta-co"
+        "u1", groups=["acme-corp", "beta-co"], active_workspace="beta-co"
     )
     await client.get("/api/v1/me", headers=h_beta)
     await client.post(

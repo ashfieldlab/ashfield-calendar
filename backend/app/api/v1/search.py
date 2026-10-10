@@ -11,7 +11,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import get_current_user, require_active_company
+from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.models.calendar_event import CalendarEvent
 from app.models.calendar_event_invitation import CalendarEventInvitation
@@ -48,13 +48,13 @@ async def search(
     date_to: datetime | None = Query(None, description="일정 시작 < "),
     calendar_id: str | None = Query(None, description="특정 캘린더만"),
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> SearchResponse:
     pattern = f"%{q}%"
 
     # --- 일정: 가시 캘린더 + 초대받은 것 (이미 권한 정합) ---
-    visible = await list_visible_calendars(db, company_id=company_id, user=user)
+    visible = await list_visible_calendars(db, workspace_id=workspace_id, user=user)
     visible_ids = [c.id for c, _p in visible]
 
     event_filters = [

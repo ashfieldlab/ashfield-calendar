@@ -10,8 +10,8 @@ ACME = "tenant-a"
 
 @pytest.mark.asyncio
 async def test_room_crud_and_permissions(client: AsyncClient, auth_headers):
-    admin = auth_headers(ALICE, groups=[ACME], roles=["admin"], active_company=ACME)
-    member = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    admin = auth_headers(ALICE, groups=[ACME], roles=["admin"], active_workspace=ACME)
+    member = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
 
     r = await client.post(
         "/api/v1/rooms", json={"name": "회의실 A", "capacity": 6}, headers=admin
@@ -25,14 +25,14 @@ async def test_room_crud_and_permissions(client: AsyncClient, auth_headers):
     assert r.status_code == 200
     assert any(x["id"] == rid for x in r.json()["rooms"])
 
-    # 멤버는 생성 불가 (회사 관리자만)
+    # 멤버는 생성 불가 (워크스페이스 관리자만)
     r = await client.post("/api/v1/rooms", json={"name": "회의실 B"}, headers=member)
     assert r.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_room_double_booking_blocked(client: AsyncClient, auth_headers):
-    h = auth_headers(ALICE, groups=[ACME], roles=["admin"], active_company=ACME)
+    h = auth_headers(ALICE, groups=[ACME], roles=["admin"], active_workspace=ACME)
     room = (
         await client.post("/api/v1/rooms", json={"name": "회의실 A"}, headers=h)
     ).json()

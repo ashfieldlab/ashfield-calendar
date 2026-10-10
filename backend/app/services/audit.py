@@ -16,7 +16,7 @@ from app.models.audit_log import AuditLog
 async def write_audit(
     db: AsyncSession,
     *,
-    company_id: str | None,
+    workspace_id: str | None,
     actor: UserContext | None,
     action: str,
     entity_type: str,
@@ -34,7 +34,7 @@ async def write_audit(
     db.add(
         AuditLog(
             id=str(uuid.uuid7()),
-            company_id=company_id,
+            workspace_id=workspace_id,
             actor_sub=actor.sub if actor else None,
             actor_type=actor_type or ("user" if actor else "system"),
             action=action,

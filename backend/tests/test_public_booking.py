@@ -26,7 +26,7 @@ _TO = _MON + timedelta(days=1)
 
 async def _setup_bt(client, auth_headers, *, capacity=1):
     """alice 가 만든 personal 캘린더 + BookingType. public_key 반환."""
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
     res = await client.post(
         "/api/v1/calendars",
         headers=h,

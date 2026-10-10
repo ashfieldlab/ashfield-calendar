@@ -1,4 +1,4 @@
-import { E2E_USERS, setActiveCompany, setupSharedWorkspace, signOut } from "./auth"
+import { E2E_USERS, setActiveWorkspace, setupSharedWorkspace, signOut } from "./auth"
 import { createCalendar, selectCalendar, showListView, test, expect } from "./fixtures"
 
 test.describe("event invitations", () => {
@@ -7,13 +7,13 @@ test.describe("event invitations", () => {
     loginAs,
   }) => {
     // admin 의 공유 워크스페이스(계정 서버에서 생성·초대)에 member_a 가 들어온다.
-    const { companyId, memberSub } = await setupSharedWorkspace(
+    const { workspaceId, memberSub } = await setupSharedWorkspace(
       page,
       E2E_USERS.admin,
       E2E_USERS.member_a,
       `초대 팀 ${Date.now()}`,
     )
-    await setActiveCompany(page, companyId)
+    await setActiveWorkspace(page, workspaceId)
     await page.goto("/calendar")
 
     const calName = `초대-${Date.now()}`
@@ -39,9 +39,9 @@ test.describe("event invitations", () => {
     ).toBeVisible()
     await page.getByTestId("event-form-cancel-button").click()
 
-    // member_a 로 전환 (admin 의 워크스페이스를 활성 회사로): 초대받은 이벤트가 보여야 함
+    // member_a 로 전환 (admin 의 워크스페이스를 활성 워크스페이스로): 초대받은 이벤트가 보여야 함
     await signOut(page)
-    await setActiveCompany(page, companyId)
+    await setActiveWorkspace(page, workspaceId)
     await loginAs("member_a")
     await page.goto("/calendar")
     await showListView(page)

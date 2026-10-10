@@ -11,11 +11,11 @@ use Sabre\DAV\PropPatch;
 /**
  * 우리 캘린더 schema 와 Sabre CalDAV 추상화의 어댑터 (ADR-0014).
  *
- * 회사 격리: 매 backend 호출마다 (a) HTTP Basic Authorization 헤더의 username 으로
+ * 워크스페이스 격리: 매 backend 호출마다 (a) HTTP Basic Authorization 헤더의 username 으로
  * user_sub 추출, (b) DB 의 caldav_tokens 에서 그 user 의 active token row 로
- * company_id 결정. PHP 프로세스 메모리(static 등) 의존 X: fresh DB 만 신뢰.
+ * workspace_id 결정. PHP 프로세스 메모리(static 등) 의존 X: fresh DB 만 신뢰.
  *
- * 토큰이 acme-corp 이면 다른 회사 캘린더 보일 일 절대 없음.
+ * 토큰이 acme-corp 이면 다른 워크스페이스 캘린더 보일 일 절대 없음.
  */
 class CalendarBackend extends AbstractBackend implements SyncSupport
 {
@@ -26,7 +26,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     /**
      * principal 의 캘린더 목록.
      *
-     * scope=personal AND owner_id=user_sub  OR  scope=shared (회사 모든 멤버)
+     * scope=personal AND owner_id=user_sub  OR  scope=shared (워크스페이스 모든 멤버)
      * external_ics 캘린더는 외부 sync 라 노출 X (별도 정책).
      */
     public function getCalendarsForUser($principalUri): array
@@ -35,21 +35,21 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
         if ($userSub === null) {
             return [];
         }
-        $companyId = $this->lookupCompanyId($userSub);
-        if ($companyId === null) {
+        $workspaceId = $this->lookupWorkspaceId($userSub);
+        if ($workspaceId === null) {
             return [];
         }
 
         $stmt = $this->db->prepare(
             "SELECT id, name, description, color, scope, sync_token
              FROM calendars
-             WHERE company_id = :cid
+             WHERE workspace_id = :cid
                AND deleted_at IS NULL
                AND source = 'native'
                AND (scope = 'shared' OR (scope = 'personal' AND owner_id = :sub))
              ORDER BY scope DESC, name"
         );
-        $stmt->execute([':cid' => $companyId, ':sub' => $userSub]);
+        $stmt->execute([':cid' => $workspaceId, ':sub' => $userSub]);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $out = [];
@@ -365,10 +365,10 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     }
 
     /**
-     * 토큰의 company_id 가 이 캘린더에 접근 가능한지: 회사 격리 강제.
+     * 토큰의 workspace_id 가 이 캘린더에 접근 가능한지: 워크스페이스 격리 강제.
      *
      * 현 request 의 HTTP Basic username (= user_sub) 와 그 user 의 active token
-     * 의 company 를 매번 DB 에서 fresh lookup. 프로세스 메모리 의존 X.
+     * 의 workspace 를 매번 DB 에서 fresh lookup. 프로세스 메모리 의존 X.
      */
     private function canAccess(string $calendarId): bool
     {
@@ -380,7 +380,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
             "SELECT 1
              FROM calendars c
              JOIN caldav_tokens t
-               ON t.company_id = c.company_id
+               ON t.workspace_id = c.workspace_id
               AND t.user_sub = :sub
               AND t.revoked_at IS NULL
              WHERE c.id = :id
@@ -415,12 +415,12 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     }
 
     /**
-     * user_sub 의 active CalDAV 토큰 company. 토큰 없으면 NULL (인증 불가 상황).
+     * user_sub 의 active CalDAV 토큰 workspace. 토큰 없으면 NULL (인증 불가 상황).
      */
-    private function lookupCompanyId(string $userSub): ?string
+    private function lookupWorkspaceId(string $userSub): ?string
     {
         $st = $this->db->prepare(
-            'SELECT company_id FROM caldav_tokens
+            'SELECT workspace_id FROM caldav_tokens
              WHERE user_sub = :sub AND revoked_at IS NULL
              ORDER BY created_at LIMIT 1'
         );
@@ -487,7 +487,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     // --- write 헬퍼 ---
 
     /**
-     * write 가능한 캘린더인지 + 회사 격리 검증. 실패 시 NotAuthenticated/Forbidden/NotFound.
+     * write 가능한 캘린더인지 + 워크스페이스 격리 검증. 실패 시 NotAuthenticated/Forbidden/NotFound.
      *
      * write 는 created_by_sub 가 NOT NULL FK 라 인증된 user_sub 가 반드시 있어야 함.
      */

@@ -11,7 +11,7 @@ T0 = datetime(2026, 6, 1, 9, 0, tzinfo=UTC)
 
 
 async def _ensure_user(client, auth_headers, sub):
-    await client.get("/api/v1/me", headers=auth_headers(sub, groups=[ACME], active_company=ACME))
+    await client.get("/api/v1/me", headers=auth_headers(sub, groups=[ACME], active_workspace=ACME))
 
 
 async def _calendar(client, h, scope="personal", name="Cal") -> str:
@@ -51,16 +51,16 @@ async def _conflicts(client, h, subs, start=T0, hours=1, exclude=None) -> list[d
 
 async def test_personal_calendar_is_not_looked_at(client: AsyncClient, auth_headers):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     await _event(client, b, await _calendar(client, b))  # BOB 개인 일정 (초대 없음)
     assert await _conflicts(client, a, [BOB]) == []
 
 
 async def test_invitation_makes_busy_unless_declined(client: AsyncClient, auth_headers):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     ev = await _event(client, a, await _calendar(client, a))
     inv = (
         await client.post(f"/api/v1/events/{ev}/invitations", json={"invitee_sub": BOB}, headers=a)
@@ -79,7 +79,7 @@ async def test_invitation_makes_busy_unless_declined(client: AsyncClient, auth_h
 async def test_organizer_of_meeting_is_busy(client: AsyncClient, auth_headers):
     """주최 회의는 주최자 개인 캘린더에 있지만, 초대가 붙은 일정이라 주최자도 바쁨."""
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _event(client, a, await _calendar(client, a))
     await client.post(f"/api/v1/events/{ev}/invitations", json={"invitee_sub": BOB}, headers=a)
     assert [c["sub"] for c in await _conflicts(client, a, [ALICE])] == [ALICE]
@@ -87,8 +87,8 @@ async def test_organizer_of_meeting_is_busy(client: AsyncClient, auth_headers):
 
 async def test_shared_calendar_event_counts(client: AsyncClient, auth_headers):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     vacation = await _calendar(client, b, scope="shared", name="휴가")
     await _event(client, b, vacation, hours=8)
     assert [c["sub"] for c in await _conflicts(client, a, [BOB])] == [BOB]
@@ -96,7 +96,7 @@ async def test_shared_calendar_event_counts(client: AsyncClient, auth_headers):
 
 async def test_recurring_meeting_and_exclude_self(client: AsyncClient, auth_headers):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _event(client, a, await _calendar(client, a), rrule="FREQ=WEEKLY")
     await client.post(f"/api/v1/events/{ev}/invitations", json={"invitee_sub": BOB}, headers=a)
 
@@ -109,11 +109,11 @@ async def test_recurring_meeting_and_exclude_self(client: AsyncClient, auth_head
     assert await _conflicts(client, a, [BOB], start=later, exclude=ev) == []
 
 
-async def test_other_company_cannot_see(client: AsyncClient, auth_headers):
+async def test_other_workspace_cannot_see(client: AsyncClient, auth_headers):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _event(client, a, await _calendar(client, a))
     await client.post(f"/api/v1/events/{ev}/invitations", json={"invitee_sub": BOB}, headers=a)
 
-    other = auth_headers("user-eve", groups=["tenant-b"], active_company="tenant-b")
+    other = auth_headers("user-eve", groups=["tenant-b"], active_workspace="tenant-b")
     assert await _conflicts(client, other, [BOB]) == []

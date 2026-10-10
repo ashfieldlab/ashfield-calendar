@@ -5,7 +5,7 @@
 
 발급:
   - 사용자가 우리 앱에서 발급 → 평문은 응답 1회만 노출 → bcrypt hash 만 DB 저장
-  - (user_sub, company_id) 쌍에 묶임: 회사 격리
+  - (user_sub, workspace_id) 쌍에 묶임: 워크스페이스 격리
 
 검증 (Sabre PHP 가 직접 PostgreSQL 조회):
   - WHERE user_sub = ? AND revoked_at IS NULL → bcrypt 비교 → last_used_at 갱신
@@ -26,8 +26,8 @@ class CalDavToken(Base):
     user_sub: Mapped[str] = mapped_column(
         String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    company_id: Mapped[str] = mapped_column(
-        String(128), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False
+    workspace_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     secret_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)

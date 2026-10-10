@@ -63,7 +63,7 @@ class PrincipalBackend extends AbstractBackend
             return null;
         }
         // user 가 DB 에 있는지 확인. 보안: 다른 user 의 캘린더는 Calendar Backend
-        // 에서 회사 격리로 차단되므로 principal URI 노출 자체는 무해.
+        // 에서 워크스페이스 격리로 차단되므로 principal URI 노출 자체는 무해.
         return $this->makePrincipal($userSub);
     }
 

@@ -6,17 +6,17 @@ import { ArrowLeft, ExternalLink, ShieldCheck, User } from "lucide-react"
 import { useAppContext } from "@/components/providers/app-context"
 import { useApiGet } from "@/lib/hooks/use-api"
 
-type CompanyRole = "admin" | "member"
+type WorkspaceRole = "admin" | "member"
 
 interface MemberItem {
   user_sub: string
   email: string | null
   name: string | null
-  role: CompanyRole
+  role: WorkspaceRole
 }
 
 interface MemberListResponse {
-  /** 계정 서버 워크스페이스 ID. null = 계정 서버 도입 전의 로컬 회사. */
+  /** 계정 서버 워크스페이스 ID. null = 계정 서버 도입 전의 로컬 워크스페이스. */
   account_workspace_id: string | null
   members: MemberItem[]
 }
@@ -25,51 +25,51 @@ interface MemberListResponse {
  * 워크스페이스 멤버 조회 (읽기 전용). 추가·제거·역할 변경은 Ashfield 계정 서버에서 하고,
  * 바뀐 소속은 다음 토큰 갱신(최대 15분) 또는 재로그인 때 이 앱에 반영된다.
  */
-export default function CompanyMembersView({
-  companyId,
+export default function WorkspaceMembersView({
+  workspaceId,
   accountURL,
 }: {
-  companyId: string
+  workspaceId: string
   accountURL: string
 }) {
-  const { isCompanyAdmin, companyNames } = useAppContext()
+  const { isWorkspaceAdmin, workspaceNames } = useAppContext()
 
-  const url = isCompanyAdmin
-    ? `/api/v1/companies/${encodeURIComponent(companyId)}/members`
+  const url = isWorkspaceAdmin
+    ? `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/members`
     : null
   const { data, error, isLoading } = useApiGet<MemberListResponse>(url)
 
-  if (!isCompanyAdmin) {
+  if (!isWorkspaceAdmin) {
     return (
       <div
         className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
-        data-testid="company-members-settings-no-permission"
+        data-testid="workspace-members-settings-no-permission"
       >
         워크스페이스 관리자만 접근할 수 있습니다.
       </div>
     )
   }
 
-  const workspaceId = data?.account_workspace_id ?? null
-  const manageUrl = workspaceId
-    ? `${accountURL}/workspaces/${encodeURIComponent(workspaceId)}`
+  const accountWorkspaceId = data?.account_workspace_id ?? null
+  const manageUrl = accountWorkspaceId
+    ? `${accountURL}/workspaces/${encodeURIComponent(accountWorkspaceId)}`
     : null
 
   return (
     <div
       className="h-full overflow-y-auto space-y-4 px-4 py-8 sm:px-6 lg:px-8"
-      data-testid="company-members-settings-page"
+      data-testid="workspace-members-settings-page"
     >
       <Link
         href="/settings"
         className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
-        data-testid="company-members-settings-back"
+        data-testid="workspace-members-settings-back"
       >
         <ArrowLeft size={12} /> 설정으로
       </Link>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">
-          {companyNames[companyId] ?? companyId} 멤버
+          {workspaceNames[workspaceId] ?? workspaceId} 멤버
         </h1>
         {manageUrl && (
           <a
@@ -77,7 +77,7 @@ export default function CompanyMembersView({
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-gray-900 px-3 text-sm font-medium text-white hover:bg-gray-800"
-            data-testid="company-members-manage-link"
+            data-testid="workspace-members-manage-link"
           >
             Ashfield 계정에서 관리
             <ExternalLink size={14} aria-hidden />
@@ -88,7 +88,7 @@ export default function CompanyMembersView({
       {data && !manageUrl && (
         <div
           className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
-          data-testid="company-members-settings-account-notice"
+          data-testid="workspace-members-settings-account-notice"
         >
           이 워크스페이스는 멤버를 변경할 수 없습니다.
         </div>
@@ -104,7 +104,7 @@ export default function CompanyMembersView({
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <table
             className="w-full text-sm"
-            data-testid="company-members-settings-list"
+            data-testid="workspace-members-settings-list"
           >
             <thead className="bg-gray-50 text-left text-xs text-gray-500">
               <tr>
@@ -119,7 +119,7 @@ export default function CompanyMembersView({
                 return (
                   <tr
                     key={m.user_sub}
-                    data-testid={`company-members-settings-row-${m.user_sub}`}
+                    data-testid={`workspace-members-settings-row-${m.user_sub}`}
                     className="hover:bg-gray-50"
                   >
                     <td className="px-4 py-2 text-gray-900">

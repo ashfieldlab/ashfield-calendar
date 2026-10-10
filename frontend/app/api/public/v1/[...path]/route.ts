@@ -3,7 +3,7 @@
  *
  *   - JWT 없음 (ADR-0011 카브-아웃)
  *   - 클라이언트 IP 를 x-forwarded-for 헤더로 백엔드에 전달 (rate limit 키)
- *   - X-Active-Company-Id 미설정 (공개 라우트는 회사 컨텍스트 무관)
+ *   - X-Active-Workspace-Id 미설정 (공개 라우트는 워크스페이스 컨텍스트 무관)
  */
 
 import { NextRequest, NextResponse } from "next/server"

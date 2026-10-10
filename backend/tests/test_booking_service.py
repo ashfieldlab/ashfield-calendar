@@ -33,7 +33,7 @@ def _make_bt(
         id=str(uuid.uuid7()),
         owner_type="user",
         owner_user_sub="alice",
-        owner_company_id=None,
+        owner_workspace_id=None,
         public_key=str(uuid.uuid7())[:11],
         title="30분 상담",
         description=None,
@@ -53,17 +53,17 @@ def _make_bt(
     return bt
 
 
-async def _make_company_and_calendar(db_session, cal_id="cal-1") -> None:
-    from app.models.company import Company
+async def _make_workspace_and_calendar(db_session, cal_id="cal-1") -> None:
     from app.models.user import User
+    from app.models.workspace import Workspace
 
-    db_session.add(Company(id="acme-corp", name="acme-corp"))
+    db_session.add(Workspace(id="acme-corp", name="acme-corp"))
     db_session.add(User(id="alice", email="alice@x", name="Alice"))
     await db_session.flush()
     db_session.add(
         Calendar(
             id=cal_id,
-            company_id="acme-corp",
+            workspace_id="acme-corp",
             owner_id="alice",
             scope="personal",
             source="native",
@@ -76,7 +76,7 @@ async def _make_company_and_calendar(db_session, cal_id="cal-1") -> None:
 
 @pytest.mark.asyncio
 async def test_generate_slots_basic(db_session):
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session)
     await db_session.flush()
 
@@ -90,7 +90,7 @@ async def test_generate_slots_basic(db_session):
 
 @pytest.mark.asyncio
 async def test_generate_slots_respects_minimum_notice(db_session):
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session, minimum_notice_minutes=60 * 24)
     await db_session.flush()
 
@@ -106,7 +106,7 @@ async def test_generate_slots_respects_minimum_notice(db_session):
 
 @pytest.mark.asyncio
 async def test_available_slots_subtracts_existing_booking(db_session):
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session)
     await db_session.flush()
 
@@ -140,7 +140,7 @@ async def test_available_slots_subtracts_existing_booking(db_session):
 @pytest.mark.asyncio
 async def test_create_booking_race_capacity1(db_session):
     """capacity=1 같은 슬롯에 2번째 INSERT → 409."""
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session)
     await db_session.flush()
 
@@ -167,7 +167,7 @@ async def test_create_booking_race_capacity1(db_session):
 @pytest.mark.asyncio
 async def test_create_booking_capacity_n(db_session):
     """capacity=3 → 같은 slot 에 3건 OK, 4번째 → 409."""
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session, capacity=3)
     await db_session.flush()
     now = datetime(2026, 6, 1, tzinfo=UTC)
@@ -194,7 +194,7 @@ async def test_create_booking_capacity_n(db_session):
 @pytest.mark.asyncio
 async def test_create_booking_rejects_off_schedule_slot(db_session):
     """가용 규칙에 없는 시각(예: 12:30 점심) 으로 직접 요청 → 422."""
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session)
     await db_session.flush()
     now = datetime(2026, 6, 1, tzinfo=UTC)
@@ -214,10 +214,10 @@ async def test_create_booking_rejects_off_schedule_slot(db_session):
 @pytest.mark.asyncio
 async def test_blocking_calendar_blocks_slot(db_session):
     """blocking_calendar_ids 의 이벤트와 겹치는 slot 제외."""
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     db_session.add(
         Calendar(
-            id="holidays", company_id="acme-corp", owner_id="alice",
+            id="holidays", workspace_id="acme-corp", owner_id="alice",
             scope="personal", source="native", name="공휴일", color="#ef4444",
         )
     )
@@ -254,7 +254,7 @@ async def test_blocking_calendar_blocks_slot(db_session):
 
 @pytest.mark.asyncio
 async def test_cancel_booking_idempotent(db_session):
-    await _make_company_and_calendar(db_session)
+    await _make_workspace_and_calendar(db_session)
     bt = _make_bt(db_session)
     await db_session.flush()
     now = datetime(2026, 6, 1, tzinfo=UTC)

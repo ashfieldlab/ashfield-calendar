@@ -34,12 +34,12 @@ Sabre 의 12년치 클라이언트 quirk 패치 (Nextcloud·iCloud 기반) 그�
 
 ```
 CalDavToken {
-  id, user_sub, company_id, secret_hash, name,
+  id, user_sub, workspace_id, secret_hash, name,
   created_at, last_used_at, revoked_at
 }
 ```
 
-- 토큰 발급: FastAPI 의 `/api/v1/me/caldav-tokens` (Better Auth JWT 인증 + active_company 강제)
+- 토큰 발급: FastAPI 의 `/api/v1/me/caldav-tokens` (Better Auth JWT 인증 + active_workspace 강제)
 - 발급 시 임의 secret (`secrets.token_urlsafe(32)`) 생성 → bcrypt hash 만 DB 저장 → 평문은 **한 번만** 사용자에게 표시
 - 사용자가 캘린더 앱에 HTTP Basic 으로 입력:
   - username = `user_sub`
@@ -47,30 +47,30 @@ CalDavToken {
 - Sabre 가 매 요청마다 검증: `SELECT WHERE user_sub = ? AND revoked_at IS NULL` → bcrypt 비교 → 통과 시 `last_used_at` 갱신
 - Revoke = `revoked_at` 설정. 즉시 무효 (JWT exp 대기 없음)
 
-### 3. 회사 격리
+### 3. 워크스페이스 격리
 
-토큰은 **(user_sub, company_id) 한 쌍**에 묶임. 같은 user 가 여러 회사 멤버여도 토큰은 회사별 분리 발급.
+토큰은 **(user_sub, workspace_id) 한 쌍**에 묶임. 같은 user 가 여러 워크스페이스 멤버여도 토큰은 워크스페이스별 분리 발급.
 
 Sabre Custom Backend 의 `getCalendarsForUser`:
 ```sql
 SELECT FROM calendars
-WHERE company_id = $token.company_id
+WHERE workspace_id = $token.workspace_id
   AND deleted_at IS NULL
   AND (scope = 'shared' OR (scope = 'personal' AND owner_id = $token.user_sub))
 ```
 
-다른 회사 캘린더는 토큰이 다르므로 노출 불가.
+다른 워크스페이스 캘린더는 토큰이 다르므로 노출 불가.
 
 #### 3.1 TokenContext 폐기: DB-only (2026-06-08)
 
-초기 구현은 `validateUserPass` 단계에서 `(user_sub, company_id)` 를 정적 클래스 (`TokenContext`) 에 set 한 뒤 `getCalendarsForUser` 가 그 값을 읽는 형태였음. 운영 첫 배포에서 일부 호출 시점에 `TokenContext` 가 NULL 상태로 backend 가 호출되는 케이스 관찰: 결과적으로 빈 캘린더 목록 → individual calendar 404.
+초기 구현은 `validateUserPass` 단계에서 `(user_sub, workspace_id)` 를 정적 클래스 (`TokenContext`) 에 set 한 뒤 `getCalendarsForUser` 가 그 값을 읽는 형태였음. 운영 첫 배포에서 일부 호출 시점에 `TokenContext` 가 NULL 상태로 backend 가 호출되는 케이스 관찰: 결과적으로 빈 캘린더 목록 → individual calendar 404.
 
 vendor 코드 분석 (AuthPlugin priority 10, DAVACL 20, 다른 plugin 은 `beforeMethod` 미등록) 상 이론적으로 발생하지 않아야 하나, PHP-FPM multi-worker 환경의 race / 미확인 edge case 로 추정. 정적 변수는 process scope (worker 가 살아있는 동안 유지) 라 우리가 명시 reset 안 하면 stale 값 위험도 존재.
 
 → **메모리 의존 자체를 폐기**. 모든 backend 메서드가 매 호출마다:
 
 1. **user_sub**: `$_SERVER['HTTP_AUTHORIZATION']` 의 HTTP Basic 헤더에서 직접 추출 (request-scoped global, stale 위험 없음)
-2. **company_id**: `caldav_tokens WHERE user_sub = ? AND revoked_at IS NULL` 로 매번 DB lookup
+2. **workspace_id**: `caldav_tokens WHERE user_sub = ? AND revoked_at IS NULL` 로 매번 DB lookup
 
 성능 영향 무시 가능: `caldav_tokens.user_sub` index 로 ~0.1ms / 호출. 정확성 > 성능.
 
@@ -133,7 +133,7 @@ private function currentUserSub(): ?string {
 | Python 으로 CalDAV 풀구현 | X | 1-2개월 + 클라이언트 quirk 매트릭스. Sabre 12년치 무시 |
 | App Token 대신 웹 로그인 JWT 직전송 | X | 외부 클라 OAuth 못 함, exp 짧음 |
 | App Token 대신 self-contained JWT | X | revoke 어려움 (blacklist 운영 부담) |
-| 회사 격리 = 모든 회사 통합 view | X | 같은 user 가 회사 A·B 멤버일 때 캘린더 섞임. 토큰 분리가 명확 |
+| 워크스페이스 격리 = 모든 워크스페이스 통합 view | X | 같은 user 가 워크스페이스 A·B 멤버일 때 캘린더 섞임. 토큰 분리가 명확 |
 
 ## 결과
 

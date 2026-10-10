@@ -12,7 +12,7 @@ ACME = "tenant-a"
 async def _ensure_user(client, auth_headers, sub):
     await client.get(
         "/api/v1/me",
-        headers=auth_headers(sub, groups=[ACME], active_company=ACME),
+        headers=auth_headers(sub, groups=[ACME], active_workspace=ACME),
     )
 
 
@@ -20,8 +20,8 @@ async def test_invited_event_appears_in_range_even_if_personal_calendar(
     client: AsyncClient, auth_headers
 ):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
 
     cal = (
         await client.post(
@@ -86,7 +86,7 @@ async def test_only_invitee_can_change_response(
     client: AsyncClient, auth_headers
 ):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
 
     cal = (
         await client.post(
@@ -126,8 +126,8 @@ async def test_non_creator_cannot_invite(
     client: AsyncClient, auth_headers
 ):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",

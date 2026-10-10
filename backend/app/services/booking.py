@@ -260,7 +260,7 @@ async def create_booking(
 
     # CalendarEvent + Booking insert
     # created_by_sub 은 target_calendar 의 owner 사용: 항상 존재 (Calendar.owner_id NOT NULL FK).
-    # company-owned BookingType 도 shared 캘린더가 있어서 valid user_sub 보장.
+    # workspace-owned BookingType 도 shared 캘린더가 있어서 valid user_sub 보장.
     cal = await db.get(Calendar, bt.target_calendar_id)
     if cal is None:
         raise BusinessError(
@@ -321,7 +321,7 @@ async def dispatch_booking_received_emails(
 ) -> None:
     """예약 직후: 고객 안내 + 운영자 알림 (in-app + 이메일). commit 후 호출.
 
-    SMTP resolve 는 booking_type 의 owner_company_id 기준 (회사 override 우선).
+    SMTP resolve 는 booking_type 의 owner_workspace_id 기준 (워크스페이스 override 우선).
     """
     from app.core.db import AsyncSessionLocal
     from app.services.email import send_for_event, send_to_address
@@ -345,7 +345,7 @@ async def dispatch_booking_received_emails(
             "slot_start_local": slot_local,
             "cancel_url": cancel_url,
         },
-        company_id=bt.owner_company_id,
+        workspace_id=bt.owner_workspace_id,
     )
 
     # 2) 운영자(들)에게: in-app Notification + 이메일
@@ -359,21 +359,21 @@ async def dispatch_booking_received_emails(
     }
     subs = bt.notify_user_subs or []
     if subs:
-        # company_id 는 in-app Notification 의 company_id 필드용: user-owned 면
-        # target_calendar 의 company 사용.
-        company_id_for_notif = bt.owner_company_id
-        if company_id_for_notif is None:
+        # workspace_id 는 in-app Notification 의 workspace_id 필드용: user-owned 면
+        # target_calendar 의 workspace 사용.
+        workspace_id_for_notif = bt.owner_workspace_id
+        if workspace_id_for_notif is None:
             async with AsyncSessionLocal() as nf_db:
                 cal = await nf_db.get(Calendar, bt.target_calendar_id)
-                company_id_for_notif = cal.company_id if cal else None
+                workspace_id_for_notif = cal.workspace_id if cal else None
         # in-app Notification: 별도 트랜잭션
-        if company_id_for_notif:
+        if workspace_id_for_notif:
             async with AsyncSessionLocal() as nf_db:
                 for sub in subs:
                     await emit_notification(
                         nf_db,
                         recipient_sub=sub,
-                        company_id=company_id_for_notif,
+                        workspace_id=workspace_id_for_notif,
                         actor_sub=None,
                         type_="booking_received",
                         entity_type="booking",
@@ -387,7 +387,7 @@ async def dispatch_booking_received_emails(
             actor_sub=None,
             event_type="booking_received_operator",
             payload=op_payload,
-            company_id=bt.owner_company_id,
+            workspace_id=bt.owner_workspace_id,
         )
 
 
@@ -421,7 +421,7 @@ async def dispatch_booking_cancelled_emails(
                 "slot_start_local": slot_local,
                 "book_url": book_url,
             },
-            company_id=bt.owner_company_id,
+            workspace_id=bt.owner_workspace_id,
         )
 
     op_payload = {
@@ -432,18 +432,18 @@ async def dispatch_booking_cancelled_emails(
     }
     subs = bt.notify_user_subs or []
     if subs:
-        company_id_for_notif = bt.owner_company_id
-        if company_id_for_notif is None:
+        workspace_id_for_notif = bt.owner_workspace_id
+        if workspace_id_for_notif is None:
             async with AsyncSessionLocal() as nf_db:
                 cal = await nf_db.get(Calendar, bt.target_calendar_id)
-                company_id_for_notif = cal.company_id if cal else None
-        if company_id_for_notif:
+                workspace_id_for_notif = cal.workspace_id if cal else None
+        if workspace_id_for_notif:
             async with AsyncSessionLocal() as nf_db:
                 for sub in subs:
                     await emit_notification(
                         nf_db,
                         recipient_sub=sub,
-                        company_id=company_id_for_notif,
+                        workspace_id=workspace_id_for_notif,
                         actor_sub=None,
                         type_="booking_cancelled",
                         entity_type="booking",
@@ -457,7 +457,7 @@ async def dispatch_booking_cancelled_emails(
             actor_sub=None,
             event_type="booking_cancelled_operator",
             payload=op_payload,
-            company_id=bt.owner_company_id,
+            workspace_id=bt.owner_workspace_id,
         )
 
 
@@ -599,7 +599,7 @@ async def dispatch_booking_rescheduled_emails(
                 "new_slot_local": new_local,
                 "cancel_url": cancel_url,
             },
-            company_id=bt.owner_company_id,
+            workspace_id=bt.owner_workspace_id,
         )
 
     op_payload = {
@@ -611,18 +611,18 @@ async def dispatch_booking_rescheduled_emails(
     }
     subs = bt.notify_user_subs or []
     if subs:
-        company_id_for_notif = bt.owner_company_id
-        if company_id_for_notif is None:
+        workspace_id_for_notif = bt.owner_workspace_id
+        if workspace_id_for_notif is None:
             async with AsyncSessionLocal() as nf_db:
                 cal = await nf_db.get(Calendar, bt.target_calendar_id)
-                company_id_for_notif = cal.company_id if cal else None
-        if company_id_for_notif:
+                workspace_id_for_notif = cal.workspace_id if cal else None
+        if workspace_id_for_notif:
             async with AsyncSessionLocal() as nf_db:
                 for sub in subs:
                     await emit_notification(
                         nf_db,
                         recipient_sub=sub,
-                        company_id=company_id_for_notif,
+                        workspace_id=workspace_id_for_notif,
                         actor_sub=None,
                         type_="booking_rescheduled",
                         entity_type="booking",
@@ -636,7 +636,7 @@ async def dispatch_booking_rescheduled_emails(
             actor_sub=None,
             event_type="booking_rescheduled_operator",
             payload=op_payload,
-            company_id=bt.owner_company_id,
+            workspace_id=bt.owner_workspace_id,
         )
 
 

@@ -20,7 +20,7 @@ const ENTITY_OPTIONS: [string, string][] = [
   ["calendar", "캘린더"],
   ["event", "일정"],
   ["booking", "예약"],
-  ["company_membership", "멤버"],
+  ["workspace_membership", "멤버"],
   ["room", "회의실"],
   ["webhook", "웹훅"],
 ]
@@ -36,7 +36,7 @@ const ACTION_OPTIONS: [string, string][] = [
 
 interface AuditLogResponse {
   id: string
-  company_id: string | null
+  workspace_id: string | null
   actor_sub: string | null
   actor_name: string | null
   actor_type: string
@@ -60,24 +60,24 @@ const ACTION_COLOR: Record<string, string> = {
   empty_trash: "bg-rose-100 text-rose-800",
 }
 
-type Scope = "company" | "system"
+type Scope = "workspace" | "system"
 
 export default function AuditPage() {
-  const { isSystemAdmin, isCompanyAdmin } = useAppContext()
+  const { isSystemAdmin, isWorkspaceAdmin } = useAppContext()
   const { toast } = useToast()
-  const [scope, setScope] = useState<Scope>("company")
+  const [scope, setScope] = useState<Scope>("workspace")
   const [entityType, setEntityType] = useState("")
   const [action, setAction] = useState("")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
   const [exporting, setExporting] = useState(false)
 
-  const canView = isCompanyAdmin || isSystemAdmin
+  const canView = isWorkspaceAdmin || isSystemAdmin
 
-  // 필터 → 쿼리스트링. 회사 admin 은 항상 company scope.
+  // 필터 → 쿼리스트링. 워크스페이스 admin 은 항상 workspace scope.
   function buildParams(withLimit: boolean): string {
     const p = new URLSearchParams()
-    p.set("scope", isSystemAdmin ? scope : "company")
+    p.set("scope", isSystemAdmin ? scope : "workspace")
     if (withLimit) p.set("limit", "200")
     if (entityType) p.set("entity_type", entityType)
     if (action) p.set("action", action)
@@ -129,15 +129,15 @@ export default function AuditPage() {
               data-testid="audit-scope-toggle"
             >
               <button
-                onClick={() => setScope("company")}
-                data-testid="audit-scope-company"
+                onClick={() => setScope("workspace")}
+                data-testid="audit-scope-workspace"
                 className={`px-3 py-1.5 ${
-                  scope === "company"
+                  scope === "workspace"
                     ? "bg-gray-900 text-white"
                     : "bg-white text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                회사
+                워크스페이스
               </button>
               <button
                 onClick={() => setScope("system")}

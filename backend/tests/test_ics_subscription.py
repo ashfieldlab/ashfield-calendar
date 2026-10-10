@@ -30,7 +30,7 @@ async def _create_shared_calendar(client, h, name="공유"):
 
 @pytest.mark.asyncio
 async def test_personal_owner_can_enable(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     cal_id = await _create_personal_calendar(client, h)
     r = await client.post(
@@ -46,11 +46,11 @@ async def test_personal_owner_can_enable(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_other_user_cannot_manage_personal(client, auth_headers):
-    h1 = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h1 = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h1)
     cal_id = await _create_personal_calendar(client, h1)
 
-    h2 = auth_headers("u2", groups=["acme-corp"], active_company="acme-corp")
+    h2 = auth_headers("u2", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h2)
     # u2 는 u1 의 personal 캘린더 접근 자체 X (404)
     r = await client.post(
@@ -60,23 +60,23 @@ async def test_other_user_cannot_manage_personal(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_shared_requires_company_admin(
+async def test_shared_requires_workspace_admin(
     client, auth_headers, db_session
 ):
-    from app.models.user_company_membership import UserCompanyMembership
+    from app.models.user_workspace_membership import UserWorkspaceMembership
 
     h_admin = auth_headers(
-        "admin1", groups=["acme-corp"], active_company="acme-corp"
+        "admin1", groups=["acme-corp"], active_workspace="acme-corp"
     )
     await client.get("/api/v1/me", headers=h_admin)
-    m = await db_session.get(UserCompanyMembership, ("admin1", "acme-corp"))
+    m = await db_session.get(UserWorkspaceMembership, ("admin1", "acme-corp"))
     m.role = "admin"
     await db_session.flush()
     cal_id = await _create_shared_calendar(client, h_admin)
 
     # 일반 member 는 shared 캘린더 subscription 관리 불가
     h_user = auth_headers(
-        "u9", groups=["acme-corp"], active_company="acme-corp"
+        "u9", groups=["acme-corp"], active_workspace="acme-corp"
     )
     await client.get("/api/v1/me", headers=h_user)
     r = await client.post(
@@ -96,7 +96,7 @@ async def test_shared_requires_company_admin(
 
 @pytest.mark.asyncio
 async def test_get_default_disabled(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     cal_id = await _create_personal_calendar(client, h)
     r = await client.get(
@@ -108,7 +108,7 @@ async def test_get_default_disabled(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_rotate_invalidates_old_token(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     cal_id = await _create_personal_calendar(client, h)
     e1 = await client.post(
@@ -133,7 +133,7 @@ async def test_rotate_invalidates_old_token(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_disable_returns_404_on_public(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     cal_id = await _create_personal_calendar(client, h)
     enable = await client.post(
@@ -155,7 +155,7 @@ async def test_disable_returns_404_on_public(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_rotate_when_disabled_400(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     cal_id = await _create_personal_calendar(client, h)
     r = await client.post(
@@ -177,7 +177,7 @@ async def test_booking_event_masked_in_subscription_ics(
     from app.models.calendar import Calendar
     from app.models.calendar_event import CalendarEvent
 
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
 
     cal_id = await _create_personal_calendar(client, h, name="상담 캘린더")
@@ -188,7 +188,7 @@ async def test_booking_event_masked_in_subscription_ics(
         id="bt1",
         owner_type="user",
         owner_user_sub="u1",
-        owner_company_id=None,
+        owner_workspace_id=None,
         target_calendar_id=cal.id,
         title="30분 상담",
         description=None,
@@ -265,7 +265,7 @@ async def test_non_booking_event_not_masked(
     from app.models.calendar import Calendar
     from app.models.calendar_event import CalendarEvent
 
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
 
     cal_id = await _create_personal_calendar(client, h, name="내 일정")
@@ -315,7 +315,7 @@ async def test_unknown_token_404(client):
 
 @pytest.mark.asyncio
 async def test_response_headers(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     cal_id = await _create_personal_calendar(client, h)
     enable = await client.post(

@@ -2,7 +2,7 @@
 
 어떤 사람이 그 시간에 "바쁨"인 경우는 셋뿐:
   1. 수락했거나 아직 응답 안 한 초대가 있는 일정 (거절은 제외)
-  2. 그 사람이 회사 공유 캘린더에 올린 일정 (예: 휴가 캘린더)
+  2. 그 사람이 워크스페이스 캘린더에 올린 일정 (예: 휴가 캘린더)
   3. 그 사람이 주최한 회의: 초대가 하나라도 붙은 일정. 주최자 일정은 주최자 개인
      캘린더에 있어서 1·2로는 안 잡힌다.
 공휴일 같은 시스템 관리형 캘린더와 외부 ICS 구독은 사람을 바쁘게 만들지 않는다.
@@ -26,7 +26,7 @@ from app.services.calendars import expand_event
 async def busy_subs(
     db: AsyncSession,
     *,
-    company_id: str,
+    workspace_id: str,
     subs: list[str],
     start: datetime,
     end: datetime,
@@ -37,7 +37,7 @@ async def busy_subs(
         return set()
 
     base = and_(
-        Calendar.company_id == company_id,
+        Calendar.workspace_id == workspace_id,
         Calendar.source == "native",
         Calendar.managed.is_(False),
         CalendarEvent.deleted_at.is_(None),

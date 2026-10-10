@@ -1,6 +1,6 @@
 /** 외부 고객 예약: BookingType / Booking 도메인 타입 (E-1~E-5 backend 와 매칭). */
 
-export type BookingTypeOwner = "user" | "company"
+export type BookingTypeOwner = "user" | "workspace"
 
 export interface WeeklySchedule {
   mon?: [string, string][]
@@ -16,7 +16,7 @@ export interface BookingTypeResponse {
   id: string
   owner_type: BookingTypeOwner
   owner_user_sub: string | null
-  owner_company_id: string | null
+  owner_workspace_id: string | null
   public_key: string
   title: string
   description: string | null

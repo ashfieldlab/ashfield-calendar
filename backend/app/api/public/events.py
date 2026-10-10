@@ -4,7 +4,7 @@
   GET   /events/rsvp/{token}  : 초대/일정 요약 (노출 최소화)
   POST  /events/rsvp/{token}  : 수락/거절/미정
 
-노출 최소화: 일정 제목·시작/종료·초대 회사명·본인 이메일만. 운영자 신원·다른
+노출 최소화: 일정 제목·시작/종료·초대 워크스페이스 이름·본인 이메일만. 운영자 신원·다른
 초대자 정보 X. 보호: IP rate limit + audit log.
 """
 
@@ -24,7 +24,7 @@ from app.middleware.rate_limit import check_ip_limit, get_rate_limits
 from app.models.calendar import Calendar
 from app.models.calendar_event import CalendarEvent
 from app.models.calendar_event_invitation import CalendarEventInvitation
-from app.models.company import Company
+from app.models.workspace import Workspace
 from app.services.audit import write_audit
 from app.services.notifications import PendingDispatch, notify
 
@@ -90,13 +90,13 @@ async def get_rsvp(
     await check_ip_limit(_client_ip(request, x_forwarded_for), per_ip)
 
     inv, ev, cal = await _load_or_404(db, token)
-    company = await db.get(Company, cal.company_id)
+    workspace = await db.get(Workspace, cal.workspace_id)
     return PublicRsvpView(
         title=ev.title,
         start_at=ev.start_at,
         end_at=ev.end_at,
         location=ev.location,
-        organization_name=company.name if company else "Ashfield",
+        organization_name=workspace.name if workspace else "Ashfield",
         invitee_email=inv.invitee_email or "",
         response=inv.response,
     )
@@ -129,7 +129,7 @@ async def submit_rsvp(
         db,
         pending,
         recipient_sub=ev.created_by_sub,
-        company_id=cal.company_id,
+        workspace_id=cal.workspace_id,
         actor_sub=None,
         type_="event_invitation_response",
         entity_type="event",
@@ -142,7 +142,7 @@ async def submit_rsvp(
     )
     await write_audit(
         db,
-        company_id=cal.company_id,
+        workspace_id=cal.workspace_id,
         actor=None,
         actor_type="public",
         action="update",
@@ -157,13 +157,13 @@ async def submit_rsvp(
         "public_rsvp_submitted",
         extra={"category": "biz", "event_id": ev.id, "response": body.response, "ip": ip},
     )
-    company = await db.get(Company, cal.company_id)
+    workspace = await db.get(Workspace, cal.workspace_id)
     return PublicRsvpView(
         title=ev.title,
         start_at=ev.start_at,
         end_at=ev.end_at,
         location=ev.location,
-        organization_name=company.name if company else "Ashfield",
+        organization_name=workspace.name if workspace else "Ashfield",
         invitee_email=inv.invitee_email or "",
         response=inv.response,
     )

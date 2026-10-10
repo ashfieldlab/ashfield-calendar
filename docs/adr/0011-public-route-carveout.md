@@ -10,7 +10,7 @@
 - Booking 제출: 외부 고객이 자기 이름·이메일 입력
 - Booking 취소: 응답 메일의 토큰으로 자기 예약 취소
 
-이들은 JWT 가 없는 게 정상: 우리 회사 멤버가 아닌 외부인이 호출.
+이들은 JWT 가 없는 게 정상: 우리 워크스페이스 멤버가 아닌 외부인이 호출.
 
 ## 결정
 
@@ -24,8 +24,8 @@
 | **Honeypot 필드** | 폼에 `display:none` hidden 필드. 채워진 채 제출되면 무시 (status 200 흉내 + 로그). 0 마찰, 80% 봇 차단. |
 | **Rate limit** | Redis fixed-window. IP 단위 분당 N개 + 이메일 단위 분당 1개. 운영 보고 임계 조정. |
 | **CORS** | 우리 도메인 화이트리스트만. 외부 사이트 임베드는 BookingType 별 `allowed_origins` 옵션(향후). |
-| **Audit log** | `actor_sub=NULL`, `actor_type="public"`. meta 에 ip·user-agent 박음. 시스템 레벨 audit (ADR D-1 의 nullable company_id 가 여기 활용됨). |
-| **노출 정보 최소화** | 슬롯 응답에 운영자 신원(name/email) 포함 X. 회사 이름 + BookingType title/description/duration 만. 다른 예약자 정보 노출 X. |
+| **Audit log** | `actor_sub=NULL`, `actor_type="public"`. meta 에 ip·user-agent 박음. 시스템 레벨 audit (ADR D-1 의 nullable workspace_id 가 여기 활용됨). |
+| **노출 정보 최소화** | 슬롯 응답에 운영자 신원(name/email) 포함 X. 워크스페이스 이름 + BookingType title/description/duration 만. 다른 예약자 정보 노출 X. |
 
 ### 정적 라우트 분기 (코드 강제)
 
@@ -66,7 +66,7 @@ main.py:
 
 - `app/api/public_router.py` 신규
 - `app/middleware/rate_limit.py` 신규 (Redis fixed-window)
-- `app/services/audit.py::write_audit` 가 `actor_type="public"` 케이스 처리: 이미 nullable company_id 라 수정 적음
+- `app/services/audit.py::write_audit` 가 `actor_type="public"` 케이스 처리: 이미 nullable workspace_id 라 수정 적음
 - 환경변수: `PUBLIC_CAPTCHA_PROVIDER`, `PUBLIC_RATE_LIMIT_PER_IP`, `PUBLIC_RATE_LIMIT_PER_EMAIL`
 
 ## 참고

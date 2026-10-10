@@ -7,7 +7,7 @@
  * MKCALENDAR 등) 이 nginx → php-fpm 으로 라우팅돼 여기로 들어옴.
  *
  * 인증: HTTP Basic: username=user_sub, password=토큰 평문 (cdv_xxx).
- * 권한 분기: 토큰에 박힌 (user_sub, company_id) 로 회사 격리.
+ * 권한 분기: 토큰에 박힌 (user_sub, workspace_id) 로 워크스페이스 격리.
  */
 
 require_once '/app/vendor/autoload.php';
@@ -45,7 +45,7 @@ try {
         PDO::ATTR_PERSISTENT => true,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
-    // 한글 company_id (예: '애쉬필드 개발') 비교가 client_encoding 불일치로 깨지는 걸 막음.
+    // 한글 workspace_id (예: '애쉬필드 개발') 비교가 client_encoding 불일치로 깨지는 걸 막음.
     // ATTR_PERSISTENT 라 connection reuse 돼도 매 request 시작에 명시적으로 보정.
     $pdo->exec("SET client_encoding = 'UTF8'");
 } catch (PDOException $e) {

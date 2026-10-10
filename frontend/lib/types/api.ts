@@ -20,7 +20,7 @@ export type CalendarSource = "native" | "external_ics"
 
 export interface CalendarResponse {
   id: string
-  company_id: string
+  workspace_id: string
   owner_id: string
   scope: CalendarScope
   source: CalendarSource
@@ -106,16 +106,16 @@ export interface EmailPreferenceResponse {
   email_categories: Record<string, boolean>
 }
 
-// --- Phase 4: company members ---
+// --- Phase 4: workspace members ---
 
-export interface CompanyMember {
+export interface WorkspaceMember {
   sub: string
   email: string
   name: string | null
 }
 
-export interface CompanyMembersResponse {
-  members: CompanyMember[]
+export interface WorkspaceMembersResponse {
+  members: WorkspaceMember[]
 }
 
 export interface EventResponse {
@@ -139,7 +139,7 @@ export interface EventResponse {
   booking_id: string | null
 }
 
-/** 회의실(Room): 회사 예약 리소스 (ADR-0019). */
+/** 회의실(Room): 워크스페이스 예약 리소스 (ADR-0019). */
 export interface Room {
   id: string
   name: string

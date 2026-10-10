@@ -92,9 +92,9 @@ export default function BookingTypesPage() {
                     >
                       {bt.title}
                     </Link>
-                    {bt.owner_type === "company" && (
+                    {bt.owner_type === "workspace" && (
                       <span className="ml-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-800">
-                        회사
+                        워크스페이스
                       </span>
                     )}
                   </td>

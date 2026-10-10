@@ -42,7 +42,7 @@ export default function ActivityPage() {
     "/api/v1/me/activity?limit=100",
   )
 
-  // 활동 내역을 이 앱이 소유한 이벤트로만 필터 (회사 설정 변경 등 제외).
+  // 활동 내역을 이 앱이 소유한 이벤트로만 필터 (워크스페이스 설정 변경 등 제외).
   const allowed = APP.entityTypes as readonly string[]
   const items = (data?.items ?? []).filter((it) =>
     allowed.includes(it.entity_type),

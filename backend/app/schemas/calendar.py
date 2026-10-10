@@ -11,7 +11,7 @@ CalendarSource = Literal["native", "external_ics"]
 
 class CalendarResponse(BaseModel):
     id: str
-    company_id: str
+    workspace_id: str
     owner_id: str
     scope: CalendarScope
     source: CalendarSource

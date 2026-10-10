@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-BookingTypeOwner = Literal["user", "company"]
+BookingTypeOwner = Literal["user", "workspace"]
 _DAYS = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
 
 
@@ -32,7 +32,7 @@ class BookingTypeResponse(BaseModel):
     id: str
     owner_type: BookingTypeOwner
     owner_user_sub: str | None
-    owner_company_id: str | None
+    owner_workspace_id: str | None
     public_key: str
     title: str
     description: str | None
@@ -57,7 +57,7 @@ class BookingTypeListResponse(BaseModel):
 
 class BookingTypeCreate(BaseModel):
     owner_type: BookingTypeOwner
-    # owner_type=user → 현재 사용자 사용. owner_type=company → 활성 회사 사용.
+    # owner_type=user → 현재 사용자 사용. owner_type=workspace → 활성 워크스페이스 사용.
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
     privacy_policy_url: str | None = Field(default=None, max_length=512)

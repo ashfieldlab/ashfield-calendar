@@ -14,24 +14,24 @@ import type { RoomListResponse } from "@/lib/types/api"
 const URL = "/api/v1/rooms"
 
 export default function RoomsSettingsPage() {
-  const { isCompanyAdmin } = useAppContext()
+  const { isWorkspaceAdmin } = useAppContext()
   const { toast } = useToast()
   const confirm = useConfirm()
   const { data, isLoading, error } = useApiGet<RoomListResponse>(
-    isCompanyAdmin ? URL : null,
+    isWorkspaceAdmin ? URL : null,
   )
 
   const [name, setName] = useState("")
   const [capacity, setCapacity] = useState("")
   const [busy, setBusy] = useState(false)
 
-  if (!isCompanyAdmin) {
+  if (!isWorkspaceAdmin) {
     return (
       <div
         className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
         data-testid="rooms-no-permission"
       >
-        회사 관리자만 접근할 수 있습니다.
+        워크스페이스 관리자만 접근할 수 있습니다.
       </div>
     )
   }

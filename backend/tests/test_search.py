@@ -12,12 +12,12 @@ ACME = "tenant-a"
 async def _ensure(client, auth_headers, sub):
     await client.get(
         "/api/v1/me",
-        headers=auth_headers(sub, groups=[ACME], active_company=ACME),
+        headers=auth_headers(sub, groups=[ACME], active_workspace=ACME),
     )
 
 
 async def test_search_event(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",
@@ -46,13 +46,13 @@ async def test_search_event(client: AsyncClient, auth_headers):
 
 
 async def test_search_empty_term_rejected(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     r = await client.get("/api/v1/search?q=", headers=a)
     assert r.status_code == 422
 
 
 async def test_search_by_event_description(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",
@@ -78,8 +78,8 @@ async def test_search_by_event_description(client: AsyncClient, auth_headers):
 
 async def test_search_isolated_per_user(client: AsyncClient, auth_headers):
     await _ensure(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
 
     cal = (
         await client.post(

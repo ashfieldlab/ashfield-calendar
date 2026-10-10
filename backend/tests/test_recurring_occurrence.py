@@ -33,7 +33,7 @@ async def _weekly_event(client, headers) -> dict:
 
 
 async def test_edit_single_occurrence_detaches(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _weekly_event(client, a)
     occ2 = datetime(2026, 6, 8, 9, 0, tzinfo=UTC)  # 둘째 회차
 
@@ -83,7 +83,7 @@ async def test_edit_single_occurrence_detaches(client: AsyncClient, auth_headers
 async def test_edit_without_occurrence_still_series_wide(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _weekly_event(client, a)
     # occurrence 없이 PATCH → 전체 series 수정 (id 그대로)
     r = await client.patch(

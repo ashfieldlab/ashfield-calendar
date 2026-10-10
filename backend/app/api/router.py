@@ -4,17 +4,13 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     activity,
-    admin_companies,
     admin_jobs,
     admin_smtp,
+    admin_workspaces,
     audit,
     booking_types,
     caldav_tokens,
     calendars,
-    company,
-    company_members,
-    company_profile,
-    company_smtp,
     email_templates,
     events,
     me,
@@ -22,6 +18,10 @@ from app.api.v1 import (
     rooms,
     search,
     webhooks,
+    workspace,
+    workspace_members,
+    workspace_profile,
+    workspace_smtp,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -33,13 +33,13 @@ api_router.include_router(notifications.router)
 api_router.include_router(webhooks.router)
 api_router.include_router(search.router)
 api_router.include_router(activity.router)
-api_router.include_router(company.router)
-api_router.include_router(admin_companies.router)
+api_router.include_router(workspace.router)
+api_router.include_router(admin_workspaces.router)
 api_router.include_router(admin_jobs.router)
 api_router.include_router(admin_smtp.router)
-api_router.include_router(company_smtp.router)
-api_router.include_router(company_profile.router)
-api_router.include_router(company_members.router)
+api_router.include_router(workspace_smtp.router)
+api_router.include_router(workspace_profile.router)
+api_router.include_router(workspace_members.router)
 api_router.include_router(booking_types.router)
 api_router.include_router(email_templates.router)
 api_router.include_router(caldav_tokens.router)

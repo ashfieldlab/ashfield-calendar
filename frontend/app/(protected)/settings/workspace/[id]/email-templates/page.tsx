@@ -40,16 +40,16 @@ export default function EmailTemplatesPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id: companyIdRaw } = use(params)
-  const companyId = decodeURIComponent(companyIdRaw)
-  const { isCompanyAdmin } = useAppContext()
+  const { id: workspaceIdRaw } = use(params)
+  const workspaceId = decodeURIComponent(workspaceIdRaw)
+  const { isWorkspaceAdmin } = useAppContext()
   const { toast } = useToast()
   const confirm = useConfirm()
 
-  const LIST_URL = `/api/v1/companies/${encodeURIComponent(companyId)}/email-templates`
+  const LIST_URL = `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/email-templates`
   const { data: list, error, isLoading } = useApiGet<{
     items: EmailTemplateItem[]
-  }>(isCompanyAdmin ? LIST_URL : null)
+  }>(isWorkspaceAdmin ? LIST_URL : null)
 
   const [selected, setSelected] = useState<string | null>(null)
   useEffect(() => {
@@ -78,13 +78,13 @@ export default function EmailTemplatesPage({
     setPreview(null)
   }, [detail])
 
-  if (!isCompanyAdmin) {
+  if (!isWorkspaceAdmin) {
     return (
       <div
         className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
         data-testid="email-templates-no-permission"
       >
-        회사 관리자만 접근할 수 있습니다.
+        워크스페이스 관리자만 접근할 수 있습니다.
       </div>
     )
   }
@@ -185,11 +185,11 @@ export default function EmailTemplatesPage({
     >
       <div className="flex items-center gap-2 text-sm text-gray-600">
         <Link
-          href={`/settings/company/${companyId}/smtp`}
+          href={`/settings/workspace/${workspaceId}/smtp`}
           data-testid="email-templates-back-link"
           className="inline-flex items-center gap-1 rounded p-1 hover:bg-gray-100"
         >
-          <ArrowLeft size={14} /> 회사 설정
+          <ArrowLeft size={14} /> 워크스페이스 설정
         </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">이메일 템플릿</h1>

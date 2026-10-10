@@ -18,10 +18,10 @@ ACME = "tenant-a"
 
 
 async def test_calendar_create_writes_audit(client: AsyncClient, auth_headers):
-    h = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    h = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal_id = (await _calendar(client, h, "Foo"))["id"]
 
-    a = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_company=ACME)
+    a = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_workspace=ACME)
     r = await client.get("/api/v1/audit", headers=a)
     assert r.status_code == 200
     logs = r.json()["logs"]
@@ -34,14 +34,14 @@ async def test_calendar_create_writes_audit(client: AsyncClient, auth_headers):
 
 
 async def test_audit_requires_admin(client: AsyncClient, auth_headers):
-    h = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    h = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     r = await client.get("/api/v1/audit", headers=h)
     assert r.status_code == 403
 
 
 async def test_audit_filter_by_entity_type(client: AsyncClient, auth_headers):
-    user = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    admin = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_company=ACME)
+    user = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    admin = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_workspace=ACME)
 
     cal = (
         await client.post(
@@ -60,35 +60,35 @@ async def test_audit_filter_by_entity_type(client: AsyncClient, auth_headers):
     assert any(log["action"] == "delete" for log in logs)
 
 
-async def test_company_admin_can_view_company_audit(
+async def test_workspace_admin_can_view_workspace_audit(
     client: AsyncClient, auth_headers, db_session
 ):
-    """system admin 아닌 회사 admin 이 자기 회사 감사 로그 조회."""
-    from app.models.user_company_membership import UserCompanyMembership
+    """system admin 아닌 워크스페이스 admin 이 자기 워크스페이스 감사 로그 조회."""
+    from app.models.user_workspace_membership import UserWorkspaceMembership
 
-    # BOB 을 회사 멤버로 upsert 후 admin 승격
-    bob = auth_headers("user-bob", groups=[ACME], active_company=ACME)
+    # BOB 을 워크스페이스 멤버로 upsert 후 admin 승격
+    bob = auth_headers("user-bob", groups=[ACME], active_workspace=ACME)
     await client.get("/api/v1/me", headers=bob)
-    m = await db_session.get(UserCompanyMembership, ("user-bob", ACME))
+    m = await db_session.get(UserWorkspaceMembership, ("user-bob", ACME))
     m.role = "admin"
     await db_session.flush()
 
     # ALICE 가 캘린더 생성 → audit row
-    await _calendar(client, auth_headers(ALICE, groups=[ACME], active_company=ACME))
+    await _calendar(client, auth_headers(ALICE, groups=[ACME], active_workspace=ACME))
 
-    r = await client.get("/api/v1/audit?scope=company", headers=bob)
+    r = await client.get("/api/v1/audit?scope=workspace", headers=bob)
     assert r.status_code == 200
     assert any(log["entity_type"] == "calendar" for log in r.json()["logs"])
 
 
-async def test_company_admin_denied_system_scope(
+async def test_workspace_admin_denied_system_scope(
     client: AsyncClient, auth_headers, db_session
 ):
-    from app.models.user_company_membership import UserCompanyMembership
+    from app.models.user_workspace_membership import UserWorkspaceMembership
 
-    bob = auth_headers("user-bob", groups=[ACME], active_company=ACME)
+    bob = auth_headers("user-bob", groups=[ACME], active_workspace=ACME)
     await client.get("/api/v1/me", headers=bob)
-    m = await db_session.get(UserCompanyMembership, ("user-bob", ACME))
+    m = await db_session.get(UserWorkspaceMembership, ("user-bob", ACME))
     m.role = "admin"
     await db_session.flush()
 
@@ -97,8 +97,8 @@ async def test_company_admin_denied_system_scope(
 
 
 async def test_audit_filter_by_action(client: AsyncClient, auth_headers):
-    user = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    admin = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_company=ACME)
+    user = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    admin = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_workspace=ACME)
     cal = await _calendar(client, user)
     await client.delete(f"/api/v1/calendars/{cal['id']}", headers=user)
 
@@ -108,8 +108,8 @@ async def test_audit_filter_by_action(client: AsyncClient, auth_headers):
 
 
 async def test_audit_csv_export(client: AsyncClient, auth_headers):
-    user = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    admin = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_company=ACME)
+    user = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    admin = auth_headers(ADMIN, groups=[ACME], roles=["admin"], active_workspace=ACME)
     await _calendar(client, user)
 
     r = await client.get("/api/v1/audit/export.csv", headers=admin)

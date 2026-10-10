@@ -12,15 +12,15 @@ async def test_purge_old_pii(db_session):
     from app.models.booking import Booking
     from app.models.booking_type import BookingType
     from app.models.calendar import Calendar
-    from app.models.company import Company
     from app.models.user import User
+    from app.models.workspace import Workspace
 
-    db_session.add(Company(id="acme-corp", name="acme-corp"))
+    db_session.add(Workspace(id="acme-corp", name="acme-corp"))
     db_session.add(User(id="alice", email="alice@x", name="Alice"))
     await db_session.flush()
     db_session.add(
         Calendar(
-            id="cal-1", company_id="acme-corp", owner_id="alice",
+            id="cal-1", workspace_id="acme-corp", owner_id="alice",
             scope="personal", source="native", name="B", color="#3b82f6",
         )
     )

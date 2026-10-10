@@ -18,7 +18,7 @@ test.describe("/calendar", () => {
     const title = `테스트-${Date.now()}`
     await page.getByTestId("calendar-new-event-button").click()
     await page.getByTestId("event-form-title-input").fill(title)
-    // 캘린더 select: calName 으로 변경 (회사 기본 캘린더가 위에 있을 수 있어 명시)
+    // 캘린더 select: calName 으로 변경 (워크스페이스 기본 캘린더가 위에 있을 수 있어 명시)
     await selectCalendar(page, calName)
     await page.getByTestId("event-form-save-button").click()
     await showListView(page)

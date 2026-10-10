@@ -12,7 +12,7 @@ ACME = "tenant-a"
 async def _ensure_user(client, auth_headers, sub):
     await client.get(
         "/api/v1/me",
-        headers=auth_headers(sub, groups=[ACME], active_company=ACME),
+        headers=auth_headers(sub, groups=[ACME], active_workspace=ACME),
     )
 
 
@@ -20,8 +20,8 @@ async def test_invite_creates_notification_for_invitee(
     client: AsyncClient, auth_headers, invite
 ):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     ev = await invite(client, a, BOB, "F")
 
     r = await client.get("/api/v1/notifications", headers=b)
@@ -42,8 +42,8 @@ async def test_self_action_does_not_notify(
     # 본 시나리오: Alice 가 자기 일정에 자기 초대 시도 → 막힘이 아닐 수도 있으니 직접 시나리오 변경:
     # Bob 가 본인 계정에서 Alice 를 invite 받는 시점 알림은 검증됨. 여기선 mark-all-read 확인.
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     await invite(client, a, BOB, "Q")
     r = await client.post("/api/v1/notifications/mark-all-read", headers=b)
     assert r.status_code == 200
@@ -56,8 +56,8 @@ async def test_event_invitation_notifies_invitee_and_response_notifies_creator(
     client: AsyncClient, auth_headers
 ):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
 
     cal = (
         await client.post(
@@ -106,8 +106,8 @@ async def test_patch_notification_marks_read(
     client: AsyncClient, auth_headers, invite
 ):
     await _ensure_user(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     await invite(client, a, BOB, "X")
     nid = (await client.get("/api/v1/notifications", headers=b)).json()[
         "notifications"

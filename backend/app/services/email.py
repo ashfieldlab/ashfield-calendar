@@ -22,9 +22,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import AsyncSessionLocal
 from app.core.logging import logger
-from app.models.company import Company
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
+from app.models.workspace import Workspace
 from app.services.email_template import make_brand_html
 from app.services.smtp_config import SmtpRuntime
 from app.services.smtp_config import resolve as resolve_smtp
@@ -66,9 +66,9 @@ def _html_to_text(html: str) -> str:
 # 템플릿: 단순 문자열 포맷. Jinja2 도입은 Phase 3a-3 범위 밖.
 # ---------------------------------------------------------------------------
 
-# 시스템 기본 HTML: 회사가 커스텀 안 했을 때 외부 고객에게 가는 메일.
-# 회사 로고는 일부러 안 박음: 등록 안 한 회사도 깔끔하게 보이게 + 로고 등록한
-# 회사는 회사 설정 → 이메일 템플릿에서 직접 <img> 태그 추가.
+# 시스템 기본 HTML: 워크스페이스가 커스텀 안 했을 때 외부 고객에게 가는 메일.
+# 워크스페이스 로고는 일부러 안 박음: 등록 안 한 워크스페이스도 깔끔하게 보이게 + 로고 등록한
+# 워크스페이스는 워크스페이스 설정 → 이메일 템플릿에서 직접 <img> 태그 추가.
 
 _BOOKING_HTML_RECEIVED = """\
 <table cellspacing="0" cellpadding="0" border="0" width="100%" align="center" role="presentation" style="background-color:#e9ecef; padding:32px 0; font-family:'Arial','Helvetica Neue',Helvetica,sans-serif; color:#212529;">
@@ -258,12 +258,12 @@ async def render(
     payload: dict,
     actor_name: str,
     *,
-    company_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> RenderedEmail | None:
-    """Render subject/body: 회사 override(있으면) → 시스템 기본.
+    """Render subject/body: 워크스페이스 override(있으면) → 시스템 기본.
 
     db=None 인 경우는 시스템 기본만 사용 (백그라운드 worker 등 db 가용 불가시).
-    회사 override 가 is_html=True 면 RenderedEmail.is_html=True, text_fallback 동봉.
+    워크스페이스 override 가 is_html=True 면 RenderedEmail.is_html=True, text_fallback 동봉.
     시스템 기본은 항상 plain text.
     """
     is_html = False
@@ -272,7 +272,7 @@ async def render(
         from app.services.email_template import resolve_full_template
 
         full = await resolve_full_template(
-            db, event_type=event_type, company_id=company_id
+            db, event_type=event_type, workspace_id=workspace_id
         )
         if full is None:
             return None
@@ -407,11 +407,11 @@ async def send_to_address(
     to_email: str,
     event_type: str,
     payload: dict,
-    company_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> None:
     """User 테이블 lookup 없이 직접 발송: 외부 고객(booking 알림 등)."""
     async with AsyncSessionLocal() as db:
-        cfg = await resolve_smtp(db, company_id=company_id)
+        cfg = await resolve_smtp(db, workspace_id=workspace_id)
         if cfg is None:
             logger.debug(
                 "email_skipped_no_config",
@@ -419,7 +419,7 @@ async def send_to_address(
             )
             return
         rendered = await render(
-            db, event_type, payload, actor_name="", company_id=company_id
+            db, event_type, payload, actor_name="", workspace_id=workspace_id
         )
     if rendered is None:
         return
@@ -452,7 +452,7 @@ async def send_for_event(
     actor_sub: str | None,
     event_type: str,
     payload: dict,
-    company_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> str:
     """본인 행동이 아닌 알림에 한해 이메일 발송.
 
@@ -461,13 +461,13 @@ async def send_for_event(
       - "skipped" 수신거부·주소없음·템플릿없음·본인행동 → 스탬프(terminal, 재시도 무의미)
       - "failed"  SMTP 미설정·전송 예외 → 스탬프 안 함(relay 가 재시도)
 
-    company_id 는 회사 override resolve 에 사용.
+    workspace_id 는 워크스페이스 override resolve 에 사용.
     """
     if recipient_sub == actor_sub:
         return "skipped"
 
     async with AsyncSessionLocal() as db:
-        cfg = await resolve_smtp(db, company_id=company_id)
+        cfg = await resolve_smtp(db, workspace_id=workspace_id)
         if cfg is None:
             logger.debug(
                 "email_skipped_no_config",
@@ -481,13 +481,13 @@ async def send_for_event(
             return "skipped"
         actor_name = await resolve_actor_name(db, actor_sub=actor_sub)
         # organization_* 자동 fill: booking 외 알림 (event_invited 등) 도
-        # 회사 브랜드 헤더를 사용한 HTML 템플릿 커스터마이즈 가능하게. 호출처가 이미
+        # 워크스페이스 브랜드 헤더를 사용한 HTML 템플릿 커스터마이즈 가능하게. 호출처가 이미
         # payload 에 채웠으면 보존 (booking 의 dispatch_*_emails 호환).
-        if company_id and "organization_name" not in payload:
-            company = await db.get(Company, company_id)
-            if company is not None:
-                org_name = company.name or company_id
-                logo_url = getattr(company, "logo_url", None)
+        if workspace_id and "organization_name" not in payload:
+            workspace = await db.get(Workspace, workspace_id)
+            if workspace is not None:
+                org_name = workspace.name or workspace_id
+                logo_url = getattr(workspace, "logo_url", None)
                 payload = {
                     **payload,
                     "organization_name": org_name,
@@ -495,7 +495,7 @@ async def send_for_event(
                     "organization_brand": make_brand_html(org_name, logo_url),
                 }
         rendered = await render(
-            db, event_type, payload, actor_name, company_id=company_id
+            db, event_type, payload, actor_name, workspace_id=workspace_id
         )
     if rendered is None:
         return "skipped"

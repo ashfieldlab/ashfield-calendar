@@ -10,17 +10,17 @@ from app.models.calendar_event import CalendarEvent
 from app.models.calendar_event_invitation import CalendarEventInvitation
 from app.models.calendar_event_reminder_dispatch import CalendarEventReminderDispatch
 from app.models.calendar_object_change import CalendarObjectChange
-from app.models.company import Company
-from app.models.email_template import CompanyEmailTemplate
+from app.models.email_template import WorkspaceEmailTemplate
 from app.models.job_run import JobRun
 from app.models.notification import Notification
 from app.models.room import Room
-from app.models.smtp_config import CompanySmtpOverride, SystemSmtpConfig
+from app.models.smtp_config import SystemSmtpConfig, WorkspaceSmtpOverride
 from app.models.user import User
 from app.models.user_calendar_preference import UserCalendarPreference
-from app.models.user_company_membership import UserCompanyMembership
 from app.models.user_notification_preference import UserNotificationPreference
+from app.models.user_workspace_membership import UserWorkspaceMembership
 from app.models.webhook import WebhookDelivery, WebhookEndpoint
+from app.models.workspace import Workspace
 
 __all__ = [
     "AuditLog",
@@ -33,16 +33,16 @@ __all__ = [
     "CalendarEventReminderDispatch",
     "CalendarObjectChange",
     "CalDavToken",
-    "Company",
-    "CompanyEmailTemplate",
+    "Workspace",
+    "WorkspaceEmailTemplate",
     "JobRun",
     "Notification",
     "Room",
     "SystemSmtpConfig",
-    "CompanySmtpOverride",
+    "WorkspaceSmtpOverride",
     "User",
     "UserCalendarPreference",
-    "UserCompanyMembership",
+    "UserWorkspaceMembership",
     "UserNotificationPreference",
     "WebhookDelivery",
     "WebhookEndpoint",

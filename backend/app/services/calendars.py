@@ -2,9 +2,9 @@
 
 권한 (Phase 1):
   - personal: owner_id == user.sub
-  - shared: active company 멤버면 OK (require_active_company 가 이미 체크)
-  - 다른 회사: 404
-Auto-visibility (ADR-0007): GET /calendars = 회사의 모든 shared + 본인 personal.
+  - shared: active workspace 멤버면 OK (require_active_workspace 가 이미 체크)
+  - 다른 워크스페이스: 404
+Auto-visibility (ADR-0007): GET /calendars = 워크스페이스의 모든 shared + 본인 personal.
 반복 일정: rrule (RFC 5545) → dateutil.rrule 로 [from, to) 구간 expand.
 """
 
@@ -41,9 +41,9 @@ async def get_calendar_or_404(db: AsyncSession, calendar_id: str) -> Calendar:
 
 
 def assert_calendar_access(
-    cal: Calendar, *, user: UserContext, company_id: str, permission: Permission = "read"
+    cal: Calendar, *, user: UserContext, workspace_id: str, permission: Permission = "read"
 ) -> None:
-    if cal.company_id != company_id:
+    if cal.workspace_id != workspace_id:
         raise HTTPException(404, "Calendar not found")
     if cal.scope == "personal" and cal.owner_id != user.sub:
         raise HTTPException(403, "Forbidden")
@@ -64,9 +64,9 @@ async def get_event_with_calendar_or_404(
 
 
 async def ensure_holidays_calendar(
-    db: AsyncSession, *, company_id: str, actor_sub: str
+    db: AsyncSession, *, workspace_id: str, actor_sub: str
 ) -> None:
-    """회사에 기본 공휴일 캘린더(관리형 external_ics)를 idempotent 시드.
+    """워크스페이스에 기본 공휴일 캘린더(관리형 external_ics)를 idempotent 시드.
 
     fetch 는 하지 않는다: external_ics_refresh 잡(매 5분)이 채운다. GET 경로에서
     호출되므로 외부 피드 장애가 캘린더 목록을 깨지 않게 한다.
@@ -78,7 +78,7 @@ async def ensure_holidays_calendar(
         return
     exists = await db.scalar(
         select(Calendar.id).where(
-            Calendar.company_id == company_id,
+            Calendar.workspace_id == workspace_id,
             Calendar.managed.is_(True),
             Calendar.external_ics_url == url,
             Calendar.deleted_at.is_(None),
@@ -89,7 +89,7 @@ async def ensure_holidays_calendar(
     db.add(
         Calendar(
             id=str(uuid.uuid7()),
-            company_id=company_id,
+            workspace_id=workspace_id,
             owner_id=actor_sub,
             scope="shared",
             source="external_ics",
@@ -103,14 +103,14 @@ async def ensure_holidays_calendar(
 
 
 async def list_visible_calendars(
-    db: AsyncSession, *, company_id: str, user: UserContext
+    db: AsyncSession, *, workspace_id: str, user: UserContext
 ) -> list[tuple[Calendar, UserCalendarPreference | None]]:
-    """자동 가시: 회사 모든 shared + 본인 personal."""
+    """자동 가시: 워크스페이스 모든 shared + 본인 personal."""
     cal_stmt = (
         select(Calendar)
         .where(
             and_(
-                Calendar.company_id == company_id,
+                Calendar.workspace_id == workspace_id,
                 Calendar.deleted_at.is_(None),
                 or_(
                     Calendar.scope == "shared",
@@ -220,14 +220,14 @@ def expand_event(
 async def list_occurrences(
     db: AsyncSession,
     *,
-    company_id: str,
+    workspace_id: str,
     user: UserContext,
     range_from: datetime,
     range_to: datetime,
     calendar_ids: list[str] | None,
 ) -> list[dict]:
     """가시 캘린더 ∩ 요청 ID 목록 ∩ hidden=false 의 occurrence 를 풀어 반환."""
-    visible = await list_visible_calendars(db, company_id=company_id, user=user)
+    visible = await list_visible_calendars(db, workspace_id=workspace_id, user=user)
     visible_map: dict[str, Calendar] = {
         c.id: c for c, p in visible if not (p and p.hidden)
     }

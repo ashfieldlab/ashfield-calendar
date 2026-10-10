@@ -1,4 +1,4 @@
-"""/api/v1/companies/{id}/email-templates: Company Admin 이메일 템플릿 override.
+"""/api/v1/workspaces/{id}/email-templates: Workspace Admin 이메일 템플릿 override.
 
 대상 event_type 은 services/email_template.CUSTOMIZABLE_EVENT_TYPES 화이트리스트.
 override row 가 있으면 services/email.render 가 시스템 기본보다 우선 적용.
@@ -9,10 +9,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import require_company_admin
+from app.auth.dependencies import require_workspace_admin
 from app.core.db import get_db
 from app.core.logging import logger
-from app.models.email_template import CompanyEmailTemplate
+from app.models.email_template import WorkspaceEmailTemplate
 from app.services.email import _TEMPLATES
 from app.services.email_template import (
     CUSTOMIZABLE_EVENT_TYPES,
@@ -22,7 +22,7 @@ from app.services.email_template import (
 )
 
 router = APIRouter(
-    prefix="/companies/{company_id}/email-templates", tags=["company"]
+    prefix="/workspaces/{workspace_id}/email-templates", tags=["workspace"]
 )
 
 
@@ -50,7 +50,7 @@ class EmailTemplateDetail(BaseModel):
     text_fallback: str | None = None
     default_subject: str
     default_body: str
-    # 시스템 기본 템플릿이 HTML 인지: 회사가 커스텀 안 한 새 row 의 초기값 결정에 사용.
+    # 시스템 기본 템플릿이 HTML 인지: 워크스페이스가 커스텀 안 한 새 row 의 초기값 결정에 사용.
     default_is_html: bool = False
 
 
@@ -90,16 +90,16 @@ def _assert_supported(event_type: str) -> None:
 @router.get(
     "",
     response_model=EmailTemplateListResponse,
-    summary="회사 이메일 템플릿 목록 (Company Admin)",
+    summary="워크스페이스 이메일 템플릿 목록 (Workspace Admin)",
 )
 async def list_templates(
-    company_id: str = Path(...),
-    _: UserContext = Depends(require_company_admin),
+    workspace_id: str = Path(...),
+    _: UserContext = Depends(require_workspace_admin),
     db: AsyncSession = Depends(get_db),
 ) -> EmailTemplateListResponse:
     items: list[EmailTemplateItem] = []
     for event_type, label in CUSTOMIZABLE_EVENT_TYPES.items():
-        row = await db.get(CompanyEmailTemplate, (company_id, event_type))
+        row = await db.get(WorkspaceEmailTemplate, (workspace_id, event_type))
         items.append(
             EmailTemplateItem(
                 event_type=event_type,
@@ -117,13 +117,13 @@ async def list_templates(
     summary="이메일 템플릿 단건: 현재 active (override 또는 기본)",
 )
 async def get_template(
-    company_id: str = Path(...),
+    workspace_id: str = Path(...),
     event_type: str = Path(...),
-    _: UserContext = Depends(require_company_admin),
+    _: UserContext = Depends(require_workspace_admin),
     db: AsyncSession = Depends(get_db),
 ) -> EmailTemplateDetail:
     _assert_supported(event_type)
-    row = await db.get(CompanyEmailTemplate, (company_id, event_type))
+    row = await db.get(WorkspaceEmailTemplate, (workspace_id, event_type))
     default_subject, default_body, default_is_html = _default_for(event_type)
     return EmailTemplateDetail(
         event_type=event_type,
@@ -147,20 +147,20 @@ async def get_template(
 )
 async def put_template(
     body: EmailTemplatePut,
-    company_id: str = Path(...),
+    workspace_id: str = Path(...),
     event_type: str = Path(...),
-    actor: UserContext = Depends(require_company_admin),
+    actor: UserContext = Depends(require_workspace_admin),
     db: AsyncSession = Depends(get_db),
 ) -> EmailTemplateDetail:
     _assert_supported(event_type)
     validate_template(
         event_type, body.subject, body.body, text_fallback=body.text_fallback
     )
-    row = await db.get(CompanyEmailTemplate, (company_id, event_type))
+    row = await db.get(WorkspaceEmailTemplate, (workspace_id, event_type))
     is_new = row is None
     if row is None:
-        row = CompanyEmailTemplate(
-            company_id=company_id, event_type=event_type, subject="", body=""
+        row = WorkspaceEmailTemplate(
+            workspace_id=workspace_id, event_type=event_type, subject="", body=""
         )
         db.add(row)
     row.subject = body.subject
@@ -173,7 +173,7 @@ async def put_template(
         "email_template_saved",
         extra={
             "category": "biz",
-            "company_id": company_id,
+            "workspace_id": workspace_id,
             "event_type": event_type,
             "actor": actor.sub,
             "is_new": is_new,
@@ -198,16 +198,16 @@ async def put_template(
 @router.delete(
     "/{event_type}",
     status_code=204,
-    summary="회사 override 삭제: 시스템 기본 사용으로 복귀",
+    summary="워크스페이스 override 삭제: 시스템 기본 사용으로 복귀",
 )
 async def delete_template(
-    company_id: str = Path(...),
+    workspace_id: str = Path(...),
     event_type: str = Path(...),
-    actor: UserContext = Depends(require_company_admin),
+    actor: UserContext = Depends(require_workspace_admin),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     _assert_supported(event_type)
-    row = await db.get(CompanyEmailTemplate, (company_id, event_type))
+    row = await db.get(WorkspaceEmailTemplate, (workspace_id, event_type))
     if row is None:
         return
     await db.delete(row)
@@ -216,7 +216,7 @@ async def delete_template(
         "email_template_removed",
         extra={
             "category": "biz",
-            "company_id": company_id,
+            "workspace_id": workspace_id,
             "event_type": event_type,
             "actor": actor.sub,
         },
@@ -230,9 +230,9 @@ async def delete_template(
 )
 async def preview_template(
     body: EmailTemplatePreviewRequest,
-    company_id: str = Path(...),
+    workspace_id: str = Path(...),
     event_type: str = Path(...),
-    _: UserContext = Depends(require_company_admin),
+    _: UserContext = Depends(require_workspace_admin),
     db: AsyncSession = Depends(get_db),
 ) -> EmailTemplatePreviewResponse:
     _assert_supported(event_type)
@@ -240,16 +240,16 @@ async def preview_template(
     validate_template(
         event_type, body.subject, body.body, text_fallback=body.text_fallback
     )
-    # 회사 등록 정보가 있으면 placeholder 대신 실제 값 사용: 미리보기가 발송과 일치하게.
+    # 워크스페이스 등록 정보가 있으면 placeholder 대신 실제 값 사용: 미리보기가 발송과 일치하게.
     ctx = dict(SAMPLE_VARIABLES[event_type])
-    from app.models.company import Company
+    from app.models.workspace import Workspace
     from app.services.email_template import make_brand_html
 
-    company = await db.get(Company, company_id)
-    if company is not None:
-        ctx["organization_name"] = company.name
-        ctx["organization_logo_url"] = company.logo_url or ""
-        ctx["organization_brand"] = make_brand_html(company.name, company.logo_url)
+    workspace = await db.get(Workspace, workspace_id)
+    if workspace is not None:
+        ctx["organization_name"] = workspace.name
+        ctx["organization_logo_url"] = workspace.logo_url or ""
+        ctx["organization_brand"] = make_brand_html(workspace.name, workspace.logo_url)
     try:
         return EmailTemplatePreviewResponse(
             subject=body.subject.format(**ctx),

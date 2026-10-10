@@ -15,7 +15,7 @@ ACME = "tenant-a"
 async def _ensure_user(client, auth_headers, sub):
     await client.get(
         "/api/v1/me",
-        headers=auth_headers(sub, groups=[ACME], active_company=ACME),
+        headers=auth_headers(sub, groups=[ACME], active_workspace=ACME),
     )
 
 
@@ -45,7 +45,7 @@ async def _make_event(client, headers) -> dict:
 async def test_external_guest_invite_and_rsvp(
     client: AsyncClient, auth_headers, db_session
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _make_event(client, a)
 
     r = await client.post(
@@ -99,10 +99,10 @@ async def test_invite_existing_member_email_becomes_internal(
         "/api/v1/me",
         headers={
             "Authorization": f"Bearer {bob_token}",
-            "X-Active-Company-Id": ACME,
+            "X-Active-Workspace-Id": ACME,
         },
     )
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _make_event(client, a)
 
     r = await client.post(
@@ -119,7 +119,7 @@ async def test_invite_existing_member_email_becomes_internal(
 async def test_invite_requires_exactly_one_target(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _make_event(client, a)
 
     # 둘 다 지정 → 400
@@ -140,7 +140,7 @@ async def test_invite_requires_exactly_one_target(
 async def test_duplicate_external_invite_returns_same_row(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _make_event(client, a)
     first = (
         await client.post(

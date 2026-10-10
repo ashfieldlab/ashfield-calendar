@@ -8,14 +8,14 @@ import { WeeklyScheduleEditor } from "@/components/booking/weekly-schedule-edito
 import { useApiGet } from "@/lib/hooks/use-api"
 import type { CalendarListResponse } from "@/lib/types/api"
 
-interface CompanyMember {
+interface WorkspaceMember {
   user_sub: string
   email: string | null
   name: string | null
   role: "admin" | "member"
 }
-interface CompanyMemberList {
-  members: CompanyMember[]
+interface WorkspaceMemberList {
+  members: WorkspaceMember[]
 }
 import type {
   BookingTypeCreate,
@@ -60,18 +60,18 @@ export function BookingTypeForm({
   submitLabel = "저장",
 }: Props) {
   const { toast } = useToast()
-  const { isCompanyAdmin, activeCompanyId } = useAppContext()
+  const { isWorkspaceAdmin, activeWorkspaceId } = useAppContext()
   const { data: calData } = useApiGet<CalendarListResponse>("/api/v1/calendars")
   const calendars = calData?.calendars ?? []
-  // company-owned 일 때만 회사 멤버 fetch (다중 선택용).
-  // GET /members 는 company admin 전용: 일반 사용자가 fetch 시도하면 403 야기.
-  // UI 측에서 owner_type='company' 옵션도 admin 에게만 허용하므로 fetch 도 admin 일 때만.
-  const { data: memberData } = useApiGet<CompanyMemberList>(
-    isCompanyAdmin && activeCompanyId
-      ? `/api/v1/companies/${encodeURIComponent(activeCompanyId)}/members`
+  // workspace-owned 일 때만 워크스페이스 멤버 fetch (다중 선택용).
+  // GET /members 는 workspace admin 전용: 일반 사용자가 fetch 시도하면 403 야기.
+  // UI 측에서 owner_type='workspace' 옵션도 admin 에게만 허용하므로 fetch 도 admin 일 때만.
+  const { data: memberData } = useApiGet<WorkspaceMemberList>(
+    isWorkspaceAdmin && activeWorkspaceId
+      ? `/api/v1/workspaces/${encodeURIComponent(activeWorkspaceId)}/members`
       : null,
   )
-  const companyMembers = memberData?.members ?? []
+  const workspaceMembers = memberData?.members ?? []
 
   const [ownerType, setOwnerType] = useState<BookingTypeOwner>(
     initial?.owner_type ?? "user",
@@ -116,7 +116,7 @@ export function BookingTypeForm({
       const firstUserCal = calendars.find(
         (c) =>
           (ownerType === "user" && c.scope === "personal") ||
-          (ownerType === "company" && c.scope === "shared"),
+          (ownerType === "workspace" && c.scope === "shared"),
       )
       if (firstUserCal) setTargetCalendarId(firstUserCal.id)
     }
@@ -132,7 +132,7 @@ export function BookingTypeForm({
   const targetCandidates = calendars.filter(
     (c) =>
       (ownerType === "user" && c.scope === "personal") ||
-      (ownerType === "company" && c.scope === "shared"),
+      (ownerType === "workspace" && c.scope === "shared"),
   )
   // blocking 후보: target 제외
   const blockingCandidates = calendars.filter(
@@ -185,12 +185,12 @@ export function BookingTypeForm({
             <label className="inline-flex items-center gap-1">
               <input
                 type="radio"
-                checked={ownerType === "company"}
-                onChange={() => setOwnerType("company")}
-                disabled={!isCompanyAdmin}
-                data-testid="booking-type-form-owner-company"
+                checked={ownerType === "workspace"}
+                onChange={() => setOwnerType("workspace")}
+                disabled={!isWorkspaceAdmin}
+                data-testid="booking-type-form-owner-workspace"
               />
-              회사 {!isCompanyAdmin && "(회사 관리자 필요)"}
+              워크스페이스 {!isWorkspaceAdmin && "(워크스페이스 관리자 필요)"}
             </label>
           </div>
         </Row>
@@ -320,9 +320,9 @@ export function BookingTypeForm({
         </div>
       </Row>
       <Row label="예약 알림 받을 사람">
-        {ownerType === "company" && companyMembers.length > 0 ? (
+        {ownerType === "workspace" && workspaceMembers.length > 0 ? (
           <div className="space-y-1 rounded border border-gray-200 bg-gray-50 p-2">
-            {companyMembers.map((m) => {
+            {workspaceMembers.map((m) => {
               const checked = notifyUserSubs.includes(m.user_sub)
               return (
                 <label

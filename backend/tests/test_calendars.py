@@ -12,10 +12,10 @@ ACME = "tenant-a"
 async def test_auto_visibility_shared_seen_by_all(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
 
-    # Alice 가 회사 공유 캘린더 생성
+    # Alice 가 워크스페이스 캘린더 생성
     r = await client.post(
         "/api/v1/calendars",
         json={"name": "Holidays", "scope": "shared", "color": "#ff0000"},
@@ -32,8 +32,8 @@ async def test_auto_visibility_shared_seen_by_all(
 async def test_personal_calendar_hidden_from_other_user(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
 
     r = await client.post(
         "/api/v1/calendars",
@@ -49,7 +49,7 @@ async def test_personal_calendar_hidden_from_other_user(
 async def test_hidden_preference_excludes_occurrences(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",
@@ -91,7 +91,7 @@ async def test_hidden_preference_excludes_occurrences(
 
 
 async def test_rrule_expansion_weekly(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",
@@ -125,7 +125,7 @@ async def test_rrule_expansion_weekly(client: AsyncClient, auth_headers):
 
 
 async def test_event_ics_export(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",
@@ -159,7 +159,7 @@ async def test_event_ics_export(client: AsyncClient, auth_headers):
 async def test_delete_single_occurrence_keeps_series(
     client: AsyncClient, auth_headers
 ):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     cal = (
         await client.post(
             "/api/v1/calendars",

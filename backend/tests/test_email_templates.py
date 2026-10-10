@@ -1,14 +1,14 @@
-"""/api/v1/companies/{id}/email-templates: override CRUD + 변수 검증 + 권한."""
+"""/api/v1/workspaces/{id}/email-templates: override CRUD + 변수 검증 + 권한."""
 
 import pytest
 
 
-async def _make_admin(client, auth_headers, db_session, sub: str, company: str):
-    from app.models.user_company_membership import UserCompanyMembership
+async def _make_admin(client, auth_headers, db_session, sub: str, workspace: str):
+    from app.models.user_workspace_membership import UserWorkspaceMembership
 
-    h = auth_headers(sub, groups=[company], active_company=company)
+    h = auth_headers(sub, groups=[workspace], active_workspace=workspace)
     await client.get("/api/v1/me", headers=h)
-    m = await db_session.get(UserCompanyMembership, (sub, company))
+    m = await db_session.get(UserWorkspaceMembership, (sub, workspace))
     m.role = "admin"
     await db_session.flush()
     return h
@@ -16,10 +16,10 @@ async def _make_admin(client, auth_headers, db_session, sub: str, company: str):
 
 @pytest.mark.asyncio
 async def test_member_cannot_manage(client, auth_headers):
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
     res = await client.get(
-        "/api/v1/companies/acme-corp/email-templates", headers=h
+        "/api/v1/workspaces/acme-corp/email-templates", headers=h
     )
     assert res.status_code == 403
 
@@ -28,7 +28,7 @@ async def test_member_cannot_manage(client, auth_headers):
 async def test_list_shows_all_customizable(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     res = await client.get(
-        "/api/v1/companies/acme-corp/email-templates", headers=h
+        "/api/v1/workspaces/acme-corp/email-templates", headers=h
     )
     assert res.status_code == 200
     items = res.json()["items"]
@@ -53,7 +53,7 @@ async def test_get_returns_system_default_when_no_override(
 ):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     res = await client.get(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
     )
     assert res.status_code == 200
@@ -71,7 +71,7 @@ async def test_put_then_get_returns_override(client, auth_headers, db_session):
         "body": "{customer_name}님, {slot_start_local} 에 만나요. 취소: {cancel_url}",
     }
     res = await client.put(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
         json=payload,
     )
@@ -79,7 +79,7 @@ async def test_put_then_get_returns_override(client, auth_headers, db_session):
     assert res.json()["overridden"] is True
 
     g = await client.get(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
     )
     assert g.json()["subject"] == payload["subject"]
@@ -89,7 +89,7 @@ async def test_put_then_get_returns_override(client, auth_headers, db_session):
 async def test_put_rejects_unknown_variable(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     res = await client.put(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
         json={"subject": "{title}", "body": "hi {ghost_var}"},
     )
@@ -105,7 +105,7 @@ async def test_put_rejects_non_customizable_event_type(
     # booking_received_operator 는 _TEMPLATES 에 있지만 운영자용 plain text 이라
     # 커스터마이즈 화이트리스트(CUSTOMIZABLE_EVENT_TYPES) 에는 미등록 → 404 기대
     res = await client.put(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_operator",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_operator",
         headers=h,
         json={"subject": "x", "body": "y"},
     )
@@ -116,17 +116,17 @@ async def test_put_rejects_non_customizable_event_type(
 async def test_delete_falls_back_to_default(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     await client.put(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
         json={"subject": "{title}", "body": "{customer_name}"},
     )
     res = await client.delete(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
     )
     assert res.status_code == 204
     g = await client.get(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
     )
     assert g.json()["overridden"] is False
@@ -137,7 +137,7 @@ async def test_delete_falls_back_to_default(client, auth_headers, db_session):
 async def test_preview_renders_sample_variables(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     res = await client.post(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer/preview",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer/preview",
         headers=h,
         json={
             "subject": "[{organization_name}] {title}",
@@ -146,16 +146,16 @@ async def test_preview_renders_sample_variables(client, auth_headers, db_session
     )
     assert res.status_code == 200
     body = res.json()
-    # 미리보기는 회사 등록 이름이 있으면 그걸 사용: lazy upsert 된 acme-corp
+    # 미리보기는 워크스페이스 등록 이름이 있으면 그걸 사용: lazy upsert 된 acme-corp
     assert "acme-corp" in body["subject"]
     assert "홍길동" in body["body"]
 
 
 @pytest.mark.asyncio
-async def test_cross_company_isolation(client, auth_headers, db_session):
+async def test_cross_workspace_isolation(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     res = await client.put(
-        "/api/v1/companies/beta-co/email-templates/booking_received_customer",
+        "/api/v1/workspaces/beta-co/email-templates/booking_received_customer",
         headers=h,
         json={"subject": "{title}", "body": "{customer_name}"},
     )
@@ -172,7 +172,7 @@ async def test_put_html_with_text_fallback(client, auth_headers, db_session):
         "text_fallback": "{customer_name}님: {slot_start_local}",
     }
     res = await client.put(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
         json=payload,
     )
@@ -189,7 +189,7 @@ async def test_delete_falls_back_to_system_default_is_html(
     """DELETE 후엔 시스템 기본 따름. booking_received_customer 시스템 기본은 HTML."""
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     await client.put(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
         json={
             "subject": "{title}",
@@ -198,11 +198,11 @@ async def test_delete_falls_back_to_system_default_is_html(
         },
     )
     await client.delete(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
     )
     g = await client.get(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer",
         headers=h,
     )
     j = g.json()
@@ -215,7 +215,7 @@ async def test_delete_falls_back_to_system_default_is_html(
 async def test_preview_returns_html_flag(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     res = await client.post(
-        "/api/v1/companies/acme-corp/email-templates/booking_received_customer/preview",
+        "/api/v1/workspaces/acme-corp/email-templates/booking_received_customer/preview",
         headers=h,
         json={
             "subject": "{title}",
@@ -233,15 +233,15 @@ async def test_preview_returns_html_flag(client, auth_headers, db_session):
 @pytest.mark.asyncio
 async def test_render_returns_html_rendered_email(client, auth_headers, db_session):
     """services/email.render() 가 RenderedEmail(is_html=True) 로 응답."""
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
 
-    from app.models.email_template import CompanyEmailTemplate
+    from app.models.email_template import WorkspaceEmailTemplate
     from app.services.email import _html_to_text, render
 
     db_session.add(
-        CompanyEmailTemplate(
-            company_id="acme-corp",
+        WorkspaceEmailTemplate(
+            workspace_id="acme-corp",
             event_type="booking_received_customer",
             subject="HTML: {title}",
             body="<p>안녕 {customer_name}</p>",
@@ -262,7 +262,7 @@ async def test_render_returns_html_rendered_email(client, auth_headers, db_sessi
             "organization_name": "Ashfield",
         },
         actor_name="",
-        company_id="acme-corp",
+        workspace_id="acme-corp",
     )
     assert out is not None
     assert out.is_html is True
@@ -272,20 +272,20 @@ async def test_render_returns_html_rendered_email(client, auth_headers, db_sessi
 
 
 @pytest.mark.asyncio
-async def test_resolve_render_uses_company_override(
+async def test_resolve_render_uses_workspace_override(
     client, auth_headers, db_session
 ):
-    """services/email.render() 가 회사 override 우선 적용한다."""
-    # company row 가 있어야 FK 통과: lazy upsert
-    h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
+    """services/email.render() 가 워크스페이스 override 우선 적용한다."""
+    # workspace row 가 있어야 FK 통과: lazy upsert
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
     await client.get("/api/v1/me", headers=h)
 
-    from app.models.email_template import CompanyEmailTemplate
+    from app.models.email_template import WorkspaceEmailTemplate
     from app.services.email import render
 
     db_session.add(
-        CompanyEmailTemplate(
-            company_id="acme-corp",
+        WorkspaceEmailTemplate(
+            workspace_id="acme-corp",
             event_type="booking_received_customer",
             subject="OVERRIDE: {title}",
             body="안녕 {customer_name}",
@@ -304,7 +304,7 @@ async def test_resolve_render_uses_company_override(
             "organization_name": "Ashfield",
         },
         actor_name="",
-        company_id="acme-corp",
+        workspace_id="acme-corp",
     )
     assert out is not None
     assert out.subject.startswith("OVERRIDE")

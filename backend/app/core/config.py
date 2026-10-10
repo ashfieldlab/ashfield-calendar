@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # 분실해도 SMTP 재설정만 하면 복구. 운영은 secret manager 에서 주입.
     smtp_encryption_key: str = ""
 
-    # 기본 공휴일 캘린더: 회사마다 자동 시드되는 external_ics 구독 URL.
+    # 기본 공휴일 캘린더: 워크스페이스마다 자동 시드되는 external_ics 구독 URL.
     # 빈 값이면 시드 안 함. external_ics_refresh 잡(매 5분)이 채운다.
     holidays_ics_url: str = ""
 

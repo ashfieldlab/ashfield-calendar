@@ -35,7 +35,7 @@ _BASE_PAYLOAD = {
 
 @pytest.mark.asyncio
 async def test_create_user_owned(client, auth_headers):
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
     cal_id = await _make_personal_calendar(client, h)
     res = await client.post(
         "/api/v1/booking-types",
@@ -46,17 +46,17 @@ async def test_create_user_owned(client, auth_headers):
     body = res.json()
     assert body["owner_type"] == "user"
     assert body["owner_user_sub"] == "alice"
-    assert body["owner_company_id"] is None
+    assert body["owner_workspace_id"] is None
     assert len(body["public_key"]) > 8
     # notify_user_subs 기본은 본인
     assert body["notify_user_subs"] == ["alice"]
 
 
 @pytest.mark.asyncio
-async def test_create_company_owned_requires_admin(client, auth_headers, db_session):
-    from app.models.user_company_membership import UserCompanyMembership
+async def test_create_workspace_owned_requires_admin(client, auth_headers, db_session):
+    from app.models.user_workspace_membership import UserWorkspaceMembership
 
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
     cal_id = await _make_shared_calendar(client, h)
 
     # 일반 멤버 → 403
@@ -65,14 +65,14 @@ async def test_create_company_owned_requires_admin(client, auth_headers, db_sess
         headers=h,
         json={
             **_BASE_PAYLOAD,
-            "owner_type": "company",
+            "owner_type": "workspace",
             "target_calendar_id": cal_id,
         },
     )
     assert res.status_code == 403
 
     # admin 승격 후 → 201
-    m = await db_session.get(UserCompanyMembership, ("alice", "acme-corp"))
+    m = await db_session.get(UserWorkspaceMembership, ("alice", "acme-corp"))
     m.role = "admin"
     await db_session.flush()
 
@@ -81,21 +81,21 @@ async def test_create_company_owned_requires_admin(client, auth_headers, db_sess
         headers=h,
         json={
             **_BASE_PAYLOAD,
-            "owner_type": "company",
+            "owner_type": "workspace",
             "target_calendar_id": cal_id,
         },
     )
     assert res.status_code == 201, res.text
     body = res.json()
-    assert body["owner_type"] == "company"
-    assert body["owner_company_id"] == "acme-corp"
+    assert body["owner_type"] == "workspace"
+    assert body["owner_workspace_id"] == "acme-corp"
 
 
 @pytest.mark.asyncio
-async def test_company_owned_requires_shared_calendar(client, auth_headers, db_session):
-    """owner_type=company 면 target_calendar 가 shared 여야 함."""
+async def test_workspace_owned_requires_shared_calendar(client, auth_headers, db_session):
+    """owner_type=workspace 면 target_calendar 가 shared 여야 함."""
 
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp", roles=["admin"])
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp", roles=["admin"])
     await client.get("/api/v1/me", headers=h)
     cal_id = await _make_personal_calendar(client, h)  # personal: 거부돼야
 
@@ -104,7 +104,7 @@ async def test_company_owned_requires_shared_calendar(client, auth_headers, db_s
         headers=h,
         json={
             **_BASE_PAYLOAD,
-            "owner_type": "company",
+            "owner_type": "workspace",
             "target_calendar_id": cal_id,
         },
     )
@@ -114,7 +114,7 @@ async def test_company_owned_requires_shared_calendar(client, auth_headers, db_s
 
 @pytest.mark.asyncio
 async def test_weekly_schedule_validation(client, auth_headers):
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
     cal_id = await _make_personal_calendar(client, h)
     bad = {
         **_BASE_PAYLOAD,
@@ -128,7 +128,7 @@ async def test_weekly_schedule_validation(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_patch_and_delete(client, auth_headers):
-    h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
+    h = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
     cal_id = await _make_personal_calendar(client, h)
     res = await client.post(
         "/api/v1/booking-types",
@@ -167,8 +167,8 @@ async def test_patch_and_delete(client, auth_headers):
 @pytest.mark.asyncio
 async def test_other_user_cannot_manage(client, auth_headers):
     """alice 의 BookingType 을 bob 이 못 만진다."""
-    h_a = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp")
-    h_b = auth_headers("bob", groups=["acme-corp"], active_company="acme-corp")
+    h_a = auth_headers("alice", groups=["acme-corp"], active_workspace="acme-corp")
+    h_b = auth_headers("bob", groups=["acme-corp"], active_workspace="acme-corp")
     cal_id = await _make_personal_calendar(client, h_a)
     res = await client.post(
         "/api/v1/booking-types",

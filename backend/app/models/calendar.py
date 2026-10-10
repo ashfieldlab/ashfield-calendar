@@ -1,7 +1,7 @@
-"""Calendar: 회사 단위 일정 컨테이너 (ADR-0007).
+"""Calendar: 워크스페이스 단위 일정 컨테이너 (ADR-0007).
 
 scope=personal: 본인만 접근, 자동 가시 (본인이 만들면 본인에게 자동 보임).
-scope=shared: 같은 company 멤버 모두 자동 가시: URL 별 ICS 구독 모델 대체.
+scope=shared: 같은 workspace 멤버 모두 자동 가시: URL 별 ICS 구독 모델 대체.
 source=native: 사용자가 작성. source=external_ics: Phase 2 (read-only 외부 동기화).
 """
 
@@ -21,8 +21,8 @@ class Calendar(Base, TimestampMixin):
     __tablename__ = "calendars"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    company_id: Mapped[str] = mapped_column(
-        String(128), ForeignKey("companies.id"), nullable=False, index=True
+    workspace_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("workspaces.id"), nullable=False, index=True
     )
     owner_id: Mapped[str] = mapped_column(
         String(64), ForeignKey("users.id"), nullable=False, index=True
@@ -67,6 +67,6 @@ class Calendar(Base, TimestampMixin):
     )
 
     __table_args__ = (
-        Index("ix_calendars_company_scope", "company_id", "scope"),
+        Index("ix_calendars_workspace_scope", "workspace_id", "scope"),
         Index("ix_calendars_subscription_token", "subscription_token"),
     )

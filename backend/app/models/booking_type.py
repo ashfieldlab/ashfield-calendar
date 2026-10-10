@@ -6,9 +6,9 @@ booking 알림 받을 사람. 공개 페이지(`/book/{public_key}`) 에서 슬�
 
 owner_type:
   'user'   : 개인 양식. owner_user_sub 가짐. 권한: 본인만.
-  'company': 회사 양식. owner_company_id 가짐. 권한: 그 회사 admin.
+  'workspace': 워크스페이스 양식. owner_workspace_id 가짐. 권한: 그 워크스페이스 admin.
 
-CHECK 제약: 정확히 owner_user_sub XOR owner_company_id.
+CHECK 제약: 정확히 owner_user_sub XOR owner_workspace_id.
 """
 
 from datetime import date, datetime
@@ -29,7 +29,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
 
-BookingTypeOwner = Literal["user", "company"]
+BookingTypeOwner = Literal["user", "workspace"]
 
 
 class BookingType(Base, TimestampMixin):
@@ -42,8 +42,8 @@ class BookingType(Base, TimestampMixin):
     owner_user_sub: Mapped[str | None] = mapped_column(
         String(64), ForeignKey("users.id"), nullable=True
     )
-    owner_company_id: Mapped[str | None] = mapped_column(
-        String(128), ForeignKey("companies.id"), nullable=True
+    owner_workspace_id: Mapped[str | None] = mapped_column(
+        String(128), ForeignKey("workspaces.id"), nullable=True
     )
 
     # 공개 URL: secrets.token_urlsafe(8) ~ 11 chars, 유추 불가
@@ -96,8 +96,8 @@ class BookingType(Base, TimestampMixin):
     __table_args__ = (
         # 정확히 둘 중 하나만 NULL 아님
         CheckConstraint(
-            "(owner_user_sub IS NOT NULL AND owner_company_id IS NULL) OR "
-            "(owner_user_sub IS NULL AND owner_company_id IS NOT NULL)",
+            "(owner_user_sub IS NOT NULL AND owner_workspace_id IS NULL) OR "
+            "(owner_user_sub IS NULL AND owner_workspace_id IS NOT NULL)",
             name="ck_booking_type_owner_exclusive",
         ),
         CheckConstraint(

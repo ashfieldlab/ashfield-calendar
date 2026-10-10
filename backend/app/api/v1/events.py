@@ -18,14 +18,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import get_current_user, require_active_company
+from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.core.errors import BusinessError
 from app.models.booking import Booking
 from app.models.calendar_event import CalendarEvent
 from app.models.calendar_event_invitation import CalendarEventInvitation
-from app.models.company import Company
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.calendar import (
     AttendeeConflict,
     AttendeeConflictsRequest,
@@ -117,12 +117,12 @@ def _event_to_vevent(ev: CalendarEvent) -> IcsEvent:
 async def attendee_conflicts(
     body: AttendeeConflictsRequest,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> AttendeeConflictsResponse:
     busy = await busy_subs(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         subs=body.attendee_subs,
         start=body.start_at,
         end=body.end_at,
@@ -153,7 +153,7 @@ async def list_events(
         description="특정 캘린더만 조회. 미지정 시 가시 캘린더 전부.",
     ),
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> OccurrenceListResponse:
     """반환 = expand 된 occurrence 평탄 목록. 반복 이벤트는 occurrence 수만큼 row.
@@ -162,7 +162,7 @@ async def list_events(
     """
     items = await list_occurrences(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         user=user,
         range_from=from_,
         range_to=to,
@@ -187,11 +187,11 @@ async def list_events(
 async def create_event(
     body: EventCreate,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> EventResponse:
     cal = await get_calendar_or_404(db, body.calendar_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.source != "native":
         raise HTTPException(422, "Cannot add events to a non-native calendar")
     # 회의실 지정 시 이중예약 차단 (ADR-0019)
@@ -201,7 +201,7 @@ async def create_event(
             room_id=body.room_id,
             start_at=body.start_at,
             end_at=body.end_at,
-            company_id=company_id,
+            workspace_id=workspace_id,
         )
     ev = CalendarEvent(
         id=new_id(),
@@ -222,7 +222,7 @@ async def create_event(
     db.add(ev)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="create",
         entity_type="event",
@@ -245,12 +245,12 @@ async def create_event(
 async def export_event_ics(
     event_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """단건 .ics 다운로드: RFC 5545. master + RRULE + EXDATE 그대로 export."""
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
 
     ics = IcsCalendar()
     ics.add("prodid", "-//Ashfield//Event Export//KR")
@@ -286,11 +286,11 @@ async def export_event_ics(
 async def get_event(
     event_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> EventResponse:
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
     bid = await _booking_id_for_event(db, event_id)
     return _to_response(ev, booking_id=bid)
 
@@ -314,11 +314,11 @@ async def patch_event(
         "series 는 해당 회차를 EXDATE 처리하고 새 단일 이벤트를 만들어 반환.",
     ),
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> EventResponse:
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.source != "native":
         raise HTTPException(422, "Cannot modify events on a non-native calendar")
     await _assert_not_booking_linked(db, event_id)
@@ -331,7 +331,7 @@ async def patch_event(
             occurrence=occurrence,
             fields=fields,
             user=user,
-            company_id=company_id,
+            workspace_id=workspace_id,
         )
 
     for k, v in fields.items():
@@ -345,7 +345,7 @@ async def patch_event(
             room_id=ev.room_id,
             start_at=ev.start_at,
             end_at=ev.end_at,
-            company_id=company_id,
+            workspace_id=workspace_id,
             exclude_event_id=ev.id,
         )
     await db.commit()
@@ -360,7 +360,7 @@ async def _detach_occurrence(
     occurrence: datetime,
     fields: dict,
     user: UserContext,
-    company_id: str,
+    workspace_id: str,
 ) -> EventResponse:
     """반복 일정의 한 회차만 수정: 원 series 에서 그 회차를 EXDATE 하고,
     수정된 값으로 rrule 없는 독립 이벤트를 새로 만들어 반환한다."""
@@ -403,11 +403,11 @@ async def _detach_occurrence(
             room_id=new_ev.room_id,
             start_at=new_ev.start_at,
             end_at=new_ev.end_at,
-            company_id=company_id,
+            workspace_id=workspace_id,
         )
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="update",
         entity_type="event",
@@ -439,11 +439,11 @@ async def delete_event(
         description="ISO datetime. 주어지면 그 occurrence 만 EXDATE 처리: series 유지.",
     ),
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.source != "native":
         raise HTTPException(422, "Cannot delete events on a non-native calendar")
     await _assert_not_booking_linked(db, event_id)
@@ -456,7 +456,7 @@ async def delete_event(
             ev.recurrence_exceptions = excs
         await write_audit(
             db,
-            company_id=company_id,
+            workspace_id=workspace_id,
             actor=user,
             action="update",
             entity_type="event",
@@ -468,7 +468,7 @@ async def delete_event(
     ev.deleted_at = datetime.now(UTC)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="delete",
         entity_type="event",
@@ -510,13 +510,13 @@ def _inv_to_response(
 async def list_invitations(
     event_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> EventInvitationList:
     from sqlalchemy import select
 
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
     stmt = (
         select(CalendarEventInvitation, User)
         .outerjoin(User, User.id == CalendarEventInvitation.invitee_sub)
@@ -543,7 +543,7 @@ async def create_invitation(
     event_id: str,
     body: EventInvitationCreate,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> EventInvitationResponse:
     import secrets
@@ -552,7 +552,7 @@ async def create_invitation(
     from sqlalchemy import func, select
 
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
+    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if ev.created_by_sub != user.sub and cal.owner_id != user.sub:
         raise HTTPException(403, "Only creator can invite")
 
@@ -572,7 +572,7 @@ async def create_invitation(
 
     if invitee_sub is not None:
         return await _create_internal_invitation(
-            db, ev=ev, company_id=company_id, user=user, invitee_sub=invitee_sub
+            db, ev=ev, workspace_id=workspace_id, user=user, invitee_sub=invitee_sub
         )
 
     # --- 외부 게스트 초대 ---
@@ -599,7 +599,7 @@ async def create_invitation(
     db.add(inv)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="share",
         entity_type="event",
@@ -609,16 +609,16 @@ async def create_invitation(
     await db.commit()
     await db.refresh(inv)
     # 외부 게스트는 in-app 알림 대상이 아니므로 이메일만 (best-effort).
-    company = await db.get(Company, company_id)
+    workspace = await db.get(Workspace, workspace_id)
     await email.send_to_address(
         to_email=invitee_email,
         event_type="event_guest_invited",
-        company_id=company_id,
+        workspace_id=workspace_id,
         payload={
             "title": ev.title,
             "start_at": ev.start_at.isoformat(),
             "inviter_name": user.name or user.email or "담당자",
-            "organization_name": company.name if company else "Ashfield",
+            "organization_name": workspace.name if workspace else "Ashfield",
             "rsvp_token": inv.rsvp_token,
         },
     )
@@ -629,7 +629,7 @@ async def _create_internal_invitation(
     db: AsyncSession,
     *,
     ev: CalendarEvent,
-    company_id: str,
+    workspace_id: str,
     user: UserContext,
     invitee_sub: str,
 ) -> EventInvitationResponse:
@@ -656,7 +656,7 @@ async def _create_internal_invitation(
     db.add(inv)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="share",
         entity_type="event",
@@ -668,7 +668,7 @@ async def _create_internal_invitation(
         db,
         pending,
         recipient_sub=invitee_sub,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor_sub=user.sub,
         type_="event_invited",
         entity_type="event",
@@ -696,7 +696,7 @@ async def patch_invitation(
     invitation_id: str,
     body: EventInvitationPatch,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> EventInvitationResponse:
     inv = await db.get(CalendarEventInvitation, invitation_id)
@@ -704,9 +704,9 @@ async def patch_invitation(
         raise HTTPException(404, "Invitation not found")
     if inv.invitee_sub != user.sub:
         raise HTTPException(403, "Only invitee can respond")
-    # company 검증
+    # workspace 검증
     _ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    if cal.company_id != company_id:
+    if cal.workspace_id != workspace_id:
         raise HTTPException(404, "Invitation not found")
 
     inv.response = body.response
@@ -718,7 +718,7 @@ async def patch_invitation(
             db,
             pending,
             recipient_sub=ev_full.created_by_sub,
-            company_id=company_id,
+            workspace_id=workspace_id,
             actor_sub=user.sub,
             type_="event_invitation_response",
             entity_type="event",
@@ -745,21 +745,21 @@ async def delete_invitation(
     event_id: str,
     invitation_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     inv = await db.get(CalendarEventInvitation, invitation_id)
     if inv is None or inv.event_id != event_id:
         raise HTTPException(404, "Invitation not found")
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    if cal.company_id != company_id:
+    if cal.workspace_id != workspace_id:
         raise HTTPException(404, "Invitation not found")
     if ev.created_by_sub != user.sub and cal.owner_id != user.sub:
         raise HTTPException(403, "Only creator can remove invitation")
     await db.delete(inv)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="unshare",
         entity_type="event",

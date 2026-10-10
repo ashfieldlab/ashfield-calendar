@@ -13,7 +13,7 @@ use Sabre\DAV\Auth\Backend\AbstractBasic;
  * 검증 통과 시:
  *   - validateUserPass 가 true 반환 → Sabre 가 currentUser 를 username 으로 set
  *   - last_used_at 갱신
- *   - company_id 는 Custom Backend 가 매 호출마다 DB 에서 fresh lookup (정적 캐시 X)
+ *   - workspace_id 는 Custom Backend 가 매 호출마다 DB 에서 fresh lookup (정적 캐시 X)
  */
 class AuthBackend extends AbstractBasic
 {
@@ -29,7 +29,7 @@ class AuthBackend extends AbstractBasic
     protected function validateUserPass($username, $password)
     {
         $stmt = $this->db->prepare(
-            'SELECT id, user_sub, company_id, secret_hash
+            'SELECT id, user_sub, workspace_id, secret_hash
              FROM caldav_tokens
              WHERE user_sub = :sub AND revoked_at IS NULL'
         );

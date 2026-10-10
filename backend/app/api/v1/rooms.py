@@ -1,7 +1,7 @@
 """/api/v1/rooms: 회의실(Room) 관리 (ADR-0019).
 
-- 목록(GET): 활성 회사 멤버 누구나 (이벤트 폼에서 방 선택용).
-- 생성·수정·삭제: 회사 관리자만.
+- 목록(GET): 활성 워크스페이스 멤버 누구나 (이벤트 폼에서 방 선택용).
+- 생성·수정·삭제: 워크스페이스 관리자만.
 Room 은 Event 가 room_id 로 참조하는 경량 리소스. 삭제 시 events.room_id=SET NULL.
 """
 
@@ -13,10 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import get_current_user, require_active_company
+from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.models.room import Room
-from app.models.user_company_membership import UserCompanyMembership
+from app.models.user_workspace_membership import UserWorkspaceMembership
 from app.services.rooms import get_room_or_404, new_room_id
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
@@ -43,26 +43,26 @@ class RoomListResponse(BaseModel):
     rooms: list[RoomResponse]
 
 
-async def _assert_company_admin(
-    db: AsyncSession, user: UserContext, company_id: str
+async def _assert_workspace_admin(
+    db: AsyncSession, user: UserContext, workspace_id: str
 ) -> None:
-    """활성 회사의 관리자(role='admin' 또는 System Admin)만: 쓰기용. ADR-0010."""
+    """활성 워크스페이스의 관리자(role='admin' 또는 System Admin)만: 쓰기용. ADR-0010."""
     if user.is_system_admin:
         return
-    m = await db.get(UserCompanyMembership, (user.sub, company_id))
+    m = await db.get(UserWorkspaceMembership, (user.sub, workspace_id))
     if m is None or m.role != "admin":
-        raise HTTPException(status_code=403, detail="회사 관리자만 가능합니다")
+        raise HTTPException(status_code=403, detail="워크스페이스 관리자만 가능합니다")
 
 
 @router.get("", response_model=RoomListResponse, summary="회의실 목록")
 async def list_rooms(
     _user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> RoomListResponse:
     rows = (
         await db.execute(
-            select(Room).where(Room.company_id == company_id).order_by(Room.name)
+            select(Room).where(Room.workspace_id == workspace_id).order_by(Room.name)
         )
     ).scalars().all()
     return RoomListResponse(
@@ -74,13 +74,13 @@ async def list_rooms(
 async def create_room(
     body: RoomCreate,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> RoomResponse:
-    await _assert_company_admin(db, user, company_id)
+    await _assert_workspace_admin(db, user, workspace_id)
     room = Room(
         id=new_room_id(),
-        company_id=company_id,
+        workspace_id=workspace_id,
         name=body.name.strip(),
         capacity=body.capacity,
         created_by_sub=user.sub,
@@ -96,11 +96,11 @@ async def patch_room(
     room_id: str,
     body: RoomPatch,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> RoomResponse:
-    await _assert_company_admin(db, user, company_id)
-    room = await get_room_or_404(db, room_id=room_id, company_id=company_id)
+    await _assert_workspace_admin(db, user, workspace_id)
+    room = await get_room_or_404(db, room_id=room_id, workspace_id=workspace_id)
     fields = body.model_dump(exclude_unset=True)
     if "name" in fields and fields["name"]:
         room.name = fields["name"].strip()
@@ -115,11 +115,11 @@ async def patch_room(
 async def delete_room(
     room_id: str,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    await _assert_company_admin(db, user, company_id)
-    room = await get_room_or_404(db, room_id=room_id, company_id=company_id)
+    await _assert_workspace_admin(db, user, workspace_id)
+    room = await get_room_or_404(db, room_id=room_id, workspace_id=workspace_id)
     # events.room_id 는 SET NULL: 참조 이벤트는 방만 해제되고 보존.
     await db.delete(room)
     await db.commit()

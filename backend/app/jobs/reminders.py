@@ -61,7 +61,7 @@ async def _dispatch_one(
     email_jobs: list[tuple[str, str, dict]],
 ) -> bool:
     """dispatch row insert + in-app 알림 발송. 이메일은 email_jobs 에 적재 (commit 후).
-    email_jobs entry = (recipient_sub, company_id, payload).
+    email_jobs entry = (recipient_sub, workspace_id, payload).
     이미 보낸 occurrence 면 False 반환."""
     stmt = (
         pg_insert(CalendarEventReminderDispatch)
@@ -85,14 +85,14 @@ async def _dispatch_one(
         await emit_notification(
             db,
             recipient_sub=sub,
-            company_id=cal.company_id,
+            workspace_id=cal.workspace_id,
             actor_sub=None,  # 시스템 발송: 본인에게도 가야 함
             type_="event_reminder",
             entity_type="event",
             entity_id=ev.id,
             payload=payload,
         )
-        email_jobs.append((sub, cal.company_id, payload))
+        email_jobs.append((sub, cal.workspace_id, payload))
     return True
 
 
@@ -100,12 +100,12 @@ async def dispatch_due_reminders(ctx: dict) -> int:
     """cron 매 분 호출. 발송한 Notification 수 반환 (로그용).
 
     in-app Notification + 이메일 둘 다 발송. 이메일 resolve 우선순위:
-      company override (cal.company_id) → system DB → env.
+      workspace override (cal.workspace_id) → system DB → env.
     수신자의 UserNotificationPreference.email_enabled=False 면 이메일 skip.
     """
     now = datetime.now(UTC)
     bound_lo = now - timedelta(minutes=MAX_REMINDER_MINUTES) - LOOKBACK
-    # (recipient_sub, company_id, payload) commit 후 발송
+    # (recipient_sub, workspace_id, payload) commit 후 발송
     email_jobs: list[tuple[str, str, dict]] = []
 
     async with AsyncSessionLocal() as db:
@@ -144,12 +144,12 @@ async def dispatch_due_reminders(ctx: dict) -> int:
             await db.rollback()
 
     # commit 후 이메일 발송: 실패해도 dispatch row 는 남음 (재시도 X, in-app 은 정상).
-    for recipient_sub, company_id, payload in email_jobs:
+    for recipient_sub, workspace_id, payload in email_jobs:
         await send_for_event(
             recipient_sub=recipient_sub,
             actor_sub=None,
             event_type="event_reminder",
             payload=payload,
-            company_id=company_id,
+            workspace_id=workspace_id,
         )
     return sent

@@ -1,7 +1,7 @@
 """/api/v1/me/caldav-tokens: CalDAV App Token CRUD (ADR-0014).
 
 사용자가 본인 캘린더를 외부 캘린더 앱 (Apple Calendar/Thunderbird/DAVx5 등)
-과 sync 하기 위해 발급. (user_sub, active_company_id) 한 쌍에 묶임.
+과 sync 하기 위해 발급. (user_sub, active_workspace_id) 한 쌍에 묶임.
 
 발급 시 secret 평문은 응답 1회만 노출. DB 에는 bcrypt hash. 분실 시 revoke + 재발급.
 """
@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import get_current_user, require_active_company
+from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.core.errors import BusinessError
 from app.core.logging import logger
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/me/caldav-tokens", tags=["caldav"])
 class CalDavTokenItem(BaseModel):
     id: str
     name: str
-    company_id: str
+    workspace_id: str
     created_at: datetime
     last_used_at: datetime | None
     # secret 평문은 발급 시점에만, 목록에선 never
@@ -49,7 +49,7 @@ class CalDavTokenCreate(BaseModel):
 class CalDavTokenCreated(BaseModel):
     id: str
     name: str
-    company_id: str
+    workspace_id: str
     username: str  # = user_sub. 사용자 친화적으로 별도 키 노출
     secret: str  # 평문: 이 응답에만 한 번
     server_url: str  # 사용자 안내용 (URL 고정)
@@ -74,18 +74,18 @@ def _server_url() -> str:
 @router.get(
     "",
     response_model=CalDavTokenList,
-    summary="CalDAV 토큰 목록 (활성 회사 범위)",
+    summary="CalDAV 토큰 목록 (활성 워크스페이스 범위)",
 )
 async def list_tokens(
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalDavTokenList:
     stmt = (
         select(CalDavToken)
         .where(
             CalDavToken.user_sub == user.sub,
-            CalDavToken.company_id == company_id,
+            CalDavToken.workspace_id == workspace_id,
             CalDavToken.revoked_at.is_(None),
         )
         .order_by(CalDavToken.created_at.desc())
@@ -96,7 +96,7 @@ async def list_tokens(
             CalDavTokenItem(
                 id=r.id,
                 name=r.name,
-                company_id=r.company_id,
+                workspace_id=r.workspace_id,
                 created_at=r.created_at,
                 last_used_at=r.last_used_at,
             )
@@ -114,21 +114,21 @@ async def list_tokens(
 async def create_token(
     body: CalDavTokenCreate,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> CalDavTokenCreated:
     secret = _generate_secret()
     row = CalDavToken(
         id=str(uuid.uuid4()),
         user_sub=user.sub,
-        company_id=company_id,
+        workspace_id=workspace_id,
         secret_hash=_hash_secret(secret),
         name=body.name.strip(),
     )
     db.add(row)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="caldav_token_create",
         entity_type="caldav_token",
@@ -141,14 +141,14 @@ async def create_token(
         extra={
             "category": "biz",
             "user": user.sub,
-            "company_id": company_id,
+            "workspace_id": workspace_id,
             "token_id": row.id,
         },
     )
     return CalDavTokenCreated(
         id=row.id,
         name=row.name,
-        company_id=company_id,
+        workspace_id=workspace_id,
         username=user.sub,
         secret=secret,
         server_url=_server_url(),
@@ -163,14 +163,14 @@ async def create_token(
 async def revoke_token(
     token_id: str = Path(...),
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     row = await db.get(CalDavToken, token_id)
     if (
         row is None
         or row.user_sub != user.sub
-        or row.company_id != company_id
+        or row.workspace_id != workspace_id
         or row.revoked_at is not None
     ):
         # 본인 소유가 아니거나 이미 폐기 → 404 처럼 처리 (정보 누설 방지)
@@ -178,7 +178,7 @@ async def revoke_token(
     row.revoked_at = datetime.now(UTC)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="caldav_token_revoke",
         entity_type="caldav_token",

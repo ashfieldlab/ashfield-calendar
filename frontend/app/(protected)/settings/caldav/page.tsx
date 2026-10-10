@@ -14,7 +14,7 @@ import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
 interface CalDavTokenItem {
   id: string
   name: string
-  company_id: string
+  workspace_id: string
   created_at: string
   last_used_at: string | null
 }
@@ -22,14 +22,14 @@ interface CalDavTokenItem {
 interface CalDavTokenCreated {
   id: string
   name: string
-  company_id: string
+  workspace_id: string
   username: string
   secret: string
   server_url: string
 }
 
 export default function CalDavTokensPage() {
-  const { activeCompanyId } = useAppContext()
+  const { activeWorkspaceId } = useAppContext()
   const { toast } = useToast()
   const confirm = useConfirm()
   const URL_ = "/api/v1/me/caldav-tokens"
@@ -106,7 +106,7 @@ export default function CalDavTokensPage() {
         <p className="font-medium">⚠ 사용 전 확인</p>
         <ul className="mt-1 list-disc space-y-0.5 pl-4">
           <li>비밀번호는 발급 시 한 번만 보입니다.</li>
-          <li>현재 회사({activeCompanyId})의 일정만 연결됩니다.</li>
+          <li>현재 워크스페이스({activeWorkspaceId})의 일정만 연결됩니다.</li>
           <li>노출됐다면 바로 폐기하세요.</li>
         </ul>
       </div>
@@ -182,7 +182,7 @@ export default function CalDavTokensPage() {
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="예: 아이폰 캘린더, 회사 노트북 Thunderbird"
+              placeholder="예: 아이폰 캘린더, 업무용 노트북 Thunderbird"
               data-testid="caldav-token-name-input"
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
               autoFocus

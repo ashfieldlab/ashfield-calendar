@@ -35,12 +35,12 @@ async def _event(client, headers):
 async def _ensure(client, auth_headers, sub):
     await client.get(
         "/api/v1/me",
-        headers=auth_headers(sub, groups=[ACME], active_company=ACME),
+        headers=auth_headers(sub, groups=[ACME], active_workspace=ACME),
     )
 
 
 async def test_activity_shows_self_actions(client: AsyncClient, auth_headers):
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
     ev = await _event(client, a)
     await client.delete(f"/api/v1/events/{ev['id']}", headers=a)
 
@@ -56,7 +56,7 @@ async def test_activity_shows_self_actions(client: AsyncClient, auth_headers):
 
 
 async def test_activity_empty_for_fresh_user(client: AsyncClient, auth_headers):
-    fresh = auth_headers("user-fresh", groups=[ACME], active_company=ACME)
+    fresh = auth_headers("user-fresh", groups=[ACME], active_workspace=ACME)
     r = await client.get("/api/v1/me/activity", headers=fresh)
     assert r.status_code == 200
     assert r.json()["items"] == []
@@ -64,8 +64,8 @@ async def test_activity_empty_for_fresh_user(client: AsyncClient, auth_headers):
 
 async def test_activity_shows_received_invite(client: AsyncClient, auth_headers):
     await _ensure(client, auth_headers, BOB)
-    a = auth_headers(ALICE, groups=[ACME], active_company=ACME)
-    b = auth_headers(BOB, groups=[ACME], active_company=ACME)
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    b = auth_headers(BOB, groups=[ACME], active_workspace=ACME)
     ev = await _event(client, a)
     await client.post(
         f"/api/v1/events/{ev['id']}/invitations",

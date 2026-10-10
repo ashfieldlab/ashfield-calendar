@@ -10,25 +10,25 @@ import { api } from "@/lib/api-client"
 import { friendlyError } from "@/lib/errors"
 import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
 
-interface CompanyProfileResponse {
-  company_id: string
+interface WorkspaceProfileResponse {
+  workspace_id: string
   name: string
   logo_url: string | null
 }
 
-export default function CompanyProfilePage({
+export default function WorkspaceProfilePage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id: companyIdRaw } = use(params)
-  const companyId = decodeURIComponent(companyIdRaw)
-  const { isCompanyAdmin } = useAppContext()
+  const { id: workspaceIdRaw } = use(params)
+  const workspaceId = decodeURIComponent(workspaceIdRaw)
+  const { isWorkspaceAdmin } = useAppContext()
   const { toast } = useToast()
 
-  const URL_ = `/api/v1/companies/${encodeURIComponent(companyId)}/profile`
-  const { data, error, isLoading } = useApiGet<CompanyProfileResponse>(
-    isCompanyAdmin ? URL_ : null,
+  const URL_ = `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/profile`
+  const { data, error, isLoading } = useApiGet<WorkspaceProfileResponse>(
+    isWorkspaceAdmin ? URL_ : null,
   )
 
   const [logoUrl, setLogoUrl] = useState("")
@@ -41,13 +41,13 @@ export default function CompanyProfilePage({
     setImgError(false)
   }, [data])
 
-  if (!isCompanyAdmin) {
+  if (!isWorkspaceAdmin) {
     return (
       <div
         className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800"
-        data-testid="company-profile-no-permission"
+        data-testid="workspace-profile-no-permission"
       >
-        회사 관리자만 접근할 수 있습니다.
+        워크스페이스 관리자만 접근할 수 있습니다.
       </div>
     )
   }
@@ -88,11 +88,11 @@ export default function CompanyProfilePage({
   return (
     <div
       className="h-full space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
-      data-testid="company-profile-page"
+      data-testid="workspace-profile-page"
     >
       <Link
         href="/settings"
-        data-testid="company-profile-back"
+        data-testid="workspace-profile-back"
         className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
       >
         <ArrowLeft size={12} /> 설정으로
@@ -101,7 +101,7 @@ export default function CompanyProfilePage({
       <header className="flex items-center gap-2">
         <Building2 size={20} className="text-gray-600" />
         <h1 className="text-2xl font-bold text-gray-900">
-          {data.name} 회사 정보
+          {data.name} 워크스페이스 정보
         </h1>
       </header>
 
@@ -125,7 +125,7 @@ export default function CompanyProfilePage({
               setImgError(false)
             }}
             placeholder="https://example.com/logo.png"
-            data-testid="company-profile-logo-input"
+            data-testid="workspace-profile-logo-input"
             className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </div>
@@ -134,7 +134,7 @@ export default function CompanyProfilePage({
           <div className="mb-1 text-xs font-medium text-gray-600">미리보기</div>
           <div
             className="flex h-24 items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 p-3"
-            data-testid="company-profile-preview"
+            data-testid="workspace-profile-preview"
           >
             {showPreview && !imgError ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -158,7 +158,7 @@ export default function CompanyProfilePage({
           <button
             onClick={clear}
             disabled={busy || !logoUrl}
-            data-testid="company-profile-clear-button"
+            data-testid="workspace-profile-clear-button"
             className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
           >
             지우기
@@ -166,7 +166,7 @@ export default function CompanyProfilePage({
           <button
             onClick={save}
             disabled={busy}
-            data-testid="company-profile-save-button"
+            data-testid="workspace-profile-save-button"
             className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
           >
             저장

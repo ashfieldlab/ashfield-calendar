@@ -2,7 +2,7 @@
 
 권한:
   - owner_type='user'    → 본인만 (owner_user_sub == user.sub)
-  - owner_type='company' → 그 회사 admin (require_company_admin 등가 검사)
+  - owner_type='workspace' → 그 워크스페이스 admin (require_workspace_admin 등가 검사)
   - System Admin 은 모든 BookingType 접근 가능 (super-set)
 
 공개 라우트(/api/public/v1/*) 와 분리. 여기는 JWT 강제.
@@ -19,13 +19,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
-from app.auth.dependencies import get_current_user, require_active_company
+from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.core.logging import logger
 from app.models.booking import Booking
 from app.models.booking_type import BookingType
 from app.models.calendar import Calendar
-from app.models.user_company_membership import UserCompanyMembership
+from app.models.user_workspace_membership import UserWorkspaceMembership
 from app.schemas.booking_type import (
     BookingTypeCreate,
     BookingTypeListResponse,
@@ -48,13 +48,13 @@ def _new_public_key() -> str:
 async def _can_manage(
     db: AsyncSession, bt: BookingType, user: UserContext
 ) -> bool:
-    """본인 / 회사 admin / system admin."""
+    """본인 / 워크스페이스 admin / system admin."""
     if user.is_system_admin:
         return True
     if bt.owner_type == "user":
         return bt.owner_user_sub == user.sub
-    # owner_type == 'company'
-    m = await db.get(UserCompanyMembership, (user.sub, bt.owner_company_id))
+    # owner_type == 'workspace'
+    m = await db.get(UserWorkspaceMembership, (user.sub, bt.owner_workspace_id))
     return m is not None and m.role == "admin"
 
 
@@ -76,24 +76,24 @@ async def _get_or_403(
 )
 async def list_booking_types(
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> BookingTypeListResponse:
-    """본인 소유 + 본인이 admin 인 활성 회사의 회사 소유. System Admin 은 활성 회사 + 본인 것."""
+    """본인 소유 + 본인이 admin 인 활성 워크스페이스의 워크스페이스 소유. System Admin 은 활성 워크스페이스 + 본인 것."""
     conds = [BookingType.deleted_at.is_(None)]
-    # 활성 회사를 명시적으로 받음: 어느 회사 컨텍스트에서 보는지
+    # 활성 워크스페이스를 명시적으로 받음: 어느 워크스페이스 컨텍스트에서 보는지
     if user.is_system_admin:
         conds.append(
-            (BookingType.owner_company_id == company_id)
+            (BookingType.owner_workspace_id == workspace_id)
             | (BookingType.owner_user_sub == user.sub)
         )
     else:
-        # 회사 admin 인지 검사
-        m = await db.get(UserCompanyMembership, (user.sub, company_id))
-        is_company_admin = m is not None and m.role == "admin"
-        if is_company_admin:
+        # 워크스페이스 admin 인지 검사
+        m = await db.get(UserWorkspaceMembership, (user.sub, workspace_id))
+        is_workspace_admin = m is not None and m.role == "admin"
+        if is_workspace_admin:
             conds.append(
-                (BookingType.owner_company_id == company_id)
+                (BookingType.owner_workspace_id == workspace_id)
                 | (BookingType.owner_user_sub == user.sub)
             )
         else:
@@ -115,44 +115,44 @@ async def list_booking_types(
     status_code=201,
     responses={
         400: {"description": "target_calendar 가 owner 와 다른 컨텍스트"},
-        403: {"description": "owner_type=company 인데 회사 admin 아님"},
+        403: {"description": "owner_type=workspace 인데 워크스페이스 admin 아님"},
     },
 )
 async def create_booking_type(
     body: BookingTypeCreate,
     user: UserContext = Depends(get_current_user),
-    company_id: str = Depends(require_active_company),
+    workspace_id: str = Depends(require_active_workspace),
     db: AsyncSession = Depends(get_db),
 ) -> BookingTypeResponse:
     # target_calendar 검증
     cal = await db.get(Calendar, body.target_calendar_id)
-    if cal is None or cal.deleted_at is not None or cal.company_id != company_id:
+    if cal is None or cal.deleted_at is not None or cal.workspace_id != workspace_id:
         raise HTTPException(400, "target_calendar invalid")
 
     # owner 결정 + 권한
     if body.owner_type == "user":
         owner_user_sub: str | None = user.sub
-        owner_company_id: str | None = None
-        # personal 캘린더는 본인 것만, shared 는 회사 멤버면 OK
+        owner_workspace_id: str | None = None
+        # personal 캘린더는 본인 것만, shared 는 워크스페이스 멤버면 OK
         if cal.scope == "personal" and cal.owner_id != user.sub:
             raise HTTPException(400, "target_calendar not owned by you")
-    else:  # company
+    else:  # workspace
         if not user.is_system_admin:
-            m = await db.get(UserCompanyMembership, (user.sub, company_id))
+            m = await db.get(UserWorkspaceMembership, (user.sub, workspace_id))
             if m is None or m.role != "admin":
-                raise HTTPException(403, "Company admin only")
+                raise HTTPException(403, "Workspace admin only")
         owner_user_sub = None
-        owner_company_id = company_id
+        owner_workspace_id = workspace_id
         if cal.scope != "shared":
             raise HTTPException(
-                400, "company-owned BookingType must use a shared calendar"
+                400, "workspace-owned BookingType must use a shared calendar"
             )
 
     bt = BookingType(
         id=str(uuid.uuid7()),
         owner_type=body.owner_type,
         owner_user_sub=owner_user_sub,
-        owner_company_id=owner_company_id,
+        owner_workspace_id=owner_workspace_id,
         public_key=_new_public_key(),
         title=body.title,
         description=body.description,
@@ -167,14 +167,14 @@ async def create_booking_type(
         target_calendar_id=body.target_calendar_id,
         blocking_calendar_ids=body.blocking_calendar_ids,
         capacity=body.capacity,
-        # 미지정 시: 생성한 운영자 본인을 기본으로 (user/company 둘 다).
-        # company-owned 도 추후 UI 에서 멤버 다중 선택해 추가 가능.
+        # 미지정 시: 생성한 운영자 본인을 기본으로 (user/workspace 둘 다).
+        # workspace-owned 도 추후 UI 에서 멤버 다중 선택해 추가 가능.
         notify_user_subs=body.notify_user_subs or [user.sub],
     )
     db.add(bt)
     await write_audit(
         db,
-        company_id=company_id,
+        workspace_id=workspace_id,
         actor=user,
         action="create",
         entity_type="booking_type",
@@ -219,16 +219,16 @@ async def patch_booking_type(
     fields = body.model_dump(exclude_unset=True)
     if "target_calendar_id" in fields:
         cal = await db.get(Calendar, fields["target_calendar_id"])
-        ctx_company = bt.owner_company_id or (
-            (await db.get(Calendar, bt.target_calendar_id)).company_id
+        ctx_workspace = bt.owner_workspace_id or (
+            (await db.get(Calendar, bt.target_calendar_id)).workspace_id
         )
-        if cal is None or cal.deleted_at is not None or cal.company_id != ctx_company:
+        if cal is None or cal.deleted_at is not None or cal.workspace_id != ctx_workspace:
             raise HTTPException(400, "target_calendar invalid")
     for k, v in fields.items():
         setattr(bt, k, v)
     await write_audit(
         db,
-        company_id=bt.owner_company_id,  # NULL OK (D-1)
+        workspace_id=bt.owner_workspace_id,  # NULL OK (D-1)
         actor=user,
         action="update",
         entity_type="booking_type",
@@ -254,7 +254,7 @@ async def delete_booking_type(
     bt.deleted_at = datetime.now(UTC)
     await write_audit(
         db,
-        company_id=bt.owner_company_id,
+        workspace_id=bt.owner_workspace_id,
         actor=user,
         action="delete",
         entity_type="booking_type",
@@ -320,7 +320,7 @@ async def operator_reschedule_booking(
 ) -> dict:
     from datetime import datetime as _dt
 
-    from app.models.company import Company
+    from app.models.workspace import Workspace
     from app.services.booking import (
         dispatch_booking_rescheduled_emails,
         public_base_url,
@@ -358,7 +358,7 @@ async def operator_reschedule_booking(
     )
     await write_audit(
         db,
-        company_id=bt.owner_company_id,
+        workspace_id=bt.owner_workspace_id,
         actor=user,
         action="update",
         entity_type="booking",
@@ -375,8 +375,8 @@ async def operator_reschedule_booking(
 
     if notify_customer:
         org_name, org_logo = "Workspace", None
-        if bt.owner_company_id:
-            c = await db.get(Company, bt.owner_company_id)
+        if bt.owner_workspace_id:
+            c = await db.get(Workspace, bt.owner_workspace_id)
             if c is not None:
                 org_name, org_logo = c.name, c.logo_url
         await dispatch_booking_rescheduled_emails(
@@ -423,7 +423,7 @@ async def operator_cancel_booking(
                 ev.deleted_at = booking.cancelled_at
         await write_audit(
             db,
-            company_id=bt.owner_company_id,
+            workspace_id=bt.owner_workspace_id,
             actor=user,
             action="delete",
             entity_type="booking",
@@ -432,15 +432,15 @@ async def operator_cancel_booking(
         )
         await db.commit()
         # 고객·운영자에게 취소 통지 메일
-        from app.models.company import Company
+        from app.models.workspace import Workspace
         from app.services.booking import (
             dispatch_booking_cancelled_emails,
             public_base_url,
         )
 
         org_name, org_logo = "Workspace", None
-        if bt.owner_company_id:
-            c = await db.get(Company, bt.owner_company_id)
+        if bt.owner_workspace_id:
+            c = await db.get(Workspace, bt.owner_workspace_id)
             if c is not None:
                 org_name, org_logo = c.name, c.logo_url
         await dispatch_booking_cancelled_emails(
@@ -466,7 +466,7 @@ async def rotate_public_key(
     bt.public_key = _new_public_key()
     await write_audit(
         db,
-        company_id=bt.owner_company_id,
+        workspace_id=bt.owner_workspace_id,
         actor=user,
         action="rotate_token",
         entity_type="booking_type",

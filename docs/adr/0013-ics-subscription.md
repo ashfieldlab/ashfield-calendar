@@ -42,7 +42,7 @@ CalDAV 는 양방향 sync 가 정말 필요해질 때 별도 ADR.
 | 캘린더 종류 | subscription 관리 권한 |
 |---|---|
 | 개인 (scope=personal) | 소유자만 |
-| 회사 공유 (scope=shared) | Company Admin 만 (활동이 외부 노출되는 결정이라 보수적) |
+| 워크스페이스 (scope=shared) | Workspace Admin 만 (활동이 외부 노출되는 결정이라 보수적) |
 | 초대받은(invited) | 불가: 본인 데이터 아니므로 |
 
 ### 4. PIPA 마스킹: **booking-linked event 는 비협상 강제 마스킹**

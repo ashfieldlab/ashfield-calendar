@@ -87,7 +87,7 @@ export const ERROR_MESSAGES: Record<string, ErrorMessage> = {
 
   // ───── 이메일 템플릿 ─────
   EMAIL_TEMPLATE_NOT_CUSTOMIZABLE:
-    "이 이메일 종류는 회사 커스텀 대상이 아닙니다.",
+    "이 이메일 종류는 워크스페이스 커스텀 대상이 아닙니다.",
   EMAIL_TEMPLATE_SUBJECT_EMPTY: "제목을 입력해주세요.",
   EMAIL_TEMPLATE_BODY_EMPTY: "본문을 입력해주세요.",
   EMAIL_TEMPLATE_SUBJECT_TOO_LONG: "제목이 너무 깁니다 (최대 500자).",

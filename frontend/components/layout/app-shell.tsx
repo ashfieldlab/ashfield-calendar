@@ -7,7 +7,7 @@ import { Activity, CalendarClock, Calendar, Settings } from "lucide-react"
 
 import {
   AppFrame,
-  type CompanyOption,
+  type WorkspaceOption,
   type NavItem,
   type NavLinkRenderProps,
 } from "@/components/ui-custom/app-frame"
@@ -21,7 +21,7 @@ import { signOutAction } from "@/lib/actions/auth"
 import { APP } from "@/lib/apps"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { authUser, companies, companyNames, activeCompanyId, setActiveCompany, isSystemAdmin } =
+  const { authUser, workspaces, workspaceNames, activeWorkspaceId, setActiveWorkspace, isSystemAdmin } =
     useAppContext()
   const pathname = usePathname() ?? ""
   const router = useRouter()
@@ -36,9 +36,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     [pathname],
   )
 
-  const companyOptions: CompanyOption[] = useMemo(
-    () => companies.map((c) => ({ id: c, name: companyNames[c] ?? c })),
-    [companies, companyNames],
+  const workspaceOptions: WorkspaceOption[] = useMemo(
+    () => workspaces.map((c) => ({ id: c, name: workspaceNames[c] ?? c })),
+    [workspaces, workspaceNames],
   )
 
   const sidebarRenderLink = (
@@ -76,12 +76,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AppFrame
-      companySwitcher={
-        companies.length > 0
+      workspaceSwitcher={
+        workspaces.length > 0
           ? {
-              companies: companyOptions,
-              selectedId: activeCompanyId ?? undefined,
-              onSelect: (c) => setActiveCompany(c.id),
+              workspaces: workspaceOptions,
+              selectedId: activeWorkspaceId ?? undefined,
+              onSelect: (c) => setActiveWorkspace(c.id),
             }
           : undefined
       }
