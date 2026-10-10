@@ -258,21 +258,23 @@ function Ticket({ f }: { f: BookingFlow }) {
   )
 }
 
-// ---------- 일정 변경 모달: 주간 격자 ----------
+// ---------- 일정 변경 모달: 예약 페이지와 같은 주간 격자 + 오른쪽 패널 ----------
 
 export function RescheduleC() {
   const r = useReschedule()
   const currentYmd = ymdOf(new Date(BOOKING.slotIso))
   const [wi, setWi] = useState(() => Math.max(0, WEEKS.findIndex((w) => w.some((d) => d.ymd === currentYmd))))
   const week = WEEKS[wi]
+  const start = week[0].date
+  const end = week[week.length - 1].date
 
   return (
-    <div className="w-full max-w-[760px] overflow-hidden rounded-2xl bg-card shadow-2xl dark:ring-1 dark:ring-foreground/10">
-      <header className="flex items-start justify-between gap-3 border-b px-5 py-4">
+    <div className="w-full max-w-[920px] overflow-hidden rounded-2xl bg-card shadow-2xl dark:ring-1 dark:ring-foreground/10">
+      <header className="flex items-start justify-between gap-3 border-b px-6 py-4">
         <div>
-          <h3 className="font-semibold">예약 시간 변경</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {BOOKING.customerName}, {BOOKING.customerEmail}
+          <h3 className="text-lg font-semibold">예약 시간 변경</h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {BOOKING_TYPE.title}, {BOOKING.customerName}
           </p>
         </div>
         <button type="button" onClick={r.close} aria-label="닫기" data-testid={`${T}-resched-close-button`} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
@@ -280,134 +282,123 @@ export function RescheduleC() {
         </button>
       </header>
 
-      <div className="px-5 py-4">
-        <div className="mb-3 flex items-center gap-2">
-          <button type="button" onClick={() => setWi((i) => i - 1)} disabled={wi === 0} aria-label="이전 주" data-testid={`${T}-resched-week-prev`} className="grid size-7 place-items-center rounded-md border hover:bg-muted disabled:opacity-30">
-            <ChevronLeft className="size-4" />
-          </button>
-          <button type="button" onClick={() => setWi((i) => i + 1)} disabled={wi === WEEKS.length - 1} aria-label="다음 주" data-testid={`${T}-resched-week-next`} className="grid size-7 place-items-center rounded-md border hover:bg-muted disabled:opacity-30">
-            <ChevronRight className="size-4" />
-          </button>
-          <span className="text-sm font-medium">
-            {week[0].date.getMonth() + 1}월 {week[0].date.getDate()}일 주
-          </span>
-          <span className="ml-auto flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className="size-2.5 rounded-sm ring-2 ring-foreground/60 ring-inset" />
-              현재
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setWi((i) => i - 1)}
+              disabled={wi === 0}
+              aria-label="이전 주"
+              data-testid={`${T}-resched-week-prev`}
+              className="grid size-8 place-items-center rounded-lg border hover:bg-muted disabled:opacity-30"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setWi((i) => i + 1)}
+              disabled={wi === WEEKS.length - 1}
+              aria-label="다음 주"
+              data-testid={`${T}-resched-week-next`}
+              className="grid size-8 place-items-center rounded-lg border hover:bg-muted disabled:opacity-30"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+            <span className="ml-1 text-sm font-semibold">
+              {start.getMonth() + 1}월 {start.getDate()}일 ~ {end.getMonth() + 1}월 {end.getDate()}일
             </span>
-            {r.force && (
-              <span className="flex items-center gap-1">
-                <span className="size-2.5 rounded-sm bg-amber-200 dark:bg-amber-800" />
-                마감
-              </span>
-            )}
-          </span>
-        </div>
-        <div className="overflow-x-auto">
-          <div className="grid min-w-[520px] gap-1" style={{ gridTemplateColumns: `44px repeat(${week.length}, minmax(0, 1fr))` }}>
-            <span />
-            {week.map((d) => (
-              <span key={d.ymd} className="pb-1 text-center text-xs font-medium">
-                {WD[d.date.getDay()]} {d.date.getDate()}
-              </span>
-            ))}
-            {ROWS.map((row) => (
-              <RowCells key={row} row={row} week={week} r={r} />
-            ))}
+          </div>
+          <div className="max-h-[440px] overflow-auto">
+            <div className="grid min-w-[480px] gap-1.5" style={{ gridTemplateColumns: `repeat(${week.length}, minmax(0, 1fr))` }}>
+              {week.map((d) => (
+                <div key={d.ymd} className="sticky top-0 z-[1] bg-card pb-1 text-center">
+                  <p className="text-[11px] text-muted-foreground">{WD[d.date.getDay()]}</p>
+                  <p className={cn("text-lg font-bold", d.open.length === 0 && "text-muted-foreground/50")}>{d.date.getDate()}</p>
+                </div>
+              ))}
+              {ROWS.map((row) => week.map((d) => <ReschedCell key={`${d.ymd}-${row}`} day={d} row={row} r={r} />))}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-4 border-t px-5 py-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs">
+        <aside className="space-y-3 border-t bg-muted/30 p-5 lg:border-t-0 lg:border-l">
+          <div className="space-y-1.5 rounded-xl border bg-card px-3 py-2.5 text-sm">
+            <p className="text-xs text-muted-foreground">현재</p>
             <p className={cn(r.target && "text-muted-foreground line-through")}>{slotLabel(BOOKING.slotIso)}</p>
-            <p className={cn("font-semibold", r.target ? "text-primary" : "text-muted-foreground")}>{r.target ? slotLabel(r.target) : "새 시간 선택 안 함"}</p>
+            <p className="pt-1 text-xs text-muted-foreground">변경</p>
+            <p className={cn("font-semibold", r.target ? "text-primary" : "text-muted-foreground")}>{r.target ? slotLabel(r.target) : "시간 선택 안 함"}</p>
           </div>
-          <textarea rows={2} value={r.memo} onChange={(e) => r.setMemo(e.target.value)} placeholder="메모" className={cn(inputCls, "resize-none")} data-testid={`${T}-resched-memo-input`} />
-        </div>
-        <div className="space-y-2.5 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <span>
-              가용 시간 외 강제
-              <span className="block text-xs text-muted-foreground">요일, 시간, 정원 검증 생략</span>
-            </span>
-            <Switch checked={r.force} onChange={r.setForce} label="가용 시간 외 강제" testid={`${T}-resched-force-switch`} />
+          <textarea rows={3} value={r.memo} onChange={(e) => r.setMemo(e.target.value)} placeholder="메모" className={cn(inputCls, "resize-none bg-card")} data-testid={`${T}-resched-memo-input`} />
+          <div className="space-y-3 pt-1 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span>
+                가용 시간 외 허용
+                <span className="block text-xs text-muted-foreground">마감된 시간도 선택</span>
+              </span>
+              <Switch checked={r.force} onChange={r.setForce} label="가용 시간 외 허용" testid={`${T}-resched-force-switch`} />
+            </div>
+            {r.force && (
+              <input
+                type="datetime-local"
+                value={r.target ? inputValue(r.target) : ""}
+                onChange={(e) => e.target.value && r.setTarget(new Date(e.target.value).toISOString())}
+                className={cn(inputCls, "bg-card py-1.5")}
+                data-testid={`${T}-resched-custom-input`}
+              />
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <span>고객에게 안내 메일</span>
+              <Switch checked={r.notify} onChange={r.setNotify} label="고객에게 안내 메일" testid={`${T}-resched-notify-switch`} />
+            </div>
           </div>
-          {r.force && (
-            <input
-              type="datetime-local"
-              value={r.target ? inputValue(r.target) : ""}
-              onChange={(e) => e.target.value && r.setTarget(new Date(e.target.value).toISOString())}
-              className={cn(inputCls, "py-1.5")}
-              data-testid={`${T}-resched-custom-input`}
-            />
-          )}
-          <div className="flex items-center justify-between gap-3">
-            <span>고객에게 변경 안내 메일</span>
-            <Switch checked={r.notify} onChange={r.setNotify} label="고객에게 변경 안내 메일" testid={`${T}-resched-notify-switch`} />
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={r.close} disabled={r.busy} data-testid={`${T}-resched-cancel-button`} className="flex-1 rounded-lg border bg-card py-2.5 text-sm hover:bg-muted">
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={r.submit}
+              disabled={!r.target || r.busy}
+              data-testid={`${T}-resched-submit-button`}
+              className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+            >
+              {r.busy ? "처리 중…" : "변경"}
+            </button>
           </div>
-        </div>
+        </aside>
       </div>
-
-      <footer className="flex justify-end gap-2 border-t px-5 py-3">
-        <button type="button" onClick={r.close} disabled={r.busy} data-testid={`${T}-resched-cancel-button`} className="rounded-lg border px-3.5 py-2 text-sm hover:bg-muted">
-          취소
-        </button>
-        <button
-          type="button"
-          onClick={r.submit}
-          disabled={!r.target || r.busy}
-          data-testid={`${T}-resched-submit-button`}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-        >
-          {r.busy ? "처리 중…" : "변경 적용"}
-        </button>
-      </footer>
     </div>
   )
 }
 
-function RowCells({ row, week, r }: { row: string; week: Day[]; r: ReturnType<typeof useReschedule> }) {
+function ReschedCell({ day, row, r }: { day: Day; row: string; r: ReturnType<typeof useReschedule> }) {
+  const s = day.slots.find((x) => hm(x.iso) === row)
+  const current = s?.iso === BOOKING.slotIso
+  if (!s || (!s.open && !r.force && !current)) return <span className="grid h-9 place-items-center text-xs text-muted-foreground/30">-</span>
+  const sel = s.iso === r.target
   return (
-    <>
-      <span className="grid h-7 items-center text-[11px] text-muted-foreground tabular-nums">{row}</span>
-      {week.map((d) => {
-        const s = d.slots.find((x) => hm(x.iso) === row)
-        if (!s) return <span key={d.ymd} />
-        const current = s.iso === BOOKING.slotIso
-        const sel = s.iso === r.target
-        const pickable = !current && (s.open || r.force)
-        return (
-          <button
-            key={d.ymd}
-            type="button"
-            disabled={!pickable}
-            onClick={() => {
-              r.setYmd(d.ymd)
-              r.setTarget(s.iso)
-            }}
-            aria-label={slotLabel(s.iso)}
-            data-testid={`${T}-resched-slot-${s.iso}`}
-            className={cn(
-              "h-7 rounded-md transition",
-              sel
-                ? "bg-primary"
-                : current
-                  ? "ring-2 ring-foreground/60 ring-inset"
-                  : s.open
-                    ? "bg-primary/10 hover:bg-primary/25"
-                    : r.force
-                      ? "bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700"
-                      : "bg-muted/40",
-            )}
-          >
-            {sel && <Check className="mx-auto size-3.5 text-primary-foreground" strokeWidth={3} />}
-          </button>
-        )
-      })}
-    </>
+    <button
+      type="button"
+      disabled={current}
+      onClick={() => {
+        r.setYmd(day.ymd)
+        r.setTarget(s.iso)
+      }}
+      data-testid={`${T}-resched-slot-${s.iso}`}
+      className={cn(
+        "h-9 rounded-lg text-xs font-semibold tabular-nums transition",
+        sel
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : current
+            ? "border-2 border-dashed border-primary/50 text-primary"
+            : s.open
+              ? "bg-primary/10 text-primary hover:bg-primary/20"
+              : "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60",
+      )}
+    >
+      {current ? "현재" : row}
+    </button>
   )
 }
 
