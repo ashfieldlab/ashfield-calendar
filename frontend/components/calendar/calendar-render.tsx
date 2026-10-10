@@ -13,7 +13,7 @@ export function renderEventContent(arg: EventContentArg) {
   return (
     <div
       className={cn(
-        "flex min-w-0 gap-1.5 overflow-hidden rounded-md px-1.5 text-xs text-white",
+        "flex min-w-0 gap-1.5 overflow-hidden rounded-md px-1.5 text-[13px] leading-snug text-white",
         inGrid ? "h-full flex-col py-1" : "items-center py-0.5",
       )}
       style={{ backgroundColor: color }}
@@ -36,12 +36,12 @@ export function renderDayHeaderContent(arg: DayHeaderContentArg) {
   if (!arg.view.type.startsWith("timeGrid")) return arg.text
   return (
     <div className="flex flex-col items-center gap-1 py-1">
-      <span className="text-[11px] font-semibold text-muted-foreground">
+      <span className="text-xs font-semibold text-muted-foreground">
         {arg.date.toLocaleDateString("ko-KR", { weekday: "short" })}
       </span>
       <span
         className={cn(
-          "grid size-8 place-items-center rounded-full text-base font-semibold text-foreground",
+          "grid size-9 place-items-center rounded-full text-lg font-semibold text-foreground",
           arg.isToday && "bg-primary text-primary-foreground",
         )}
       >
