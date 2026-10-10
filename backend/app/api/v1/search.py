@@ -4,6 +4,7 @@ list_visible_calendars(+초대) 로 권한 정합. 필터: 날짜 범위, calend
 """
 
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -13,9 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.context import UserContext
 from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
+from app.models.calendar import Calendar
 from app.models.calendar_event import CalendarEvent
 from app.models.calendar_event_invitation import CalendarEventInvitation
 from app.services.calendars import list_visible_calendars
+
+MatchedField = Literal["title", "location", "description"]
 
 
 class SearchEventItem(BaseModel):
@@ -26,6 +30,22 @@ class SearchEventItem(BaseModel):
     location: str | None
     start_at: datetime
     end_at: datetime
+    all_day: bool = False
+    is_recurring: bool = False
+    # 검색어가 맞은 곳 (제목 우선, 다음 장소, 설명)
+    matched_field: MatchedField = "title"
+    # 초대받은 남의 캘린더 일정도 이름과 색을 보이도록
+    calendar_name: str | None = None
+    calendar_color: str | None = None
+
+
+def _matched_field(e: CalendarEvent, q: str) -> MatchedField:
+    term = q.lower()
+    if term in (e.title or "").lower():
+        return "title"
+    if term in (e.location or "").lower():
+        return "location"
+    return "description"
 
 
 class SearchResponse(BaseModel):
@@ -101,6 +121,17 @@ async def search(
     for e in (await db.execute(from_invited.limit(limit))).scalars().all():
         seen.setdefault(e.id, e)
     events = sorted(seen.values(), key=lambda x: x.start_at, reverse=True)[:limit]
+    cal_ids = {e.calendar_id for e in events}
+    cals = (
+        {
+            c.id: c
+            for c in (
+                await db.execute(select(Calendar).where(Calendar.id.in_(cal_ids)))
+            ).scalars()
+        }
+        if cal_ids
+        else {}
+    )
 
     return SearchResponse(
         events=[
@@ -112,6 +143,11 @@ async def search(
                 location=e.location,
                 start_at=e.start_at,
                 end_at=e.end_at,
+                all_day=e.all_day,
+                is_recurring=bool(e.rrule),
+                matched_field=_matched_field(e, q),
+                calendar_name=cals[e.calendar_id].name if e.calendar_id in cals else None,
+                calendar_color=cals[e.calendar_id].color if e.calendar_id in cals else None,
             )
             for e in events
         ],

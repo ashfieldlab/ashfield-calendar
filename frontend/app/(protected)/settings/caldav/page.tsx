@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, CalendarSync, Copy, Plus, Trash2 } from "lucide-react"
-import { useToast } from "@/components/ui-custom/use-toast"
+import { KeyRound, Plus, Trash2 } from "lucide-react"
 
-import { useAppContext } from "@/components/providers/app-context"
-import { api } from "@/lib/api-client"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui-custom/use-toast"
 import { useConfirm } from "@/components/ui-custom/use-confirm"
+import { useAppContext } from "@/components/providers/app-context"
+import { CopyField, SettingsSection } from "@/components/settings/settings-parts"
+import { api } from "@/lib/api-client"
 import { friendlyError } from "@/lib/errors"
-import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
+import { useApiGet } from "@/lib/hooks/use-api"
 
 interface CalDavTokenItem {
   id: string
@@ -28,30 +29,41 @@ interface CalDavTokenCreated {
   server_url: string
 }
 
+const URL_ = "/api/v1/me/caldav-tokens"
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "short", day: "numeric" })
+}
+
+function lastUsedLabel(iso: string | null, now: number) {
+  if (!iso) return "사용 기록 없음"
+  const s = Math.round((now - new Date(iso).getTime()) / 1000)
+  if (s < 3600) return "방금 사용"
+  if (s < 86400) return `${Math.floor(s / 3600)}시간 전 사용`
+  return `${Math.floor(s / 86400)}일 전 사용`
+}
+
+/** 설정 > 외부 캘린더 앱: CalDAV 앱 비밀번호 발급과 폐기 */
 export default function CalDavTokensPage() {
-  const { activeWorkspaceId } = useAppContext()
+  const { activeWorkspaceId, workspaceNames } = useAppContext()
   const { toast } = useToast()
   const confirm = useConfirm()
-  const URL_ = "/api/v1/me/caldav-tokens"
   const { data, mutate } = useApiGet<{ items: CalDavTokenItem[] }>(URL_)
-  const [showCreate, setShowCreate] = useState(false)
-  const [newName, setNewName] = useState("")
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState("")
   const [created, setCreated] = useState<CalDavTokenCreated | null>(null)
   const [busy, setBusy] = useState(false)
+  const [now] = useState(() => Date.now())
 
   async function create() {
-    if (!newName.trim()) return
+    if (!name.trim()) return
     setBusy(true)
     try {
-      const res = await api<CalDavTokenCreated>(URL_, {
-        method: "POST",
-        body: { name: newName.trim() },
-      })
+      const res = await api<CalDavTokenCreated>(URL_, { method: "POST", body: { name: name.trim() } })
       setCreated(res)
-      setNewName("")
-      setShowCreate(false)
-      invalidateApi(URL_)
-      mutate()
+      setName("")
+      setAdding(false)
+      void mutate()
     } catch (e) {
       toast.error(friendlyError(e))
     } finally {
@@ -59,243 +71,122 @@ export default function CalDavTokensPage() {
     }
   }
 
-  async function revoke(token: CalDavTokenItem) {
+  async function revoke(t: CalDavTokenItem) {
     const ok = await confirm({
       title: "앱 비밀번호 폐기",
-      description: `'${token.name}' 비밀번호를 폐기할까요? 이 비밀번호로 연결된 캘린더 앱은 즉시 일정을 받지 못합니다.`,
+      description: `'${t.name}' 연결이 즉시 끊깁니다.`,
       confirmText: "폐기",
       variant: "destructive",
     })
     if (!ok) return
     try {
-      await api(`${URL_}/${encodeURIComponent(token.id)}`, { method: "DELETE" })
-      invalidateApi(URL_)
-      mutate()
+      await api(`${URL_}/${encodeURIComponent(t.id)}`, { method: "DELETE" })
+      void mutate()
       toast.success("비밀번호를 폐기했습니다")
     } catch (e) {
       toast.error(friendlyError(e))
     }
   }
 
-  async function copy(text: string) {
-    await navigator.clipboard.writeText(text)
-    toast.success("복사했습니다")
-  }
+  const items = data?.items ?? []
+  const wsName = activeWorkspaceId ? (workspaceNames[activeWorkspaceId] ?? activeWorkspaceId) : ""
 
   return (
-    <div
-      className="h-full space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
-      data-testid="caldav-tokens-page"
+    <SettingsSection
+      title="외부 캘린더 앱"
+      testid="caldav-tokens-page"
+      action={
+        !adding &&
+        !created && (
+          <Button size="sm" onClick={() => setAdding(true)} data-testid="caldav-token-new-button">
+            <Plus /> 앱 비밀번호
+          </Button>
+        )
+      }
     >
-      <Link
-        href="/settings"
-        data-testid="caldav-tokens-back"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft size={12} /> 설정으로
-      </Link>
+      {wsName && <p className="mt-1 text-sm text-muted-foreground">{wsName} 일정만 연결</p>}
 
-      <header className="flex items-center gap-2">
-        <CalendarSync size={20} className="text-muted-foreground" />
-        <h1 className="text-2xl font-bold text-foreground">
-          외부 캘린더 앱 연결
-        </h1>
-      </header>
-
-      <div className="rounded border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-200">
-        <p className="font-medium">⚠ 사용 전 확인</p>
-        <ul className="mt-1 list-disc space-y-0.5 pl-4">
-          <li>비밀번호는 발급 시 한 번만 보입니다.</li>
-          <li>현재 워크스페이스({activeWorkspaceId})의 일정만 연결됩니다.</li>
-          <li>노출됐다면 바로 폐기하세요.</li>
-        </ul>
-      </div>
-
-      <section className="rounded-lg border border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">발급된 비밀번호</h2>
-          <button
-            onClick={() => setShowCreate(true)}
-            data-testid="caldav-token-new-button"
-            className="inline-flex items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus size={12} /> 새로 발급
-          </button>
-        </div>
-
-        {!data || data.items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            아직 발급된 비밀번호가 없습니다.
-          </p>
-        ) : (
-          <ul className="divide-y divide-border/60">
-            {data.items.map((t) => (
-              <li
-                key={t.id}
-                data-testid={`caldav-token-row-${t.id}`}
-                className="flex items-center justify-between py-2.5"
-              >
-                <div>
-                  <div className="text-sm font-medium text-foreground">
-                    {t.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    만든 날: {new Date(t.created_at).toLocaleDateString("ko-KR")},
-                    마지막 사용:{" "}
-                    {t.last_used_at
-                      ? new Date(t.last_used_at).toLocaleString("ko-KR")
-                      : "-"}
-                  </div>
-                </div>
-                <button
-                  onClick={() => revoke(t)}
-                  data-testid={`caldav-token-revoke-${t.id}`}
-                  title="폐기"
-                  className="rounded p-1 text-muted-foreground/70 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* 새 비밀번호 발급 입력 모달 */}
-      {showCreate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setShowCreate(false)}
-          data-testid="caldav-token-create-modal"
+      {adding && (
+        <form
+          className="mt-6 flex gap-2 rounded-xl border bg-muted/30 p-3"
+          data-testid="caldav-token-create-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void create()
+          }}
         >
-          <div
-            className="w-full max-w-sm rounded-lg bg-card p-5 shadow-xl dark:ring-1 dark:ring-foreground/10"
-            onClick={(e) => e.stopPropagation()}
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setAdding(false)}
+            placeholder="기기 이름"
+            aria-label="기기 이름"
+            data-testid="caldav-token-name-input"
+            className="h-8 min-w-0 flex-1 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setAdding(false)}
+            data-testid="caldav-token-create-cancel"
           >
-            <h3 className="mb-3 text-sm font-semibold text-foreground">
-              새 비밀번호 발급
-            </h3>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              이름
-            </label>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="예: 아이폰 캘린더, 업무용 노트북 Thunderbird"
-              data-testid="caldav-token-name-input"
-              className="w-full rounded border border-input px-3 py-2 text-sm"
-              autoFocus
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                disabled={busy}
-                className="rounded px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-              >
-                취소
-              </button>
-              <button
-                onClick={create}
-                disabled={busy || !newName.trim()}
-                data-testid="caldav-token-create-confirm"
-                className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                만들기
-              </button>
-            </div>
-          </div>
-        </div>
+            취소
+          </Button>
+          <Button type="submit" size="sm" disabled={busy || !name.trim()} data-testid="caldav-token-create-confirm">
+            발급
+          </Button>
+        </form>
       )}
 
-      {/* 발급된 secret 노출 모달: 한 번만 */}
       {created && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          data-testid="caldav-token-secret-modal"
+          className="mt-6 overflow-hidden rounded-xl border border-emerald-300 dark:border-emerald-800"
+          data-testid="caldav-token-secret"
         >
-          <div className="w-full max-w-lg rounded-lg bg-card p-5 shadow-xl dark:ring-1 dark:ring-foreground/10">
-            <h3 className="mb-2 text-sm font-semibold text-foreground">
-              비밀번호가 만들어졌습니다
-            </h3>
-            <p className="mb-4 text-xs text-rose-700 dark:text-rose-300">
-              ⚠ 이 비밀번호는 이 화면에서만 보입니다.
-            </p>
-            <div className="space-y-3">
-              <Field
-                label="서버 URL"
-                value={created.server_url}
-                onCopy={() => copy(created.server_url)}
-                testid="caldav-token-show-url"
-              />
-              <Field
-                label="사용자명"
-                value={created.username}
-                onCopy={() => copy(created.username)}
-                testid="caldav-token-show-username"
-              />
-              <Field
-                label="비밀번호"
-                value={created.secret}
-                onCopy={() => copy(created.secret)}
-                mono
-                testid="caldav-token-show-secret"
-              />
-            </div>
-            <div className="mt-5 flex justify-end">
-              <button
-                onClick={() => setCreated(null)}
-                data-testid="caldav-token-show-close"
-                className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                닫기
-              </button>
-            </div>
+          <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+            <KeyRound size={14} />
+            <span className="flex-1 font-medium">{created.name}: 지금만 표시</span>
+          </div>
+          <div className="divide-y">
+            <CopyField label="서버" value={created.server_url} testid="caldav-token-show-url" />
+            <CopyField label="사용자명" value={created.username} testid="caldav-token-show-username" />
+            <CopyField label="비밀번호" value={created.secret} mono testid="caldav-token-show-secret" />
+          </div>
+          <div className="flex justify-end border-t px-3 py-2">
+            <Button size="sm" onClick={() => setCreated(null)} data-testid="caldav-token-show-close">
+              완료
+            </Button>
           </div>
         </div>
       )}
-    </div>
-  )
-}
 
-function Field({
-  label,
-  value,
-  onCopy,
-  mono,
-  testid,
-}: {
-  label: string
-  value: string
-  onCopy: () => void
-  mono?: boolean
-  testid: string
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={value}
-          readOnly
-          data-testid={testid}
-          onClick={(e) => (e.target as HTMLInputElement).select()}
-          className={`w-full rounded border border-input bg-muted/50 px-3 py-2 text-xs ${
-            mono ? "font-mono" : ""
-          }`}
-        />
-        <button
-          onClick={onCopy}
-          data-testid={`${testid}-copy`}
-          aria-label="복사"
-          className="shrink-0 rounded border border-input px-3 py-2 text-muted-foreground hover:bg-muted/50"
-        >
-          <Copy size={14} />
-        </button>
-      </div>
-    </div>
+      <ul className="mt-6 divide-y rounded-xl border" data-testid="caldav-token-list">
+        {data && items.length === 0 && (
+          <li className="px-4 py-8 text-center text-sm text-muted-foreground">발급된 비밀번호 없음</li>
+        )}
+        {items.map((t) => (
+          <li key={t.id} className="group flex items-center gap-3 px-4 py-3" data-testid={`caldav-token-row-${t.id}`}>
+            <KeyRound size={16} className="text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium">{t.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {formatDate(t.created_at)} 발급, {lastUsedLabel(t.last_used_at, now)}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => revoke(t)}
+              data-testid={`caldav-token-revoke-${t.id}`}
+              aria-label="폐기"
+              className="grid size-8 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:opacity-100 group-hover:opacity-100 max-md:opacity-100 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
+            >
+              <Trash2 size={15} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </SettingsSection>
   )
 }

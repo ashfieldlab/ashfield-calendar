@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/components/ui-custom/use-toast"
 
+import { BookingSwitch } from "@/components/booking/booking-controls"
 import { BookingTypeForm } from "@/components/booking/booking-type-form"
 import { QrModal } from "@/components/booking/qr-modal"
 import { RescheduleModal } from "@/components/booking/reschedule-modal"
@@ -27,6 +28,7 @@ import type {
   BookingTypeCreate,
   BookingTypeResponse,
 } from "@/lib/types/booking"
+import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/utils/format"
 
 function publicUrl(publicKey: string): string {
@@ -52,7 +54,7 @@ export default function BookingTypeDetailPage({
   const { data: bookings, mutate: mutateBookings } =
     useApiGet<BookingListResponse>(`/api/v1/booking-types/${id}/bookings`)
 
-  async function save(body: BookingTypeCreate) {
+  async function save(body: BookingTypeCreate): Promise<boolean> {
     setBusy(true)
     try {
       // owner_type 은 PATCH 에서 보내지 않음 (생성 시 결정)
@@ -61,10 +63,24 @@ export default function BookingTypeDetailPage({
       await api(url, { method: "PATCH", body: patch })
       toast.success("저장했습니다")
       invalidateApi(url)
+      invalidateApi("/api/v1/booking-types")
+      return true
     } catch (e) {
       toast.error(`저장 실패: ${(e as Error).message}`)
+      return false
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function toggleEnabled(next: boolean) {
+    try {
+      await api(url, { method: "PATCH", body: { enabled: next } })
+      toast.success(next ? "켰습니다" : "껐습니다")
+      invalidateApi(url)
+      invalidateApi("/api/v1/booking-types")
+    } catch (e) {
+      toast.error(`실패: ${(e as Error).message}`)
     }
   }
 
@@ -129,165 +145,144 @@ export default function BookingTypeDetailPage({
 
   if (error) {
     return (
-      <div className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300">
+      <div className="m-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
         불러오지 못했습니다. 잠시 후 다시 시도해주세요.
       </div>
     )
   }
   if (isLoading || !bt) {
-    return <p className="text-sm text-muted-foreground">불러오는 중…</p>
+    return <p className="p-8 text-sm text-muted-foreground">불러오는 중…</p>
   }
 
+  const items = bookings?.items ?? []
+  const iconBtn =
+    "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+
   return (
-    <div className="h-full overflow-y-auto px-4 py-8 sm:px-6 lg:px-8 space-y-4">
-      <Link
-        href="/booking-types"
-        data-testid="booking-type-detail-back"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft size={12} /> 예약 양식 목록
-      </Link>
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 truncate text-2xl font-bold text-foreground" title={bt.title}>
-          {bt.title}
-        </h1>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            onClick={copyLink}
-            title="공개 URL 복사"
-            data-testid="booking-type-detail-copy"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <Copy size={16} />
-          </button>
-          <a
-            href={publicUrl(bt.public_key)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="공개 페이지 열기"
-            data-testid="booking-type-detail-open"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <ExternalLink size={16} />
-          </a>
-          <button
-            onClick={() => setShowQr(true)}
-            title="QR 코드"
-            data-testid="booking-type-detail-qr"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <QrCode size={16} />
-          </button>
-          <button
-            onClick={rotateKey}
-            title="공개 URL 재발급"
-            data-testid="booking-type-detail-rotate"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <RotateCw size={16} />
-          </button>
-          <button
-            onClick={deleteBT}
-            title="삭제"
-            data-testid="booking-type-detail-delete"
-            className="rounded p-1.5 text-muted-foreground hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
-          >
-            <Trash2 size={16} />
-          </button>
+    <div className="h-full overflow-y-auto px-4 pt-8 pb-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        <Link
+          href="/booking-types"
+          data-testid="booking-type-detail-back"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3" /> 예약 양식
+        </Link>
+        <header className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold text-foreground" title={bt.title}>
+              {bt.title}
+            </h1>
+            <p className="mt-1 truncate font-mono text-xs text-muted-foreground" data-testid="booking-type-detail-url">
+              {publicUrl(bt.public_key).replace(/^https?:\/\//, "")}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <label className="mr-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
+              {bt.enabled ? "켜짐" : "꺼짐"}
+              <BookingSwitch
+                on={bt.enabled}
+                onChange={toggleEnabled}
+                tone="success"
+                label="공개"
+                testId="booking-type-detail-toggle"
+              />
+            </label>
+            <button onClick={copyLink} title="링크 복사" data-testid="booking-type-detail-copy" className={iconBtn}>
+              <Copy className="size-4" />
+            </button>
+            <a
+              href={publicUrl(bt.public_key)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="공개 페이지"
+              data-testid="booking-type-detail-open"
+              className={iconBtn}
+            >
+              <ExternalLink className="size-4" />
+            </a>
+            <button onClick={() => setShowQr(true)} title="QR" data-testid="booking-type-detail-qr" className={iconBtn}>
+              <QrCode className="size-4" />
+            </button>
+            <button onClick={rotateKey} title="링크 재발급" data-testid="booking-type-detail-rotate" className={iconBtn}>
+              <RotateCw className="size-4" />
+            </button>
+            <button
+              onClick={deleteBT}
+              title="삭제"
+              data-testid="booking-type-detail-delete"
+              className={cn(iconBtn, "hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400")}
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        </header>
+
+        <div className="mt-4">
+          <BookingTypeForm initial={bt} onSubmit={save} busy={busy} />
         </div>
-      </header>
-      <p className="text-xs text-muted-foreground">
-        공개 URL: <code className="rounded bg-muted px-1.5 py-0.5">{publicUrl(bt.public_key)}</code>
-      </p>
 
-      <BookingTypeForm initial={bt} onSubmit={save} busy={busy} />
-
-      {/* Booking 목록 */}
-      <section className="space-y-2 pt-4">
-        <h2 className="text-base font-semibold text-foreground">들어온 예약</h2>
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <table className="w-full text-sm" data-testid="bookings-list">
-            <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">일시</th>
-                <th className="px-4 py-2 font-medium">고객</th>
-                <th className="px-4 py-2 font-medium">메시지</th>
-                <th className="w-20 px-4 py-2 font-medium">상태</th>
-                <th className="w-24 px-4 py-2 text-right" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {(bookings?.items ?? []).map((b) => (
-                <tr
-                  key={b.id}
-                  data-testid={`booking-row-${b.id}`}
-                  className="hover:bg-muted/50"
-                >
-                  <td className="px-4 py-2 text-foreground/80">
-                    {formatDateTime(b.slot_start_at)}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex flex-col">
-                      <span className="text-foreground">
-                        {b.customer_name ?? "-"}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {b.customer_email ?? "-"}
-                      </span>
+        <section className="mt-4 space-y-2">
+          <h2 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground">
+            들어온 예약 {items.filter((b) => b.status === "active").length}건
+          </h2>
+          <div
+            className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+            data-testid="bookings-list"
+          >
+            {items.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">아직 예약이 없습니다</p>
+            ) : (
+              items.map((b) => {
+                const active = b.status === "active"
+                return (
+                  <div
+                    key={b.id}
+                    data-testid={`booking-row-${b.id}`}
+                    className={cn("flex items-center gap-3 px-4 py-3", !active && "opacity-60")}
+                  >
+                    <div className="w-36 shrink-0 text-sm tabular-nums">
+                      <div className={cn("font-medium", !active && "line-through")}>{formatDateTime(b.slot_start_at)}</div>
                     </div>
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground truncate max-w-md">
-                    {b.customer_message || "-"}
-                  </td>
-                  <td className="px-4 py-2">
-                    {b.status === "active" ? (
-                      <span className="rounded bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-xs text-emerald-800 dark:text-emerald-300">
-                        예약
-                      </span>
-                    ) : (
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground/80">
-                        취소
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    {b.status === "active" && (
-                      <div className="flex justify-end gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm text-foreground">{b.customer_name ?? "-"}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {b.customer_email ?? "-"}
+                        {b.customer_message && `, ${b.customer_message}`}
+                      </div>
+                    </div>
+                    {active ? (
+                      <div className="flex shrink-0 gap-1">
                         <button
                           onClick={() => setRescheduling(b)}
                           title="시간 변경"
                           data-testid={`booking-row-${b.id}-reschedule`}
-                          className="rounded p-1 text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400"
+                          className={iconBtn}
                         >
-                          <CalendarClock size={14} />
+                          <CalendarClock className="size-4" />
                         </button>
                         <button
                           onClick={() => cancelBooking(b.id)}
                           title="취소"
                           data-testid={`booking-row-${b.id}-cancel`}
-                          className="rounded p-1 text-muted-foreground hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
+                          className={cn(iconBtn, "hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400")}
                         >
-                          <XCircle size={14} />
+                          <XCircle className="size-4" />
                         </button>
                       </div>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        취소됨
+                      </span>
                     )}
-                  </td>
-                </tr>
-              ))}
-              {(bookings?.items ?? []).length === 0 && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-8 text-center text-sm text-muted-foreground"
-                  >
-                    아직 예약이 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </section>
+
+      </div>
 
       {showQr && (
         <QrModal
@@ -299,12 +294,12 @@ export default function BookingTypeDetailPage({
 
       {rescheduling && (
         <RescheduleModal
-          bookingTypeId={id}
+          bookingType={bt}
           booking={rescheduling}
           onClose={() => setRescheduling(null)}
           onDone={() => {
             setRescheduling(null)
-            mutateBookings()
+            void mutateBookings()
             invalidateApi("/api/v1/booking-types")
           }}
         />

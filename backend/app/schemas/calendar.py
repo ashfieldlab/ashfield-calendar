@@ -25,6 +25,8 @@ class CalendarResponse(BaseModel):
     # 호출자의 개인 토글: null이면 미설정 (= 기본 가시, 색 그대로)
     hidden: bool = False
     color_override: str | None = None
+    # 구독 주소(ICS subscription, ADR-0013) 공개 여부: 사이드바 표시용.
+    subscription_enabled: bool = False
 
 
 class CalendarCreate(BaseModel):
@@ -50,6 +52,17 @@ class CalendarPreferencePatch(BaseModel):
 # --- Events ---
 
 
+class EventBookingInfo(BaseModel):
+    """예약으로 생긴 일정의 예약 요약 (상세 시트의 예약 관리 버튼용)."""
+
+    id: str
+    booking_type_id: str
+    booking_type_title: str
+    customer_name: str | None
+    customer_email: str | None
+    status: str
+
+
 class EventResponse(BaseModel):
     id: str
     calendar_id: str
@@ -67,6 +80,14 @@ class EventResponse(BaseModel):
     created_by_sub: str
     # booking 으로부터 생성된 이벤트면 booking.id (캘린더 UI는 readonly).
     booking_id: str | None = None
+    # 상세 시트용 표시 정보: 단건 조회(GET /events/{id})에서만 채운다.
+    organizer_name: str | None = None
+    organizer_email: str | None = None
+    room_name: str | None = None
+    room_capacity: int | None = None
+    calendar_name: str | None = None
+    calendar_color: str | None = None
+    booking: EventBookingInfo | None = None
 
 
 class EventOccurrence(BaseModel):

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
@@ -25,6 +26,11 @@ import { useToast } from "@/components/ui-custom/use-toast"
 import { DayPopover, type DayPopoverState } from "@/components/calendar/day-popover"
 import { EventForm } from "@/components/calendar/event-form"
 import {
+  EventDetailSheet,
+  type DetailTarget,
+  type EditScope,
+} from "@/components/calendar/event-detail-sheet"
+import {
   renderDayCellContent,
   renderDayHeaderContent,
   renderEventContent,
@@ -48,16 +54,30 @@ const VIEW_OPTIONS = [
 ]
 
 export default function CalendarPage() {
+  // useSearchParams: 검색에서 넘어온 ?event= 를 읽는다.
+  return (
+    <Suspense>
+      <CalendarView />
+    </Suspense>
+  )
+}
+
+function CalendarView() {
   const { toast } = useToast()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const calendarRef = useRef<FullCalendar | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
   const [title, setTitle] = useState("")
   const [view, setView] = useState("dayGridMonth")
   const [formState, setFormState] = useState<
-    | { mode: "create"; start: Date }
-    | { mode: "edit"; eventId: string; start: Date }
+    | { mode: "create"; start: Date; copyFrom?: EventResponse }
+    | { mode: "edit"; eventId: string; start: Date; scope?: EditScope }
     | null
   >(null)
+  // 일정 상세 시트: 달력 오른쪽에 붙는다.
+  const [detail, setDetail] = useState<DetailTarget | null>(null)
+  const closeDetail = useCallback(() => setDetail(null), [])
 
   const { data: calList } = useApiGet<CalendarListResponse>("/api/v1/calendars")
   const calendars = useMemo(() => calList?.calendars ?? [], [calList])
@@ -69,7 +89,7 @@ export default function CalendarPage() {
 
   const colorOf = useMemo(() => {
     const m = new Map<string, string>()
-    for (const c of calendars) m.set(c.id, c.color ?? "#6b7280")
+    for (const c of calendars) m.set(c.id, c.color_override ?? c.color ?? "#6b7280")
     return m
   }, [calendars])
 
@@ -85,6 +105,7 @@ export default function CalendarPage() {
       (occList?.occurrences ?? []).map((occ) => {
         // 예약 연결과 외부 캘린더 일정은 드래그 이동/리사이즈 불가.
         const locked = !!occ.booking_id || readonlyCalIds.has(occ.calendar_id)
+        const selected = detail?.eventId === occ.event_id && detail.start === occ.start_at
         return {
           id: `${occ.event_id}-${occ.start_at}`,
           title: occ.booking_id ? `🔒 ${occ.title}` : occ.title,
@@ -92,6 +113,7 @@ export default function CalendarPage() {
           end: occ.end_at,
           allDay: occ.all_day,
           editable: !locked,
+          classNames: selected ? ["cal-event-selected"] : [],
           backgroundColor: colorOf.get(occ.calendar_id) ?? "#6b7280",
           borderColor: colorOf.get(occ.calendar_id) ?? "#6b7280",
           extendedProps: {
@@ -99,10 +121,12 @@ export default function CalendarPage() {
             eventId: occ.event_id,
             bookingId: occ.booking_id,
             isRecurring: occ.is_recurring,
+            occStart: occ.start_at,
+            occEnd: occ.end_at,
           },
         }
       }),
-    [occList, colorOf, readonlyCalIds],
+    [occList, colorOf, readonlyCalIds, detail],
   )
 
   // 반복 일정 드래그/리사이즈 시 "이 회차만 / 전체" 선택 대기 상태.
@@ -158,30 +182,62 @@ export default function CalendarPage() {
 
   function openOccurrence(occ: EventOccurrence) {
     setDayPop(null)
-    if (occ.booking_id) {
-      toast.error("예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.")
-      return
-    }
-    setFormState({ mode: "edit", eventId: occ.event_id, start: new Date(occ.start_at) })
+    setDetail({ eventId: occ.event_id, start: occ.start_at, end: occ.end_at })
   }
 
+  // 일정을 누르면 상세 시트. 편집은 시트의 편집 버튼으로.
   function handleEventClick(info: EventClickArg) {
-    // "+N 더보기" 팝오버에서 클릭한 경우: 모달 띄우기 전에 팝오버 닫기 (겹침 방지).
+    // "+N 더보기" 팝오버에서 클릭한 경우: 시트 열기 전에 팝오버 닫기 (겹침 방지).
     document.querySelector<HTMLElement>(".fc-popover-close")?.click()
-    const eventId = info.event.extendedProps.eventId as string
-    const bookingId = info.event.extendedProps.bookingId as string | null
-    if (bookingId) {
-      toast.error(
-        "예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.",
-      )
-      return
-    }
-    setFormState({
-      mode: "edit",
-      eventId,
-      start: info.event.start ?? new Date(),
+    const p = info.event.extendedProps
+    setDetail({
+      eventId: p.eventId as string,
+      start: p.occStart as string,
+      end: p.occEnd as string,
     })
   }
+
+  function editFromDetail(ev: EventResponse, start: Date, scope?: EditScope) {
+    setFormState({ mode: "edit", eventId: ev.id, start, scope })
+  }
+
+  function duplicateFromDetail(ev: EventResponse, start: Date) {
+    if (calendars.every((c) => c.hidden || c.source !== "native")) {
+      toast.error("먼저 캘린더를 만들어주세요")
+      return
+    }
+    setFormState({ mode: "create", start, copyFrom: ev })
+  }
+
+  // 검색에서 넘어온 일정: 그 날짜로 옮기고 시트를 연다. 처리 후 주소는 비운다.
+  const linkedEvent = searchParams.get("event")
+  const linkedStart = searchParams.get("start")
+  const linkedEnd = searchParams.get("end")
+  useEffect(() => {
+    if (!linkedEvent || !linkedStart || !linkedEnd) return
+    calendarRef.current?.getApi().gotoDate(new Date(linkedStart))
+    // 외부(주소) 입력을 상태로 옮기는 동기화: 한 번 받고 주소를 비운다.
+    setDetail({ eventId: linkedEvent, start: linkedStart, end: linkedEnd })
+    router.replace("/calendar", { scroll: false })
+  }, [linkedEvent, linkedStart, linkedEnd, router])
+
+  // 시트가 열리고 닫히면 달력 폭이 바뀐다: FullCalendar 는 창 크기만 보므로 직접 다시 잰다.
+  const sheetOpen = !!detail
+  useEffect(() => {
+    calendarRef.current?.getApi().updateSize()
+  }, [sheetOpen])
+
+  useEffect(() => {
+    if (!detail || formState) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return
+      const t = e.target as HTMLElement | null
+      if (t?.closest("[role=dialog]")) return
+      setDetail(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [detail, formState])
 
   // 드래그 이동과 리사이즈 공통: 반복이면 범위 선택 모달, 아니면 바로 저장.
   function handleEventChange(info: EventDropArg | EventResizeDoneArg) {
@@ -499,11 +555,23 @@ export default function CalendarPage() {
         onCreate={(d) => createAt(d)}
       />
 
+      {detail && (
+        <EventDetailSheet
+          target={detail}
+          calendars={calendars}
+          onClose={closeDetail}
+          onEdit={editFromDetail}
+          onDuplicate={duplicateFromDetail}
+        />
+      )}
+
       {formState && (formState.mode === "create" || editingEvent) && (
         <EventForm
           calendars={calendars}
           initialStart={formState.start}
           editing={formState.mode === "edit" ? editingEvent ?? null : null}
+          scope={formState.mode === "edit" ? formState.scope : undefined}
+          copyFrom={formState.mode === "create" ? formState.copyFrom : undefined}
           onClose={() => setFormState(null)}
         />
       )}

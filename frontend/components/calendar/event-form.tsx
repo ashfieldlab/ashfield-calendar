@@ -28,6 +28,10 @@ interface Props {
   initialStart: Date
   /** edit 모드: 기존 event 로딩한 데이터. null이면 create 모드. */
   editing?: EventResponse | null
+  /** 반복 일정 편집 범위를 상세 시트에서 미리 골랐으면 저장 때 다시 묻지 않는다. */
+  scope?: "occurrence" | "series"
+  /** create 모드 복제: 이 일정의 값으로 채운다 (시각은 initialStart 기준). */
+  copyFrom?: EventResponse | null
   onClose: () => void
 }
 
@@ -55,7 +59,7 @@ function rruleToPreset(rule: string | null | undefined): RepeatPreset {
   return "custom"
 }
 
-export function EventForm({ calendars, initialStart, editing, onClose }: Props) {
+export function EventForm({ calendars, initialStart, editing, scope: presetScope, copyFrom, onClose }: Props) {
   const { toast } = useToast()
   const confirm = useConfirm()
   const writable = calendars.filter(
@@ -66,12 +70,28 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     : null
   const readOnly = editingCalendar?.source === "external_ics"
 
-  const initialEnd = useMemo(() => endOfDayHour(initialStart), [initialStart])
+  // 복제: 원본 지속시간을 유지하고, 원본 캘린더에 쓸 수 있으면 그대로.
+  const initialEnd = useMemo(
+    () =>
+      copyFrom
+        ? new Date(
+            initialStart.getTime() +
+              (Date.parse(copyFrom.end_at) - Date.parse(copyFrom.start_at)) -
+              // 종일 일정의 끝은 다음 날 0시: 폼은 끝 날짜를 포함으로 다루므로 하루 안으로 당긴다.
+              (copyFrom.all_day ? 60_000 : 0),
+          )
+        : endOfDayHour(initialStart),
+    [initialStart, copyFrom],
+  )
+  const seed = editing ?? copyFrom ?? null
 
   const [calendarId, setCalendarId] = useState(
-    editing?.calendar_id ?? writable[0]?.id ?? "",
+    editing?.calendar_id ??
+      (copyFrom && writable.some((c) => c.id === copyFrom.calendar_id) ? copyFrom.calendar_id : undefined) ??
+      writable[0]?.id ??
+      "",
   )
-  const [title, setTitle] = useState(editing?.title ?? "")
+  const [title, setTitle] = useState(seed?.title ?? "")
   // 반복 일정 편집은 클릭한 "회차"의 시각을 보여줌(마스터 앵커 아님): 이 회차만
   // 수정 시 올바른 날짜에 분리되도록. 종료는 회차 시작 + 마스터 지속시간.
   const [startAt, setStartAt] = useState<Date>(() =>
@@ -89,21 +109,22 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     }
     return editing?.end_at ? new Date(editing.end_at) : initialEnd
   })
-  const [allDay, setAllDay] = useState(editing?.all_day ?? false)
-  const [location, setLocation] = useState(editing?.location ?? "")
+  const [allDay, setAllDay] = useState(seed?.all_day ?? false)
+  const [location, setLocation] = useState(seed?.location ?? "")
+  // 회의실은 복제하지 않는다: 같은 시각 사본이면 바로 이중예약이 된다.
   const [roomId, setRoomId] = useState(editing?.room_id ?? "")
   const { data: roomData } = useApiGet<RoomListResponse>("/api/v1/rooms")
   const rooms = roomData?.rooms ?? []
-  const [description, setDescription] = useState(editing?.description ?? "")
+  const [description, setDescription] = useState(seed?.description ?? "")
   const [repeatPreset, setRepeatPreset] = useState<RepeatPreset>(
-    rruleToPreset(editing?.rrule),
+    rruleToPreset(seed?.rrule),
   )
   const [customRrule, setCustomRrule] = useState(
-    rruleToPreset(editing?.rrule) === "custom" ? (editing?.rrule ?? "") : "",
+    rruleToPreset(seed?.rrule) === "custom" ? (seed?.rrule ?? "") : "",
   )
   // 알림: null = 꺼짐. 값(분) = 시작 N분 전 in-app 알림.
   const [reminderMinutes, setReminderMinutes] = useState<number | null>(
-    editing?.reminder_minutes_before ?? null,
+    seed?.reminder_minutes_before ?? null,
   )
   const [busy, setBusy] = useState(false)
   const [attendees, setAttendees] = useState<DraftAttendee[]>([])
@@ -141,7 +162,8 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     if (!title.trim() || !calendarId) return
     // 반복 일정 수정은 "이 회차만 / 전체" 선택 후 진행.
     if (editing?.rrule) {
-      setShowRecurEdit(true)
+      if (presetScope) void doSave(presetScope)
+      else setShowRecurEdit(true)
       return
     }
     void doSave("series")

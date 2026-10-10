@@ -22,14 +22,18 @@ from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.core.errors import BusinessError
 from app.models.booking import Booking
+from app.models.booking_type import BookingType
+from app.models.calendar import Calendar
 from app.models.calendar_event import CalendarEvent
 from app.models.calendar_event_invitation import CalendarEventInvitation
+from app.models.room import Room
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.calendar import (
     AttendeeConflict,
     AttendeeConflictsRequest,
     AttendeeConflictsResponse,
+    EventBookingInfo,
     EventCreate,
     EventInvitationCreate,
     EventInvitationList,
@@ -40,7 +44,7 @@ from app.schemas.calendar import (
     EventResponse,
     OccurrenceListResponse,
 )
-from app.services import email
+from app.services import email, event_changes
 from app.services.attendee_conflicts import busy_subs
 from app.services.audit import write_audit
 from app.services.calendars import (
@@ -83,6 +87,70 @@ async def _assert_not_booking_linked(db: AsyncSession, event_id: str) -> None:
             message="예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.",
             params={"booking_id": bid},
         )
+
+
+async def _assert_event_readable(
+    db: AsyncSession,
+    ev: CalendarEvent,
+    cal: Calendar,
+    *,
+    user: UserContext,
+    workspace_id: str,
+) -> None:
+    """읽기 권한: 캘린더 접근 권한이 있거나, 이 일정에 초대받은 사람.
+
+    Why: 초대받은 일정은 남의 개인 캘린더에 있어도 occurrence 목록에 보이므로
+    상세, 참석자, .ics 도 열 수 있어야 한다. declined 여도 열람은 허용.
+    """
+    if cal.workspace_id != workspace_id:
+        raise HTTPException(404, "Event not found")
+    try:
+        assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
+        return
+    except HTTPException:
+        invited = await db.scalar(
+            select(CalendarEventInvitation.id).where(
+                CalendarEventInvitation.event_id == ev.id,
+                CalendarEventInvitation.invitee_sub == user.sub,
+            )
+        )
+        if invited is None:
+            raise
+
+
+async def _detail_response(db: AsyncSession, ev: CalendarEvent, cal: Calendar) -> EventResponse:
+    """단건 조회 응답: 주최자, 회의실, 캘린더, 예약 요약까지 채운다."""
+    resp = _to_response(ev)
+    resp.calendar_name = cal.name
+    resp.calendar_color = cal.color
+    organizer = await db.get(User, ev.created_by_sub)
+    if organizer is not None:
+        resp.organizer_name = organizer.name
+        resp.organizer_email = organizer.email
+    if ev.room_id:
+        room = await db.get(Room, ev.room_id)
+        if room is not None:
+            resp.room_name = room.name
+            resp.room_capacity = room.capacity
+    row = (
+        await db.execute(
+            select(Booking, BookingType.title)
+            .join(BookingType, BookingType.id == Booking.booking_type_id)
+            .where(Booking.calendar_event_id == ev.id)
+        )
+    ).first()
+    if row is not None:
+        booking, type_title = row
+        resp.booking_id = booking.id
+        resp.booking = EventBookingInfo(
+            id=booking.id,
+            booking_type_id=booking.booking_type_id,
+            booking_type_title=type_title,
+            customer_name=booking.customer_name,
+            customer_email=booking.customer_email,
+            status=booking.status,
+        )
+    return resp
 
 
 def _event_to_vevent(ev: CalendarEvent) -> IcsEvent:
@@ -250,7 +318,7 @@ async def export_event_ics(
 ) -> Response:
     """단건 .ics 다운로드: RFC 5545. master + RRULE + EXDATE 그대로 export."""
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
+    await _assert_event_readable(db, ev, cal, user=user, workspace_id=workspace_id)
 
     ics = IcsCalendar()
     ics.add("prodid", "-//Ashfield//Event Export//KR")
@@ -290,9 +358,8 @@ async def get_event(
     db: AsyncSession = Depends(get_db),
 ) -> EventResponse:
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
-    bid = await _booking_id_for_event(db, event_id)
-    return _to_response(ev, booking_id=bid)
+    await _assert_event_readable(db, ev, cal, user=user, workspace_id=workspace_id)
+    return await _detail_response(db, ev, cal)
 
 
 @router.patch(
@@ -334,6 +401,7 @@ async def patch_event(
             workspace_id=workspace_id,
         )
 
+    before = event_changes.snapshot(ev)
     for k, v in fields.items():
         setattr(ev, k, v)
     if ev.end_at < ev.start_at:
@@ -348,7 +416,30 @@ async def patch_event(
             workspace_id=workspace_id,
             exclude_event_id=ev.id,
         )
+    change = await event_changes.diff(db, before, ev)
+    pending = PendingDispatch()
+    if change["fields"]:
+        await write_audit(
+            db,
+            workspace_id=workspace_id,
+            actor=user,
+            action="update",
+            entity_type="event",
+            entity_id=ev.id,
+            meta={"calendar_id": cal.id, "title": ev.title, **change},
+        )
+        if event_changes.NOTIFY_FIELDS & set(change["fields"]):
+            await event_changes.notify_attendees(
+                db,
+                pending,
+                ev=ev,
+                cal=cal,
+                actor_sub=user.sub,
+                type_="event_updated",
+                payload={**event_changes.event_card(ev), **change},
+            )
     await db.commit()
+    await pending.fire()
     await db.refresh(ev)
     return _to_response(ev)
 
@@ -405,6 +496,14 @@ async def _detach_occurrence(
             end_at=new_ev.end_at,
             workspace_id=workspace_id,
         )
+    # 바뀐 내용: 이 회차의 원래 값(master + 회차 시각) 대비
+    before = {
+        **event_changes.snapshot(ev),
+        "start_at": occurrence,
+        "end_at": occurrence + duration,
+        "rrule": None,
+    }
+    change = await event_changes.diff(db, before, new_ev)
     await write_audit(
         db,
         workspace_id=workspace_id,
@@ -415,10 +514,30 @@ async def _detach_occurrence(
         meta={
             "detached_occurrence": key,
             "new_event_id": new_ev.id,
+            "calendar_id": ev.calendar_id,
             "title": new_ev.title,
+            **change,
         },
     )
+    pending = PendingDispatch()
+    if event_changes.NOTIFY_FIELDS & set(change["fields"]):
+        cal = await db.get(Calendar, ev.calendar_id)
+        if cal is not None:
+            await event_changes.notify_attendees(
+                db,
+                pending,
+                ev=ev,
+                cal=cal,
+                actor_sub=user.sub,
+                type_="event_updated",
+                payload={
+                    **event_changes.event_card(new_ev),
+                    **change,
+                    "occurrence": key,
+                },
+            )
     await db.commit()
+    await pending.fire()
     await db.refresh(new_ev)
     return _to_response(new_ev)
 
@@ -461,9 +580,29 @@ async def delete_event(
             action="update",
             entity_type="event",
             entity_id=ev.id,
-            meta={"excluded_occurrence": key, "title": ev.title},
+            meta={
+                "excluded_occurrence": key,
+                "calendar_id": cal.id,
+                "title": ev.title,
+            },
+        )
+        pending = PendingDispatch()
+        await event_changes.notify_attendees(
+            db,
+            pending,
+            ev=ev,
+            cal=cal,
+            actor_sub=user.sub,
+            type_="event_cancelled",
+            payload={
+                **event_changes.event_card(ev),
+                "start_at": key,
+                "end_at": (occurrence + (ev.end_at - ev.start_at)).isoformat(),
+                "occurrence": key,
+            },
         )
         await db.commit()
+        await pending.fire()
         return
     ev.deleted_at = datetime.now(UTC)
     await write_audit(
@@ -473,9 +612,24 @@ async def delete_event(
         action="delete",
         entity_type="event",
         entity_id=ev.id,
-        meta={"calendar_id": cal.id, "title": ev.title},
+        meta={
+            "calendar_id": cal.id,
+            "title": ev.title,
+            "start_at": ev.start_at.isoformat(),
+        },
+    )
+    pending = PendingDispatch()
+    await event_changes.notify_attendees(
+        db,
+        pending,
+        ev=ev,
+        cal=cal,
+        actor_sub=user.sub,
+        type_="event_cancelled",
+        payload=event_changes.event_card(ev),
     )
     await db.commit()
+    await pending.fire()
 
 
 # ---------------------------------------------------------------------------
@@ -516,7 +670,7 @@ async def list_invitations(
     from sqlalchemy import select
 
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
-    assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
+    await _assert_event_readable(db, ev, cal, user=user, workspace_id=workspace_id)
     stmt = (
         select(CalendarEventInvitation, User)
         .outerjoin(User, User.id == CalendarEventInvitation.invitee_sub)
@@ -604,7 +758,12 @@ async def create_invitation(
         action="share",
         entity_type="event",
         entity_id=ev.id,
-        meta={"invitee_email": invitee_email, "external": True},
+        meta={
+            "invitee_email": invitee_email,
+            "external": True,
+            "calendar_id": ev.calendar_id,
+            "title": ev.title,
+        },
     )
     await db.commit()
     await db.refresh(inv)
@@ -654,6 +813,7 @@ async def _create_internal_invitation(
         response="pending",
     )
     db.add(inv)
+    invitee_row = await db.get(User, invitee_sub)
     await write_audit(
         db,
         workspace_id=workspace_id,
@@ -661,7 +821,12 @@ async def _create_internal_invitation(
         action="share",
         entity_type="event",
         entity_id=ev.id,
-        meta={"invitee": invitee_sub},
+        meta={
+            "invitee": invitee_sub,
+            "invitee_name": (invitee_row.name or invitee_row.email) if invitee_row else None,
+            "calendar_id": ev.calendar_id,
+            "title": ev.title,
+        },
     )
     pending = PendingDispatch()
     await notify(
@@ -673,7 +838,7 @@ async def _create_internal_invitation(
         type_="event_invited",
         entity_type="event",
         entity_id=ev.id,
-        payload={"title": ev.title, "start_at": ev.start_at.isoformat()},
+        payload={**event_changes.event_card(ev), "invitation_id": inv.id},
     )
     await db.commit()
     await pending.fire()
@@ -714,6 +879,19 @@ async def patch_invitation(
     pending = PendingDispatch()
     ev_full = await db.get(CalendarEvent, inv.event_id)
     if ev_full is not None:
+        await write_audit(
+            db,
+            workspace_id=workspace_id,
+            actor=user,
+            action="update",
+            entity_type="event",
+            entity_id=ev_full.id,
+            meta={
+                "rsvp": body.response,
+                "calendar_id": ev_full.calendar_id,
+                "title": ev_full.title,
+            },
+        )
         await notify(
             db,
             pending,
@@ -723,7 +901,7 @@ async def patch_invitation(
             type_="event_invitation_response",
             entity_type="event",
             entity_id=ev_full.id,
-            payload={"title": ev_full.title, "response": body.response},
+            payload={**event_changes.event_card(ev_full), "response": body.response},
         )
     await db.commit()
     await pending.fire()
@@ -756,6 +934,10 @@ async def delete_invitation(
         raise HTTPException(404, "Invitation not found")
     if ev.created_by_sub != user.sub and cal.owner_id != user.sub:
         raise HTTPException(403, "Only creator can remove invitation")
+    invitee_name = inv.invitee_email or inv.invitee_name
+    if inv.invitee_sub:
+        u = await db.get(User, inv.invitee_sub)
+        invitee_name = (u.name or u.email) if u else None
     await db.delete(inv)
     await write_audit(
         db,
@@ -764,6 +946,12 @@ async def delete_invitation(
         action="unshare",
         entity_type="event",
         entity_id=ev.id,
-        meta={"invitee": inv.invitee_sub},
+        meta={
+            "invitee": inv.invitee_sub,
+            "invitee_email": inv.invitee_email,
+            "invitee_name": invitee_name,
+            "calendar_id": ev.calendar_id,
+            "title": ev.title,
+        },
     )
     await db.commit()

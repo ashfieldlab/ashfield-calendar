@@ -104,3 +104,41 @@ async def test_search_isolated_per_user(client: AsyncClient, auth_headers):
     assert r.status_code == 200
     # Bob 은 Alice 의 personal 캘린더 일정 못 봄
     assert r.json()["events"] == []
+
+
+async def test_search_reports_matched_field_and_calendar(client: AsyncClient, auth_headers):
+    a = auth_headers(ALICE, groups=[ACME], active_workspace=ACME)
+    cal = (
+        await client.post(
+            "/api/v1/calendars",
+            json={"name": "팀", "scope": "shared", "color": "#059669"},
+            headers=a,
+        )
+    ).json()
+    base = datetime(2026, 6, 1, 9, 0, tzinfo=UTC)
+    for title, loc, desc in (
+        ("점검 회의", None, None),
+        ("주간 싱크", "점검실", None),
+        ("코드 리뷰", None, "배포 전 점검"),
+    ):
+        await client.post(
+            "/api/v1/events",
+            json={
+                "calendar_id": cal["id"],
+                "title": title,
+                "location": loc,
+                "description": desc,
+                "start_at": base.isoformat(),
+                "end_at": (base + timedelta(hours=1)).isoformat(),
+            },
+            headers=a,
+        )
+
+    r = await client.get("/api/v1/search?q=점검", headers=a)
+    assert r.status_code == 200
+    by_title = {e["title"]: e for e in r.json()["events"]}
+    assert by_title["점검 회의"]["matched_field"] == "title"
+    assert by_title["주간 싱크"]["matched_field"] == "location"
+    assert by_title["코드 리뷰"]["matched_field"] == "description"
+    assert by_title["점검 회의"]["calendar_name"] == "팀"
+    assert by_title["점검 회의"]["calendar_color"] == "#059669"

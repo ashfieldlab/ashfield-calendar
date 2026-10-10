@@ -35,8 +35,15 @@ export interface BookingTypeResponse {
   enabled: boolean
 }
 
+/** 목록 응답: 예약 통계 계산 필드 포함. */
+export interface BookingTypeListItem extends BookingTypeResponse {
+  upcoming_count: number
+  next_booking_at: string | null
+  last_30d_count: number
+}
+
 export interface BookingTypeListResponse {
-  items: BookingTypeResponse[]
+  items: BookingTypeListItem[]
 }
 
 export interface BookingTypeCreate {
@@ -71,4 +78,16 @@ export interface BookingRow {
 
 export interface BookingListResponse {
   items: BookingRow[]
+}
+
+/** 운영자 슬롯 (GET /booking-types/{id}/slots): 마감 칸 포함. */
+export interface OperatorSlot {
+  start_at: string
+  end_at: string
+  remaining: number
+  open: boolean
+}
+
+export interface OperatorSlotListResponse {
+  slots: OperatorSlot[]
 }

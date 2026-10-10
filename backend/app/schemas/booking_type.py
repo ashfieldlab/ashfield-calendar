@@ -4,7 +4,7 @@ weekly_schedule 형태: {"mon": [["09:00","18:00"]], "tue": [...], ...}
 각 시간 블록은 "HH:MM" 두 개. 빈 요일은 키 자체 생략 또는 빈 리스트.
 """
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -51,8 +51,29 @@ class BookingTypeResponse(BaseModel):
     enabled: bool
 
 
+class BookingTypeListItem(BookingTypeResponse):
+    """목록 전용: 예약 통계 계산 필드 (컬럼 아님)."""
+
+    upcoming_count: int = 0
+    next_booking_at: datetime | None = None
+    last_30d_count: int = 0
+
+
 class BookingTypeListResponse(BaseModel):
-    items: list[BookingTypeResponse]
+    items: list[BookingTypeListItem]
+
+
+class OperatorSlotItem(BaseModel):
+    """운영자 슬롯: 마감(정원 참, 다른 일정과 겹침, 최소 예약 시점 이전) 포함."""
+
+    start_at: datetime
+    end_at: datetime
+    remaining: int
+    open: bool
+
+
+class OperatorSlotListResponse(BaseModel):
+    slots: list[OperatorSlotItem]
 
 
 class BookingTypeCreate(BaseModel):

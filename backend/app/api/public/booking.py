@@ -4,6 +4,7 @@
   GET    /booking/{public_key}               : BookingType 공개 정보 (워크스페이스 이름 + 양식)
   GET    /booking/{public_key}/slots         : 가용 슬롯 (range_from/range_to)
   POST   /booking/{public_key}/submit        : 예약 제출 (honeypot + rate limit + 동의)
+  GET    /booking/cancel/{cancel_token}      : 취소 링크의 예약 요약 (본인 예약만)
   POST   /booking/cancel/{cancel_token}      : 취소
 
 노출 정보 최소화 (ADR-0011): 워크스페이스 이름 + 양식 title/description/duration 만.
@@ -29,11 +30,13 @@ from app.middleware.rate_limit import (
     check_ip_limit,
     get_rate_limits,
 )
+from app.models.booking import Booking
 from app.models.booking_type import BookingType
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.services.audit import write_audit
 from app.services.booking import (
+    audit_workspace_id,
     available_slots,
     cancel_booking,
     create_booking,
@@ -145,6 +148,48 @@ def _client_ip(request: Request, x_forwarded_for: str | None) -> str:
 # ---------------------------------------------------------------------------
 # 라우트
 # ---------------------------------------------------------------------------
+
+
+class PublicCancelView(BaseModel):
+    """취소 페이지 표시: 본인 예약 요약만 (운영자 신원, 다른 예약자 X)."""
+
+    title: str
+    organization_name: str
+    slot_start_at: datetime
+    slot_end_at: datetime
+    customer_email: str
+    status: str
+
+
+@router.get(
+    "/cancel/{cancel_token}",
+    response_model=PublicCancelView,
+    summary="취소 링크의 예약 요약 (토큰)",
+    responses={404: {"description": "유효하지 않은 토큰"}},
+)
+async def get_cancel_view(
+    request: Request,
+    cancel_token: str = Path(..., min_length=8, max_length=64),
+    x_forwarded_for: Annotated[str | None, Header()] = None,
+    db: AsyncSession = Depends(get_db),
+) -> PublicCancelView:
+    per_ip, _ = get_rate_limits()
+    await check_ip_limit(_client_ip(request, x_forwarded_for), per_ip)
+
+    booking = (
+        await db.execute(select(Booking).where(Booking.cancel_token == cancel_token))
+    ).scalar_one_or_none()
+    bt = await db.get(BookingType, booking.booking_type_id) if booking else None
+    if booking is None or bt is None:
+        raise HTTPException(404, "Not found")
+    return PublicCancelView(
+        title=bt.title,
+        organization_name=await _organization_name(db, bt),
+        slot_start_at=booking.slot_start_at,
+        slot_end_at=booking.slot_end_at,
+        customer_email=booking.customer_email or "",
+        status=booking.status,
+    )
 
 
 @router.get(
@@ -269,7 +314,7 @@ async def submit_booking(
     )
     await write_audit(
         db,
-        workspace_id=bt.owner_workspace_id,  # NULL OK (D-1)
+        workspace_id=await audit_workspace_id(db, bt),
         actor=None,
         actor_type="public",              # 공개 라우트 (ADR-0011)
         action="create",
@@ -277,7 +322,10 @@ async def submit_booking(
         entity_id=booking.id,
         meta={
             "booking_type_id": bt.id,
+            "booking_type": bt.title,
+            "guest_name": booking.customer_name,
             "slot_start_at": booking.slot_start_at.isoformat(),
+            "calendar_event_id": booking.calendar_event_id,
             "ip": ip,
         },
     )
@@ -329,13 +377,20 @@ async def cancel(
     bt = await db.get(BookingType, booking.booking_type_id)
     await write_audit(
         db,
-        workspace_id=bt.owner_workspace_id if bt else None,
+        workspace_id=await audit_workspace_id(db, bt) if bt else None,
         actor=None,
         actor_type="public",
         action="delete",
         entity_type="booking",
         entity_id=booking.id,
-        meta={"by": "customer", "ip": ip},
+        meta={
+            "by": "customer",
+            "booking_type_id": booking.booking_type_id,
+            "booking_type": bt.title if bt else None,
+            "guest_name": booking.customer_name,
+            "slot_start_at": booking.slot_start_at.isoformat(),
+            "ip": ip,
+        },
     )
     await db.commit()
     logger.info(

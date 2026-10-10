@@ -1,183 +1,446 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import Link from "next/link"
-import { Calendar, Search, X } from "lucide-react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { CalendarRange, CornerDownLeft, History, Search, X } from "lucide-react"
 
 import { api } from "@/lib/api-client"
-import { formatDateTime } from "@/lib/utils/format"
+import { useApiGet } from "@/lib/hooks/use-api"
+import type { CalendarListResponse, OccurrenceListResponse } from "@/lib/types/api"
+import type { SearchEventItem, SearchMatchedField, SearchResponse } from "@/lib/types/search"
+import { cn } from "@/lib/utils"
+import { dayLabel, timeOfDay } from "@/lib/utils/event-format"
+import { logger } from "@/lib/utils/logger"
 
-interface SearchEventItem {
-  id: string
-  calendar_id: string
+const T = "search-modal"
+const RECENT_KEY = "calendar.search.recent"
+const RECENT_MAX = 5
+
+const FIELD_LABEL: Record<SearchMatchedField, string> = {
+  title: "제목",
+  location: "장소",
+  description: "설명",
+}
+
+interface Row {
+  key: string
+  eventId: string
   title: string
-  description: string | null
+  calendarId: string
+  calendarName: string | null
+  calendarColor: string | null
+  start: string
+  end: string
+  allDay: boolean
   location: string | null
-  start_at: string
-  end_at: string
+  description: string | null
+  field?: SearchMatchedField
 }
 
-interface SearchResponse {
-  events: SearchEventItem[]
+function readRecent(): string[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY)
+    const v = raw ? (JSON.parse(raw) as unknown) : []
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, RECENT_MAX) : []
+  } catch {
+    return []
+  }
 }
 
-// 상세 검색 모달 (일정 날짜 필터). 제출식.
-export function SearchModal({
-  initialQuery,
-  onClose,
-}: {
-  initialQuery: string
-  onClose: () => void
-}) {
-  const [q, setQ] = useState(initialQuery)
+function writeRecent(list: string[]) {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(list))
+  } catch {
+    // 저장소를 못 쓰면 최근 검색만 빠진다.
+  }
+}
+
+/** 커맨드 팔레트식 일정 검색. 입력하는 대로 찾고, ↑↓ Enter 로 연다. */
+export function SearchModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter()
+  const [q, setQ] = useState("")
+  const [showRange, setShowRange] = useState(false)
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
-  const [data, setData] = useState<SearchResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [searched, setSearched] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [active, setActive] = useState(0)
+  const [recent, setRecent] = useState<string[]>(readRecent)
+  const [result, setResult] = useState<{ key: string; events: SearchEventItem[] } | null>(null)
+  const listRef = useRef<HTMLUListElement>(null)
 
-  // 포커스는 마운트 시 1회만: 부모 리렌더로 재실행되면 열린 select 에서
-  // 포커스를 뺏어 닫히므로 deps 를 비운다.
+  // 다가오는 일정: 열 때의 시각 기준 30일
+  const [upcomingUrl] = useState(() => {
+    const now = new Date()
+    const end = new Date(now.getTime() + 30 * 86_400_000)
+    return `/api/v1/events?from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(end.toISOString())}`
+  })
+  const [nowMs] = useState(() => Date.now())
+  const { data: upcomingData } = useApiGet<OccurrenceListResponse>(upcomingUrl)
+  const { data: calList } = useApiGet<CalendarListResponse>("/api/v1/calendars")
+  const calById = useMemo(() => new Map((calList?.calendars ?? []).map((c) => [c.id, c])), [calList])
+
+  const term = q.trim()
+  const searchKey = term ? JSON.stringify([term, from, to]) : ""
+
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
-
-  async function runSearch() {
-    const term = q.trim()
-    if (!term) return
-    setLoading(true)
-    setSearched(true)
-    try {
-      const p = new URLSearchParams({ q: term, limit: "50" })
+    if (!searchKey) return
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      const p = new URLSearchParams({ q: term, limit: "30" })
       if (from) p.set("date_from", new Date(`${from}T00:00:00`).toISOString())
       if (to) p.set("date_to", new Date(`${to}T23:59:59`).toISOString())
-      setData(await api<SearchResponse>(`/api/v1/search?${p}`))
-    } catch {
-      setData(null)
-    } finally {
-      setLoading(false)
+      try {
+        const r = await api<SearchResponse>(`/api/v1/search?${p}`)
+        if (!cancelled) setResult({ key: searchKey, events: r.events })
+      } catch (e) {
+        logger.warn("search_failed", { category: "api", error: (e as Error).message })
+        if (!cancelled) setResult({ key: searchKey, events: [] })
+      }
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [searchKey, term, from, to])
+
+  const loading = !!searchKey && result?.key !== searchKey
+
+  const rows: Row[] = useMemo(() => {
+    if (term) {
+      if (!result || result.key !== searchKey) return []
+      return [...result.events]
+        .sort((a, b) => a.start_at.localeCompare(b.start_at))
+        .map((e) => ({
+          key: e.id,
+          eventId: e.id,
+          title: e.title,
+          calendarId: e.calendar_id,
+          calendarName: e.calendar_name ?? null,
+          calendarColor: e.calendar_color ?? null,
+          start: e.start_at,
+          end: e.end_at,
+          allDay: e.all_day ?? false,
+          location: e.location,
+          description: e.description,
+          field: e.matched_field,
+        }))
+    }
+    return (upcomingData?.occurrences ?? [])
+      .filter((o) => !o.all_day || Date.parse(o.end_at) > nowMs)
+      .sort((a, b) => a.start_at.localeCompare(b.start_at))
+      .slice(0, 5)
+      .map((o) => ({
+        key: `${o.event_id}-${o.start_at}`,
+        eventId: o.event_id,
+        title: o.title,
+        calendarId: o.calendar_id,
+        calendarName: null,
+        calendarColor: null,
+        start: o.start_at,
+        end: o.end_at,
+        allDay: o.all_day,
+        location: o.location,
+        description: o.description,
+      }))
+  }, [term, result, searchKey, upcomingData, nowMs])
+
+  const cur = Math.min(active, Math.max(rows.length - 1, 0))
+
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-index="${cur}"]`)?.scrollIntoView({ block: "nearest" })
+  }, [cur])
+
+  function open(row: Row) {
+    if (term) {
+      const next = [term, ...recent.filter((x) => x !== term)].slice(0, RECENT_MAX)
+      setRecent(next)
+      writeRecent(next)
+    }
+    onClose()
+    const p = new URLSearchParams({ event: row.eventId, start: row.start, end: row.end })
+    router.push(`/calendar?${p}`)
+  }
+
+  function removeRecent(r: string) {
+    const next = recent.filter((x) => x !== r)
+    setRecent(next)
+    writeRecent(next)
+  }
+
+  function onKey(e: React.KeyboardEvent) {
+    if (e.nativeEvent.isComposing) return
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setActive(Math.min(cur + 1, rows.length - 1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActive(Math.max(cur - 1, 0))
+    } else if (e.key === "Enter" && rows[cur]) {
+      e.preventDefault()
+      open(rows[cur])
+    } else if (e.key === "Escape") {
+      e.preventDefault()
+      if (q) setQ("")
+      else onClose()
     }
   }
 
-  const results = data?.events ?? []
+  const rangeOn = !!(from || to)
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/30 p-4 pt-[8vh]"
-      // 누르기가 배경에서 "시작"됐을 때만 닫기: 네이티브 select 팝업이 닫히며
-      // 흘리는 click 이나 안쪽 드래그가 배경에서 끝나도 모달이 닫히지 않게.
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/30 p-4 pt-[10vh]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
-        className="flex max-h-[80vh] w-[560px] flex-col overflow-hidden rounded-lg bg-card shadow-xl dark:ring-1 dark:ring-foreground/10"
-        data-testid="search-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="일정 검색"
+        className="flex max-h-[75vh] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/5"
+        data-testid={T}
       >
-        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-          <h3 className="text-sm font-semibold text-foreground">상세 검색</h3>
+        <div className="flex items-center gap-3 px-4">
+          <Search className="size-5 shrink-0 text-muted-foreground" />
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value)
+              setActive(0)
+            }}
+            onKeyDown={onKey}
+            placeholder="일정 검색"
+            aria-label="일정 검색"
+            className="h-14 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/70"
+            data-testid={`${T}-input`}
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="지우기"
+              data-testid={`${T}-clear-button`}
+            >
+              <X className="size-4" />
+            </button>
+          )}
           <button
-            onClick={onClose}
-            data-testid="search-modal-close"
-            className="rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground/80"
+            type="button"
+            onClick={() => setShowRange((v) => !v)}
+            aria-expanded={showRange}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
+              rangeOn
+                ? "border-primary/40 bg-primary/10 text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            data-testid={`${T}-range-button`}
           >
-            <X size={16} />
+            <CalendarRange className="size-3.5" />
+            {rangeOn ? `${from || "처음"} ~ ${to || "끝"}` : "기간"}
           </button>
         </div>
 
-        <div className="space-y-2 border-b border-border/60 p-4">
-          <div className="relative">
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70"
-            />
-            <input
-              ref={inputRef}
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              placeholder="검색어"
-              data-testid="search-modal-input"
-              className="w-full rounded border border-input py-1.5 pl-8 pr-3 text-sm focus:border-ring focus:outline-none"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        {showRange && (
+          <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-4 py-2 text-xs">
             <input
               type="date"
               value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              data-testid="search-modal-from"
-              className="rounded border border-input px-2 py-1.5 text-xs focus:border-ring focus:outline-none"
-              title="일정 시작일"
+              onChange={(e) => {
+                setFrom(e.target.value)
+                setActive(0)
+              }}
+              aria-label="시작일"
+              className="rounded-md border border-input bg-background px-2 py-1"
+              data-testid={`${T}-from`}
             />
-            <span className="text-muted-foreground/70">~</span>
+            <span className="text-muted-foreground">~</span>
             <input
               type="date"
               value={to}
-              onChange={(e) => setTo(e.target.value)}
-              data-testid="search-modal-to"
-              className="rounded border border-input px-2 py-1.5 text-xs focus:border-ring focus:outline-none"
+              onChange={(e) => {
+                setTo(e.target.value)
+                setActive(0)
+              }}
+              aria-label="종료일"
+              className="rounded-md border border-input bg-background px-2 py-1"
+              data-testid={`${T}-to`}
             />
-            <button
-              onClick={runSearch}
-              disabled={loading || !q.trim()}
-              data-testid="search-modal-submit"
-              className="ml-auto rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? "검색 중…" : "검색"}
-            </button>
+            {rangeOn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFrom("")
+                  setTo("")
+                }}
+                className="ml-auto text-muted-foreground hover:text-foreground"
+                data-testid={`${T}-range-reset`}
+              >
+                초기화
+              </button>
+            )}
           </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto border-t p-2" data-testid={`${T}-results`}>
+          {!term && recent.length > 0 && (
+            <div className="px-2 pb-2 pt-1">
+              <p className="mb-2 text-[11px] font-semibold text-muted-foreground">최근 검색</p>
+              <div className="flex flex-wrap gap-1.5">
+                {recent.map((r) => (
+                  <span key={r} className="group inline-flex items-center rounded-full bg-muted text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQ(r)
+                        setActive(0)
+                      }}
+                      className="inline-flex items-center gap-1 rounded-l-full py-1 pl-2.5 pr-1 hover:text-foreground"
+                      data-testid={`${T}-recent-${r}`}
+                    >
+                      <History className="size-3 text-muted-foreground" />
+                      {r}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRecent(r)}
+                      aria-label="최근 검색 지우기"
+                      className="rounded-r-full py-1 pl-0.5 pr-2 text-muted-foreground opacity-60 hover:opacity-100"
+                      data-testid={`${T}-recent-${r}-remove`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rows.length > 0 && (
+            <p className="px-2 pb-1 pt-2 text-[11px] font-semibold text-muted-foreground">
+              {term ? `일정 ${rows.length}` : "다가오는 일정"}
+            </p>
+          )}
+
+          {term && loading && rows.length === 0 && (
+            <p className="py-10 text-center text-sm text-muted-foreground">검색 중</p>
+          )}
+          {term && !loading && rows.length === 0 && (
+            <p className="py-10 text-center text-sm text-muted-foreground" data-testid={`${T}-empty`}>
+              결과 없음
+            </p>
+          )}
+
+          <ul ref={listRef}>
+            {rows.map((row, i) => {
+              const cal = calById.get(row.calendarId)
+              const color = cal?.color_override ?? cal?.color ?? row.calendarColor ?? "#6b7280"
+              const calName = cal?.name ?? row.calendarName ?? ""
+              const on = i === cur
+              const past = Date.parse(row.end) < nowMs
+              const note = row.field && row.field !== "title" ? row.field : null
+              const start = new Date(row.start)
+              return (
+                <li key={row.key}>
+                  <button
+                    type="button"
+                    data-index={i}
+                    onMouseMove={() => active !== i && setActive(i)}
+                    onClick={() => open(row)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left",
+                      on && "bg-accent text-accent-foreground",
+                      past && !on && "opacity-60",
+                    )}
+                    data-testid={`${T}-event-${row.eventId}`}
+                  >
+                    <span className="h-8 w-1 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        <Highlight text={row.title} q={term} />
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {note ? (
+                          <>
+                            {FIELD_LABEL[note]}:{" "}
+                            <Highlight text={(note === "location" ? row.location : row.description) ?? ""} q={term} />
+                          </>
+                        ) : (
+                          <>
+                            {calName}
+                            {row.location && `${calName ? ", " : ""}${row.location}`}
+                          </>
+                        )}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                      <span className="block">{dayLabel(start)}</span>
+                      <span className="block">
+                        {row.allDay ? "종일" : `${timeOfDay(start)} ~ ${timeOfDay(new Date(row.end))}`}
+                      </span>
+                    </span>
+                    <CornerDownLeft className={cn("size-3.5 shrink-0 text-muted-foreground", !on && "invisible")} />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {!searched ? (
-            <p className="p-8 text-center text-xs text-muted-foreground/70">
-              검색어와 필터를 정하고 검색하세요.
-            </p>
-          ) : loading ? (
-            <p className="p-8 text-center text-xs text-muted-foreground">검색 중…</p>
-          ) : results.length === 0 ? (
-            <p
-              className="p-8 text-center text-xs text-muted-foreground"
-              data-testid="search-modal-empty"
-            >
-              결과가 없습니다.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {(data?.events ?? []).map((e) => (
-                <li key={e.id}>
-                  <Link
-                    href="/calendar"
-                    onClick={onClose}
-                    data-testid={`search-modal-event-${e.id}`}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/50"
-                  >
-                    <Calendar size={14} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-foreground">{e.title}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">
-                        {formatDateTime(e.start_at)}
-                        {e.location && `, ${e.location}`}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="hidden items-center gap-4 border-t bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground sm:flex">
+          <span className="inline-flex items-center gap-1">
+            <Kbd>↑</Kbd>
+            <Kbd>↓</Kbd>
+            이동
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Kbd>Enter</Kbd>
+            열기
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Kbd>Esc</Kbd>
+            닫기
+          </span>
         </div>
       </div>
     </div>
+  )
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return <kbd className="rounded border bg-background px-1 py-px font-mono text-[10px]">{children}</kbd>
+}
+
+/** 일치 부분 강조 */
+function Highlight({ text, q }: { text: string; q: string }) {
+  const term = q.trim().toLowerCase()
+  if (!term) return <>{text}</>
+  const lower = text.toLowerCase()
+  const parts: { s: string; hit: boolean }[] = []
+  let i = 0
+  while (i < text.length) {
+    const j = lower.indexOf(term, i)
+    if (j < 0) {
+      parts.push({ s: text.slice(i), hit: false })
+      break
+    }
+    if (j > i) parts.push({ s: text.slice(i, j), hit: false })
+    parts.push({ s: text.slice(j, j + term.length), hit: true })
+    i = j + term.length
+  }
+  return (
+    <>
+      {parts.map((p, k) =>
+        p.hit ? (
+          <mark key={k} className="rounded-sm bg-amber-200/80 px-px text-inherit dark:bg-amber-400/30">
+            {p.s}
+          </mark>
+        ) : (
+          <Fragment key={k}>{p.s}</Fragment>
+        ),
+      )}
+    </>
   )
 }

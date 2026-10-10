@@ -200,6 +200,20 @@ _TEMPLATES: dict[str, tuple[str, str, bool]] = {
         "확인: {base_url}/calendar\n",
         False,
     ),
+    # 참석하는 일정이 바뀜, 취소됨 (참석자와 작성자에게)
+    "event_updated": (
+        "[Ashfield] '{title}' 일정이 변경되었습니다",
+        "{actor_name}님이 '{title}' 일정을 변경했습니다.\n"
+        "시작: {start_at}\n\n"
+        "확인: {base_url}/notifications\n",
+        False,
+    ),
+    "event_cancelled": (
+        "[Ashfield] '{title}' 일정이 취소되었습니다",
+        "{actor_name}님이 '{title}' 일정을 취소했습니다.\n"
+        "시작 예정: {start_at}\n",
+        False,
+    ),
     "event_reminder": (
         "[Ashfield] '{title}': {minutes_before}분 전 알림",
         "'{title}' 일정 시작 {minutes_before}분 전입니다.\n"
@@ -308,6 +322,8 @@ async def render(
 _TYPE_CATEGORY: dict[str, str] = {
     "event_invited": "event",
     "event_invitation_response": "event",
+    "event_updated": "event",
+    "event_cancelled": "event",
     "booking_received": "booking",
     "booking_cancelled": "booking",
     "booking_rescheduled": "booking",

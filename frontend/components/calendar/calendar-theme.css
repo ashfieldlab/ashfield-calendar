@@ -178,3 +178,12 @@
 .cal-theme .fc .fc-multimonth-daygrid .fc-daygrid-day-number {
   font-size: 0.8125rem;
 }
+
+/* 상세 시트에 열린 일정: 링으로 표시 */
+.cal-theme .fc .fc-event.cal-event-selected {
+  z-index: 5;
+  border-radius: 0.375rem;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px color-mix(in oklab, var(--foreground) 70%, transparent);
+}

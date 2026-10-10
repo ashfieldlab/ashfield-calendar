@@ -1,32 +1,39 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { Bell, Check } from "lucide-react"
+import { Bell } from "lucide-react"
 
-import { api } from "@/lib/api-client"
-import { useApiGet } from "@/lib/hooks/use-api"
+import { TypeIcon } from "@/components/notifications/type-icon"
+import { useNotificationActions } from "@/components/notifications/use-notification-actions"
 import { useAppContext } from "@/components/providers/app-context"
-import { useToast } from "@/components/ui-custom/use-toast"
-import { relativeTime } from "@/lib/utils/audit-format"
-import { formatDateTime } from "@/lib/utils/format"
-import { renderNotification } from "@/lib/utils/notification-format"
-import type { NotificationListResponse } from "@/lib/types/api"
+import { Sentence } from "@/components/shared/sentence"
+import { cn } from "@/lib/utils"
+import { useApiGet } from "@/lib/hooks/use-api"
+import type { NotificationItemList } from "@/lib/types/notification"
+import { DAY_BUCKETS, dayBucket } from "@/lib/utils/day-format"
+import { notifDetail, notifHref, notifSentence, toView } from "@/lib/utils/notification-format"
 
 export function NotificationBell() {
-  const { toast } = useToast()
   const { activeWorkspaceId } = useAppContext()
+  const actions = useNotificationActions()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   // 활성 워크스페이스(쿠키) 준비 후에만 호출: 첫 로그인 레이스로 X-Active-Workspace-Id 누락 →
   // 422 ("입력 정보를 다시 확인해주세요") 토스트 뜨는 것 방지.
-  const { data, mutate } = useApiGet<NotificationListResponse>(
+  const { data } = useApiGet<NotificationItemList>(
     activeWorkspaceId ? "/api/v1/notifications?limit=20" : null,
     { refreshInterval: 30_000 },
   )
-  const items = data?.notifications ?? []
-  const unread = items.filter((n) => !n.read_at).length
+  const items = useMemo(() => (data?.notifications ?? []).map(toView), [data])
+  const unread = data?.unread_count ?? items.filter((n) => !n.read).length
+  const groups = useMemo(() => {
+    const now = new Date()
+    return DAY_BUCKETS.map((b) => ({ label: b, items: items.filter((n) => dayBucket(n.at, now) === b) })).filter(
+      (g) => g.items.length > 0,
+    )
+  }, [items])
 
   useEffect(() => {
     if (!open) return
@@ -37,40 +44,23 @@ export function NotificationBell() {
     return () => window.removeEventListener("mousedown", onClick)
   }, [open])
 
-  async function markAll() {
-    try {
-      await api("/api/v1/notifications/mark-all-read", { method: "POST" })
-      void mutate()
-    } catch (e) {
-      toast.error(`실패: ${(e as Error).message}`)
-    }
-  }
-
-  async function markOne(id: string) {
-    try {
-      await api(`/api/v1/notifications/${id}`, {
-        method: "PATCH",
-        body: { read: true },
-      })
-      void mutate()
-    } catch (e) {
-      toast.error(`실패: ${(e as Error).message}`)
-    }
-  }
-
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="notification-bell"
-        className="relative rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
         aria-label="알림"
+        aria-expanded={open}
+        className={cn(
+          "relative rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground",
+          open && "bg-muted text-foreground",
+        )}
       >
         <Bell size={18} />
         {unread > 0 && (
           <span
             data-testid="notification-unread-badge"
-            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white"
+            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white"
           >
             {unread > 99 ? "99+" : unread}
           </span>
@@ -80,13 +70,13 @@ export function NotificationBell() {
       {open && (
         <div
           data-testid="notification-panel"
-          className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
         >
           <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
             <h3 className="text-sm font-semibold text-foreground">알림</h3>
             {unread > 0 && (
               <button
-                onClick={markAll}
+                onClick={() => void actions.markAll()}
                 data-testid="notification-mark-all-read"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
@@ -94,65 +84,51 @@ export function NotificationBell() {
               </button>
             )}
           </div>
-          {items.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              알림이 없습니다.
-            </div>
-          ) : (
-            <ul className="max-h-96 divide-y divide-border/60 overflow-y-auto">
-              {items.map((n) => {
-                const isUnread = !n.read_at
-                const r = renderNotification(n)
-                return (
-                  <li
-                    key={n.id}
-                    data-testid={`notification-row-${n.id}`}
-                    className={isUnread ? "bg-blue-50/50 dark:bg-blue-950/30" : ""}
-                  >
-                    <Link
-                      href={r.href}
-                      onClick={() => {
-                        if (isUnread) void markOne(n.id)
-                        setOpen(false)
-                      }}
-                      data-testid={`notification-row-${n.id}-link`}
-                      className="block px-3 py-2 text-sm hover:bg-muted/50"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-foreground">
-                            {r.title}
-                          </p>
-                          {r.subtitle && (
-                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              {r.subtitle}
+          <div className="max-h-96 overflow-y-auto">
+            {groups.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 p-8 text-sm text-muted-foreground">
+                <Bell className="size-5" />
+                알림 없음
+              </div>
+            ) : (
+              groups.map((g) => (
+                <div key={g.label}>
+                  <p className="bg-muted/40 px-3 py-1 text-[11px] font-medium text-muted-foreground">{g.label}</p>
+                  <ul className="divide-y divide-border/60">
+                    {g.items.map((n) => (
+                      <li key={n.id} data-testid={`notification-row-${n.id}`}>
+                        <Link
+                          href={notifHref(n)}
+                          onClick={() => {
+                            if (!n.read) void actions.setRead(n.id, true)
+                            setOpen(false)
+                          }}
+                          data-testid={`notification-row-${n.id}-link`}
+                          className="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-muted/50"
+                        >
+                          <TypeIcon type={n.type} className="size-6 [&_svg]:size-3" />
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={cn(
+                                "truncate text-sm",
+                                n.read ? "text-muted-foreground" : "font-medium text-foreground",
+                              )}
+                            >
+                              <Sentence parts={notifSentence(n)} />
                             </p>
+                            <p className="truncate text-xs text-muted-foreground">{notifDetail(n)}</p>
+                          </div>
+                          {!n.read && (
+                            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-blue-500" aria-label="안 읽음" />
                           )}
-                          <p
-                            className="mt-1 text-[11px] text-muted-foreground/70"
-                            title={formatDateTime(n.created_at)}
-                          >
-                            {relativeTime(n.created_at)}
-                          </p>
-                        </div>
-                        {isUnread ? (
-                          <span
-                            className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500"
-                            aria-label="안 읽음"
-                          />
-                        ) : (
-                          <Check
-                            size={12}
-                            className="mt-1 shrink-0 text-muted-foreground/50"
-                          />
-                        )}
-                      </div>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
+          </div>
           <Link
             href="/notifications"
             onClick={() => setOpen(false)}

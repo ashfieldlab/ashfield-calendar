@@ -35,10 +35,13 @@ def generate_candidate_slots(
     range_from: datetime,
     range_to: datetime,
     now: datetime | None = None,
+    *,
+    ignore_notice: bool = False,
 ) -> list[datetime]:
     """BookingType 의 가용 규칙에서 [range_from, range_to) UTC 안의 slot 시작 시각들.
 
     minimum_notice_minutes / available_from / available_to 반영. 정렬과 중복 제거됨.
+    ignore_notice=True 면 최소 예약 시점 대신 now 만 하한 (운영자 화면의 마감 칸 표시용).
     """
     if range_to <= range_from:
         return []
@@ -48,7 +51,8 @@ def generate_candidate_slots(
     duration = timedelta(minutes=bt.duration_minutes)
 
     # 1) 시작 lower bound: max(range_from, now + minimum_notice, available_from 00:00 in tz)
-    earliest = max(range_from, now + timedelta(minutes=bt.minimum_notice_minutes))
+    notice = 0 if ignore_notice else bt.minimum_notice_minutes
+    earliest = max(range_from, now + timedelta(minutes=notice))
     if bt.available_from:
         af_local = datetime.combine(bt.available_from, time.min, tzinfo=tz)
         earliest = max(earliest, af_local.astimezone(UTC))
@@ -179,6 +183,60 @@ async def available_slots(
         if _overlaps_any(s, e, blocking):
             continue
         out.append((s, remaining))
+    return out
+
+
+async def operator_slots(
+    db: AsyncSession,
+    bt: BookingType,
+    range_from: datetime,
+    range_to: datetime,
+    *,
+    exclude_booking_id: str | None = None,
+    now: datetime | None = None,
+) -> list[tuple[datetime, int, bool]]:
+    """운영자용: 주간 규칙상의 모든 미래 slot. (start_utc, remaining, open).
+
+    open=False 는 정원 참, 다른 일정과 겹침, 최소 예약 시점 이전 중 하나.
+    exclude_booking_id 의 예약은 정원 계산에서 뺀다 (일정 변경 중인 그 예약).
+    """
+    now = now or datetime.now(UTC)
+    candidates = generate_candidate_slots(
+        bt, range_from, range_to, now, ignore_notice=True
+    )
+    if not candidates:
+        return []
+    within_rule = set(generate_candidate_slots(bt, range_from, range_to, now))
+    duration = timedelta(minutes=bt.duration_minutes)
+
+    conds = [
+        Booking.booking_type_id == bt.id,
+        Booking.status == "active",
+        Booking.slot_start_at.in_(candidates),
+    ]
+    if exclude_booking_id:
+        conds.append(Booking.id != exclude_booking_id)
+    counts_stmt = (
+        select(Booking.slot_start_at, func.count())
+        .where(*conds)
+        .group_by(Booking.slot_start_at)
+    )
+    booked: dict[datetime, int] = {
+        r[0]: int(r[1]) for r in (await db.execute(counts_stmt)).all()
+    }
+    blocking = await _fetch_blocking_events(
+        db, bt, candidates[0], candidates[-1] + duration
+    )
+
+    out: list[tuple[datetime, int, bool]] = []
+    for s in candidates:
+        remaining = max(0, bt.capacity - booked.get(s, 0))
+        is_open = (
+            s in within_rule
+            and remaining > 0
+            and not _overlaps_any(s, s + duration, blocking)
+        )
+        out.append((s, remaining, is_open))
     return out
 
 
@@ -461,6 +519,15 @@ async def dispatch_booking_cancelled_emails(
         )
 
 
+async def audit_workspace_id(db: AsyncSession, bt: BookingType) -> str | None:
+    """예약 양식과 예약 audit 의 workspace_id: 워크스페이스 소유면 그 워크스페이스,
+    개인 소유면 대상 캘린더의 워크스페이스 (활동 내역이 워크스페이스 단위로 조회하므로)."""
+    if bt.owner_workspace_id:
+        return bt.owner_workspace_id
+    cal = await db.get(Calendar, bt.target_calendar_id)
+    return cal.workspace_id if cal else None
+
+
 def public_base_url() -> str:
     """예약 공개 페이지(/book, /cancel) base URL. 공개 라우트라 아무 호스트나 되지만
     예약은 calendar 앱 기능이므로 calendar 도메인으로 통일."""
@@ -607,6 +674,7 @@ async def dispatch_booking_rescheduled_emails(
         "customer_name": booking.customer_name or "고객",
         "old_slot_local": old_local,
         "new_slot_local": new_local,
+        "old_slot_start_at": old_slot_start.isoformat(),
         "booking_type_id": bt.id,
     }
     subs = bt.notify_user_subs or []

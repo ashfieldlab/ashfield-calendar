@@ -40,6 +40,8 @@ interface WebhookDeliveryList {
 const SUPPORTED_EVENTS = [
   "event_invited",
   "event_invitation_response",
+  "event_updated",
+  "event_cancelled",
 ]
 
 export default function WebhooksPage() {

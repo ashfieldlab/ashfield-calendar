@@ -1,8 +1,7 @@
 "use client"
 
 import { use, useEffect, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Building2 } from "lucide-react"
+import { Building2 } from "lucide-react"
 import { useToast } from "@/components/ui-custom/use-toast"
 
 import { useAppContext } from "@/components/providers/app-context"
@@ -90,13 +89,6 @@ export default function WorkspaceProfilePage({
       className="h-full space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
       data-testid="workspace-profile-page"
     >
-      <Link
-        href="/settings"
-        data-testid="workspace-profile-back"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft size={12} /> 설정으로
-      </Link>
 
       <header className="flex items-center gap-2">
         <Building2 size={20} className="text-muted-foreground" />

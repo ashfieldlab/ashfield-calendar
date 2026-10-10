@@ -327,3 +327,19 @@ async def test_response_headers(client, auth_headers):
     assert "text/calendar" in r.headers["content-type"]
     assert "private" in r.headers["cache-control"]
     assert r.text.startswith("BEGIN:VCALENDAR")
+
+
+@pytest.mark.asyncio
+async def test_calendar_list_reports_subscription_enabled(client, auth_headers):
+    h = auth_headers("u1", groups=["acme-corp"], active_workspace="acme-corp")
+    await client.get("/api/v1/me", headers=h)
+    cal_id = await _create_personal_calendar(client, h)
+
+    def _flag(body):
+        return next(c for c in body["calendars"] if c["id"] == cal_id)["subscription_enabled"]
+
+    assert _flag((await client.get("/api/v1/calendars", headers=h)).json()) is False
+    await client.post(f"/api/v1/calendars/{cal_id}/subscription", headers=h)
+    assert _flag((await client.get("/api/v1/calendars", headers=h)).json()) is True
+    await client.delete(f"/api/v1/calendars/{cal_id}/subscription", headers=h)
+    assert _flag((await client.get("/api/v1/calendars", headers=h)).json()) is False

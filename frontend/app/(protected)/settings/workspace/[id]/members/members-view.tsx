@@ -1,7 +1,6 @@
 "use client"
 
-import Link from "next/link"
-import { ArrowLeft, ExternalLink, ShieldCheck, User } from "lucide-react"
+import { ExternalLink, ShieldCheck, User } from "lucide-react"
 
 import { useAppContext } from "@/components/providers/app-context"
 import { useApiGet } from "@/lib/hooks/use-api"
@@ -60,13 +59,6 @@ export default function WorkspaceMembersView({
       className="h-full overflow-y-auto space-y-4 px-4 py-8 sm:px-6 lg:px-8"
       data-testid="workspace-members-settings-page"
     >
-      <Link
-        href="/settings"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        data-testid="workspace-members-settings-back"
-      >
-        <ArrowLeft size={12} /> 설정으로
-      </Link>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">
           {workspaceNames[workspaceId] ?? workspaceId} 멤버

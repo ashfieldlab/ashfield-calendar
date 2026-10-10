@@ -63,6 +63,7 @@ def _to_response(
         external_ics_refresh_at=cal.external_ics_refresh_at,
         hidden=pref.hidden if pref else False,
         color_override=pref.color_override if pref else None,
+        subscription_enabled=bool(cal.subscription_enabled and cal.subscription_token),
     )
 
 
@@ -158,8 +159,24 @@ async def patch_calendar(
     assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="write")
     if cal.managed:
         raise HTTPException(403, "관리형 캘린더는 편집할 수 없습니다")
-    for k, v in body.model_dump(exclude_unset=True).items():
+    old_name = cal.name
+    changed = {
+        k: v
+        for k, v in body.model_dump(exclude_unset=True).items()
+        if getattr(cal, k) != v
+    }
+    for k, v in changed.items():
         setattr(cal, k, v)
+    if changed:
+        await write_audit(
+            db,
+            workspace_id=workspace_id,
+            actor=user,
+            action="update",
+            entity_type="calendar",
+            entity_id=cal.id,
+            meta={"name": cal.name, "old_name": old_name, "fields": list(changed)},
+        )
     await db.commit()
     await db.refresh(cal)
     pref = await db.get(UserCalendarPreference, (user.sub, cal.id))
@@ -314,7 +331,7 @@ async def refresh_calendar(
         action="update",
         entity_type="calendar",
         entity_id=cal.id,
-        meta={"refresh": True},
+        meta={"refresh": True, "name": cal.name},
     )
     await db.commit()
     await db.refresh(cal)
@@ -356,7 +373,7 @@ async def import_ics(
         action="import_ics",
         entity_type="calendar",
         entity_id=cal.id,
-        meta={"events": imported, "filename": file.filename},
+        meta={"events": imported, "filename": file.filename, "name": cal.name},
     )
     await db.commit()
     return IcsImportResponse(imported=imported)
@@ -447,7 +464,7 @@ async def enable_subscription(
         action="ics_subscription_enable",
         entity_type="calendar",
         entity_id=cal.id,
-        meta={"scope": cal.scope},
+        meta={"scope": cal.scope, "name": cal.name},
     )
     await db.commit()
     return _subscription_response(cal)
@@ -479,7 +496,7 @@ async def rotate_subscription(
         action="ics_subscription_rotate",
         entity_type="calendar",
         entity_id=cal.id,
-        meta={},
+        meta={"name": cal.name},
     )
     await db.commit()
     return _subscription_response(cal)
@@ -508,6 +525,6 @@ async def disable_subscription(
         action="ics_subscription_disable",
         entity_type="calendar",
         entity_id=cal.id,
-        meta={},
+        meta={"name": cal.name},
     )
     await db.commit()

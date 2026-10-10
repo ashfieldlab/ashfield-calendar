@@ -138,6 +138,12 @@ async def submit_rsvp(
             "title": ev.title,
             "response": body.response,
             "guest_email": inv.invitee_email,
+            "guest_name": inv.invitee_name,
+            "start_at": ev.start_at.isoformat(),
+            "end_at": ev.end_at.isoformat(),
+            "all_day": ev.all_day,
+            "location": ev.location,
+            "calendar_id": cal.id,
         },
     )
     await write_audit(
@@ -148,7 +154,14 @@ async def submit_rsvp(
         action="update",
         entity_type="event",
         entity_id=ev.id,
-        meta={"rsvp": body.response, "guest_email": inv.invitee_email, "ip": ip},
+        meta={
+            "rsvp": body.response,
+            "guest_email": inv.invitee_email,
+            "guest_name": inv.invitee_name,
+            "calendar_id": cal.id,
+            "title": ev.title,
+            "ip": ip,
+        },
     )
     await db.commit()
     await pending.fire()

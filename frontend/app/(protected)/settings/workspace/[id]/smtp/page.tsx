@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Mail, Send, Trash2 } from "lucide-react"
+import { Mail, Send, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui-custom/use-toast"
 
 import { useAppContext } from "@/components/providers/app-context"
@@ -163,13 +163,6 @@ export default function WorkspaceSmtpPage({
       className="h-full overflow-y-auto px-4 py-8 sm:px-6 lg:px-8"
       data-testid="workspace-smtp-page"
     >
-      <Link
-        href="/settings"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        data-testid="workspace-smtp-back"
-      >
-        <ArrowLeft size={12} /> 설정으로
-      </Link>
       <header className="mb-2 mt-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Mail size={20} className="text-muted-foreground" />

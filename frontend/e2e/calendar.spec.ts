@@ -75,8 +75,13 @@ test.describe("/calendar", () => {
     await expect(pop).toBeVisible()
     await expect(pop.getByText(title)).toBeVisible()
     await pop.getByText(title).click()
+    // 일정을 누르면 오른쪽 상세 시트, 편집은 시트에서
+    await expect(page.getByTestId("event-detail-title")).toHaveText(title)
+    await page.getByTestId("event-detail-edit-button").click()
     await expect(page.getByTestId("event-form-title-input")).toHaveValue(title)
     await page.getByTestId("event-form-cancel-button").click()
+    await page.getByTestId("event-detail-close-button").click()
+    await expect(page.getByTestId("event-detail-sheet")).toHaveCount(0)
 
     // + 는 바로 새 일정
     await today.hover()
@@ -88,5 +93,31 @@ test.describe("/calendar", () => {
     // 날짜 숫자는 일 보기로
     await today.locator("a.fc-daygrid-day-number").click()
     await expect(page.locator(".fc-timeGridDay-view")).toBeVisible()
+  })
+  test("캘린더 줄 ⋯ 팝오버: 구독 주소를 켜면 사이드바에 공개 표시, 끄면 사라짐", async ({ page, loginAs }) => {
+    await loginAs("member_a")
+    await page.goto("/calendar")
+    const calName = `메뉴-${Date.now()}`
+    await createCalendar(page, calName)
+
+    const row = page.getByTestId(/^calendar-sidebar-checkbox-/).filter({ hasText: calName })
+    await row.hover()
+    await row.getByTestId(/^calendar-sidebar-menu-/).click()
+    await expect(page.getByTestId("calendar-menu")).toBeVisible()
+    await expect(page.getByTestId("calendar-menu-feed")).toContainText("꺼짐")
+
+    await page.getByTestId("calendar-menu-feed").click()
+    await page.getByTestId("calendar-feed-toggle").click()
+    await expect(page.getByTestId("calendar-feed-url")).toContainText("/api/public/v1/calendars/")
+    await expect(row.getByTestId(/^calendar-sidebar-public-/)).toBeVisible()
+
+    await page.getByTestId("calendar-feed-toggle").click()
+    await page.getByTestId("calendar-feed-confirm-ok").click()
+    await expect(row.getByTestId(/^calendar-sidebar-public-/)).toHaveCount(0)
+
+    await page.getByTestId("calendar-feed-back").click()
+    await page.getByTestId("calendar-menu-delete").click()
+    await page.getByTestId("calendar-menu-delete-confirm").click()
+    await expect(row).toHaveCount(0)
   })
 })

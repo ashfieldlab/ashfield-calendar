@@ -33,6 +33,8 @@ export interface CalendarResponse {
   external_ics_refresh_at: string | null
   hidden: boolean
   color_override: string | null
+  /** 구독 주소(ICS subscription) 공개 중 */
+  subscription_enabled?: boolean
 }
 
 export interface CalendarListResponse {
@@ -137,6 +139,21 @@ export interface EventResponse {
   created_by_sub: string
   /** 예약 기능으로 생성된 이벤트면 booking.id. */
   booking_id: string | null
+  /** 상세 시트용 표시 정보: 단건 조회(GET /events/{id})에서만 채워진다. */
+  organizer_name?: string | null
+  organizer_email?: string | null
+  room_name?: string | null
+  room_capacity?: number | null
+  calendar_name?: string | null
+  calendar_color?: string | null
+  booking?: {
+    id: string
+    booking_type_id: string
+    booking_type_title: string
+    customer_name: string | null
+    customer_email: string | null
+    status: string
+  } | null
 }
 
 /** 회의실(Room): 워크스페이스 예약 리소스 (ADR-0019). */

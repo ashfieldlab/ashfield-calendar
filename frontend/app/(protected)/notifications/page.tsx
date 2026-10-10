@@ -1,199 +1,150 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
-import { Bell, Check } from "lucide-react"
+import { useMemo, useState } from "react"
 
-import { api } from "@/lib/api-client"
+import { NotificationDetail } from "@/components/notifications/notification-detail"
+import { TypeIcon } from "@/components/notifications/type-icon"
+import { useNotificationActions } from "@/components/notifications/use-notification-actions"
 import { useAppContext } from "@/components/providers/app-context"
-import { useToast } from "@/components/ui-custom/use-toast"
+import { Segmented } from "@/components/shared/segmented"
+import { Sentence } from "@/components/shared/sentence"
+import { cn } from "@/lib/utils"
+import { useApiGet } from "@/lib/hooks/use-api"
+import type { NotificationItemList } from "@/lib/types/notification"
 import { relativeTime } from "@/lib/utils/audit-format"
 import { formatDateTime } from "@/lib/utils/format"
-import { renderNotification } from "@/lib/utils/notification-format"
-import type {
-  NotificationListResponse,
-  NotificationResponse,
-} from "@/lib/types/api"
+import { needsResponse, notifDetail, notifSentence, toView, type NotifView } from "@/lib/utils/notification-format"
 
-const PAGE = 30
+type Filter = "all" | "unread" | "respond"
+
+const PAGE = 50
+const MAX = 200
 
 export default function NotificationsPage() {
-  const { toast } = useToast()
   const { activeWorkspaceId } = useAppContext()
+  const actions = useNotificationActions()
+  const [limit, setLimit] = useState(PAGE)
+  const [filter, setFilter] = useState<Filter>("all")
+  const [selected, setSelected] = useState<string | null>(null)
 
-  const [items, setItems] = useState<NotificationResponse[]>([])
-  const [hasMore, setHasMore] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState(false)
-
-  const load = useCallback(
-    (offset: number) =>
-      api<NotificationListResponse>(
-        `/api/v1/notifications?limit=${PAGE}&offset=${offset}`,
-      ),
-    [],
+  const { data, error, isLoading } = useApiGet<NotificationItemList>(
+    activeWorkspaceId ? `/api/v1/notifications?limit=${limit}` : null,
   )
+  const items = useMemo(() => (data?.notifications ?? []).map(toView), [data])
+  const unread = data?.unread_count ?? 0
+  const pending = items.filter(needsResponse).length
 
-  // 활성 워크스페이스 준비 후 첫 페이지 로드.
-  useEffect(() => {
-    if (!activeWorkspaceId) return
-    let cancelled = false
-    setLoading(true)
-    setError(false)
-    load(0)
-      .then((res) => {
-        if (cancelled) return
-        setItems(res.notifications)
-        setHasMore(!!res.has_more)
-      })
-      .catch(() => !cancelled && setError(true))
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [activeWorkspaceId, load])
+  const list = items.filter((n) => (filter === "unread" ? !n.read : filter === "respond" ? needsResponse(n) : true))
+  // 고른 게 없으면 응답이 필요한 알림, 없으면 맨 위
+  const current =
+    items.find((n) => n.id === selected) ?? (selected ? null : (items.find(needsResponse) ?? items[0] ?? null))
 
-  async function loadMore() {
-    setLoadingMore(true)
-    try {
-      const res = await load(items.length)
-      setItems((prev) => [...prev, ...res.notifications])
-      setHasMore(!!res.has_more)
-    } catch (e) {
-      toast.error(`실패: ${(e as Error).message}`)
-    } finally {
-      setLoadingMore(false)
-    }
+  function pick(n: NotifView) {
+    setSelected(n.id)
+    if (!n.read) void actions.setRead(n.id, true)
   }
-
-  async function markOne(id: string) {
-    try {
-      await api(`/api/v1/notifications/${id}`, {
-        method: "PATCH",
-        body: { read: true },
-      })
-      setItems((prev) =>
-        prev.map((n) =>
-          n.id === id ? { ...n, read_at: new Date().toISOString() } : n,
-        ),
-      )
-    } catch (e) {
-      toast.error(`실패: ${(e as Error).message}`)
-    }
-  }
-
-  async function markAll() {
-    try {
-      await api("/api/v1/notifications/mark-all-read", { method: "POST" })
-      const now = new Date().toISOString()
-      setItems((prev) =>
-        prev.map((n) => (n.read_at ? n : { ...n, read_at: now })),
-      )
-    } catch (e) {
-      toast.error(`실패: ${(e as Error).message}`)
-    }
-  }
-
-  const unread = items.filter((n) => !n.read_at).length
 
   return (
-    <div
-      className="h-full space-y-4 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8"
-      data-testid="notifications-page"
-    >
-      <header className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Bell size={20} className="text-muted-foreground" />
-          <h1 className="text-2xl font-bold text-foreground">알림</h1>
-        </div>
-        {unread > 0 && (
+    <div className="h-full space-y-4 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8" data-testid="notifications-page">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-foreground">알림</h1>
+        <div className="flex items-center gap-3">
+          <Segmented
+            value={filter}
+            onChange={setFilter}
+            testid="notifications-filter"
+            options={[
+              { key: "all", label: "전체" },
+              { key: "unread", label: `안 읽음 ${unread}` },
+              { key: "respond", label: `응답 필요 ${pending}` },
+            ]}
+          />
           <button
-            onClick={markAll}
+            type="button"
+            onClick={() => void actions.markAll()}
+            disabled={unread === 0}
+            className="text-sm text-muted-foreground hover:text-foreground disabled:opacity-40"
             data-testid="notifications-mark-all-read"
-            className="text-sm text-muted-foreground hover:text-foreground"
           >
             모두 읽음
           </button>
-        )}
+        </div>
       </header>
 
       {error ? (
-        <div className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-700 dark:text-rose-300">
-          불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+          불러오지 못했습니다
         </div>
-      ) : loading ? (
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">불러오는 중…</p>
-      ) : items.length === 0 ? (
-        <div
-          className="rounded-lg border border-dashed border-input p-8 text-center text-sm text-muted-foreground"
-          data-testid="notifications-empty"
-        >
-          알림이 없습니다.
-        </div>
       ) : (
-        <>
-          <ul className="overflow-hidden rounded-lg border border-border bg-card">
-            {items.map((n) => {
-              const isUnread = !n.read_at
-              const r = renderNotification(n)
-              return (
-                <li
-                  key={n.id}
-                  data-testid={`notifications-row-${n.id}`}
-                  className={`border-b border-border/60 last:border-b-0 ${
-                    isUnread ? "bg-blue-50/50 dark:bg-blue-950/30" : ""
-                  }`}
-                >
-                  <Link
-                    href={r.href}
-                    onClick={() => isUnread && void markOne(n.id)}
-                    data-testid={`notifications-row-${n.id}-link`}
-                    className="flex items-start justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-foreground">
-                        {r.title}
-                      </p>
-                      {r.subtitle && (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {r.subtitle}
-                        </p>
-                      )}
-                      <p
-                        className="mt-1 text-[11px] text-muted-foreground/70"
-                        title={formatDateTime(n.created_at)}
-                      >
-                        {relativeTime(n.created_at)}
-                      </p>
-                    </div>
-                    {isUnread ? (
-                      <span
-                        className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500"
-                        aria-label="안 읽음"
-                      />
-                    ) : (
-                      <Check size={14} className="mt-0.5 shrink-0 text-muted-foreground/50" />
-                    )}
-                  </Link>
+        <div className="flex min-h-[560px] flex-col overflow-hidden rounded-xl border bg-card md:flex-row">
+          <div className="flex shrink-0 flex-col border-b md:w-[360px] md:border-r md:border-b-0">
+            <ul className="max-h-[420px] flex-1 overflow-y-auto md:max-h-none" data-testid="notifications-list">
+              {list.length === 0 && (
+                <li className="p-8 text-center text-sm text-muted-foreground" data-testid="notifications-empty">
+                  알림 없음
                 </li>
-              )
-            })}
-          </ul>
-
-          {hasMore && (
-            <div className="flex justify-center">
+              )}
+              {list.map((n) => (
+                <li key={n.id} data-testid={`notifications-row-${n.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => pick(n)}
+                    data-testid={`notifications-row-${n.id}-button`}
+                    aria-current={current?.id === n.id}
+                    className={cn(
+                      "flex w-full items-start gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors",
+                      current?.id === n.id ? "bg-muted" : "hover:bg-muted/50",
+                    )}
+                  >
+                    <TypeIcon type={n.type} className="mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          "line-clamp-2 text-sm break-keep",
+                          n.read ? "text-muted-foreground" : "font-semibold text-foreground",
+                        )}
+                      >
+                        <Sentence parts={notifSentence(n)} />
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{notifDetail(n)}</p>
+                      {needsResponse(n) && (
+                        <span className="mt-1.5 inline-block rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                          응답 필요
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className="text-[11px] text-muted-foreground" title={formatDateTime(n.at)}>
+                        {relativeTime(n.at)}
+                      </span>
+                      {!n.read && <span className="size-2 rounded-full bg-blue-500" aria-label="안 읽음" />}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {data?.has_more && limit < MAX && (
               <button
-                onClick={loadMore}
-                disabled={loadingMore}
+                type="button"
+                onClick={() => setLimit((l) => Math.min(MAX, l + PAGE))}
                 data-testid="notifications-load-more"
-                className="rounded border border-input px-4 py-2 text-sm text-foreground/80 hover:bg-muted/50 disabled:opacity-50"
+                className="border-t px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               >
-                {loadingMore ? "불러오는 중…" : "더 보기"}
+                더 보기
               </button>
-            </div>
-          )}
-        </>
+            )}
+          </div>
+
+          <section className="min-w-0 flex-1">
+            {current ? (
+              <NotificationDetail v={current} actions={actions} />
+            ) : (
+              <div className="grid h-full min-h-40 place-items-center text-sm text-muted-foreground">선택한 알림 없음</div>
+            )}
+          </section>
+        </div>
       )}
     </div>
   )

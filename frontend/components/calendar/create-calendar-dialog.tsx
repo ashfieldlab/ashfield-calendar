@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarPlus, Check, Link2, Upload } from "lucide-react"
+import { CalendarPlus, Check, Link2, Upload, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui-custom/use-toast"
-import { api } from "@/lib/api-client"
+import { api, apiUploadFile } from "@/lib/api-client"
 import { invalidateApi } from "@/lib/hooks/use-api"
 import type { CalendarResponse } from "@/lib/types/api"
 import { cn } from "@/lib/utils"
@@ -51,7 +50,11 @@ interface Props {
 export function CreateCalendarDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="calendar-new-modal">
+      <DialogContent
+        className="gap-0 overflow-hidden p-0 sm:max-w-[440px]"
+        showCloseButton={false}
+        data-testid="calendar-new-modal"
+      >
         {open && <CreateCalendarForm onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
@@ -86,7 +89,10 @@ function CreateCalendarForm({ onDone }: { onDone: () => void }) {
         },
       })
       if (source === "file" && icsFile) {
-        const imported = await importIcs(cal.id, icsFile)
+        const { imported } = await apiUploadFile<{ imported: number }>(
+          `/api/v1/calendars/${cal.id}/import-ics`,
+          icsFile,
+        )
         toast.success(`'${trimmed}' 캘린더를 만들었습니다 (일정 ${imported}개 가져옴)`)
       } else {
         toast.success(`'${trimmed}' 캘린더를 만들었습니다`)
@@ -102,109 +108,52 @@ function CreateCalendarForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>새 캘린더</DialogTitle>
-      </DialogHeader>
+    <form
+      id="calendar-new-form"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void create()
+      }}
+    >
+      <div className="h-1.5 transition-colors" style={{ backgroundColor: color }} />
+      <header className="flex items-center px-5 pt-4">
+        <DialogTitle className="flex-1 text-base font-semibold">새 캘린더</DialogTitle>
+        <button
+          type="button"
+          onClick={onDone}
+          data-testid="calendar-new-close"
+          aria-label="닫기"
+          className="-mr-1.5 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted"
+        >
+          <X size={16} />
+        </button>
+      </header>
 
-      <form
-        id="calendar-new-form"
-        className="space-y-5"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void create()
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="grid size-10 shrink-0 place-items-center rounded-lg border border-input transition hover:bg-muted"
-                aria-label="색"
-                data-testid="calendar-new-color-button"
-              >
-                <span className="size-4 rounded-full" style={{ backgroundColor: color }} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-auto p-3">
-              <div className="grid grid-cols-5 gap-1.5">
-                {CALENDAR_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    aria-label={c}
-                    aria-pressed={color === c}
-                    data-testid={`calendar-new-color-${c.slice(1)}`}
-                    className={cn(
-                      "grid size-7 place-items-center rounded-full ring-offset-2 ring-offset-background transition",
-                      color === c ? "ring-2 ring-foreground/70" : "hover:scale-110",
-                    )}
-                    style={{ backgroundColor: c }}
-                  >
-                    {color === c && <Check className="size-3.5 text-white" />}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="캘린더 이름"
-            className={inputClass}
-            data-testid="calendar-new-name-input"
-          />
-        </div>
+      <div role="tablist" aria-label="가져오기" className="mx-5 mt-4 grid grid-cols-3 rounded-lg bg-muted p-0.5">
+        {SOURCES.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={source === key}
+            onClick={() => setSource(key)}
+            data-testid={`calendar-new-source-${key}`}
+            className={cn(
+              "inline-flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium transition",
+              source === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon size={14} />
+            {label}
+          </button>
+        ))}
+      </div>
 
-        <div role="radiogroup" aria-label="범위" className="inline-flex rounded-lg bg-muted p-0.5 text-sm">
-          {SCOPES.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={scope === key}
-              onClick={() => setScope(key)}
-              data-testid={`calendar-new-scope-${key}`}
-              className={cn(
-                "rounded-md px-3 py-1.5 font-medium transition",
-                scope === key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div role="radiogroup" aria-label="가져오기" className="grid grid-cols-3 gap-2">
-          {SOURCES.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={source === key}
-              onClick={() => setSource(key)}
-              data-testid={`calendar-new-source-${key}`}
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-xl border px-2 py-3.5 text-xs font-medium transition",
-                source === key
-                  ? "border-primary bg-primary/5 text-foreground"
-                  : "border-input text-muted-foreground hover:bg-muted/60",
-              )}
-            >
-              <Icon className={cn("size-5", source === key && "text-primary")} />
-              {label}
-            </button>
-          ))}
-        </div>
-
+      <div className="space-y-4 px-5 pb-2 pt-5">
         {source === "url" && (
           <input
             type="url"
+            autoFocus
             value={icsUrl}
             onChange={(e) => setIcsUrl(e.target.value)}
             placeholder="https://example.com/holidays.ics"
@@ -212,48 +161,108 @@ function CreateCalendarForm({ onDone }: { onDone: () => void }) {
             data-testid="calendar-new-ics-url-input"
           />
         )}
-        {source === "file" && (
-          <label className="flex h-20 cursor-pointer items-center justify-center rounded-xl border border-dashed border-input px-3 text-sm text-muted-foreground transition hover:bg-muted/50">
-            <input
-              type="file"
-              accept=".ics,text/calendar"
-              className="sr-only"
-              onChange={(e) => setIcsFile(e.target.files?.[0] ?? null)}
-              data-testid="calendar-new-ics-file-input"
-            />
-            <span className="truncate">{icsFile?.name ?? ".ics 파일 선택"}</span>
-          </label>
-        )}
-      </form>
+        {source === "file" && <FileDrop file={icsFile} onPick={setIcsFile} />}
 
-      <DialogFooter>
+        <div className="flex items-center gap-2.5">
+          <span className="size-3.5 shrink-0 rounded-full transition-colors" style={{ backgroundColor: color }} />
+          <input
+            autoFocus={source === "native"}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="캘린더 이름"
+            aria-label="캘린더 이름"
+            className="h-10 min-w-0 flex-1 border-b border-input bg-transparent text-base font-medium outline-none transition placeholder:font-normal placeholder:text-muted-foreground/70 focus:border-ring"
+            data-testid="calendar-new-name-input"
+          />
+        </div>
+
+        <div role="radiogroup" aria-label="색" className="flex flex-wrap gap-1.5">
+          {CALENDAR_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={color === c}
+              aria-label={c}
+              onClick={() => setColor(c)}
+              data-testid={`calendar-new-color-${c.slice(1)}`}
+              className={cn(
+                "grid size-6 place-items-center rounded-full ring-offset-2 ring-offset-background transition",
+                color === c ? "ring-2 ring-foreground/70" : "hover:scale-110",
+              )}
+              style={{ backgroundColor: c }}
+            >
+              {color === c && <Check className="size-3.5 text-white" />}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 pt-1">
+          <span className="text-sm text-muted-foreground">범위</span>
+          <div role="radiogroup" aria-label="범위" className="inline-flex rounded-lg border p-0.5 text-sm">
+            {SCOPES.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={scope === key}
+                onClick={() => setScope(key)}
+                data-testid={`calendar-new-scope-${key}`}
+                className={cn(
+                  "rounded-md px-3 py-1 transition",
+                  scope === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <footer className="flex justify-end gap-2 px-5 py-4">
         <Button variant="ghost" type="button" onClick={onDone} data-testid="calendar-new-cancel">
           취소
         </Button>
-        <Button type="submit" form="calendar-new-form" disabled={!ready || busy} data-testid="calendar-new-confirm">
+        <Button type="submit" disabled={!ready || busy} data-testid="calendar-new-confirm">
           만들기
         </Button>
-      </DialogFooter>
-    </>
+      </footer>
+    </form>
   )
 }
 
-/** multipart 업로드는 api-client 를 거치지 않으므로 타임아웃을 직접 건다. */
-async function importIcs(calendarId: string, file: File): Promise<number> {
-  const form = new FormData()
-  form.append("file", file)
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 120_000)
-  try {
-    const res = await fetch(`/api/v1/calendars/${calendarId}/import-ics`, {
-      method: "POST",
-      body: form,
-      signal: controller.signal,
-    })
-    if (!res.ok) throw new Error(`ICS 가져오기 실패 (${res.status})`)
-    const { imported } = (await res.json()) as { imported: number }
-    return imported
-  } finally {
-    clearTimeout(timer)
-  }
+/** .ics 파일: 눌러서 고르거나 끌어 놓기 */
+function FileDrop({ file, onPick }: { file: File | null; onPick: (f: File | null) => void }) {
+  const [over, setOver] = useState(false)
+  return (
+    <label
+      onDragOver={(e) => {
+        e.preventDefault()
+        setOver(true)
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setOver(false)
+        const f = e.dataTransfer.files?.[0]
+        if (f) onPick(f)
+      }}
+      className={cn(
+        "flex h-16 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-3 text-sm transition",
+        over ? "border-primary bg-primary/5 text-foreground" : "border-input text-muted-foreground hover:bg-muted/50",
+      )}
+      data-testid="calendar-new-ics-drop"
+    >
+      <input
+        type="file"
+        accept=".ics,text/calendar"
+        className="sr-only"
+        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        data-testid="calendar-new-ics-file-input"
+      />
+      <Upload size={16} className="shrink-0" />
+      <span className={cn("truncate", file && "font-medium text-foreground")}>{file?.name ?? ".ics 파일"}</span>
+    </label>
+  )
 }

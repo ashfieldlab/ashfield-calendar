@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, DoorOpen, Trash2 } from "lucide-react"
+import { DoorOpen, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui-custom/use-toast"
 
 import { useAppContext } from "@/components/providers/app-context"
@@ -84,13 +83,6 @@ export default function RoomsSettingsPage() {
       className="h-full space-y-4 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8"
       data-testid="rooms-settings-page"
     >
-      <Link
-        href="/settings"
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        data-testid="rooms-settings-back"
-      >
-        <ArrowLeft size={12} /> 설정으로
-      </Link>
       <header className="flex items-center gap-2">
         <DoorOpen size={20} className="text-muted-foreground" />
         <h1 className="text-2xl font-bold text-foreground">회의실 관리</h1>

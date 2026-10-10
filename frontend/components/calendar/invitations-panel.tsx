@@ -21,25 +21,51 @@ interface Props {
   event: EventResponse
 }
 
-const RESPONSE_LABELS: Record<InvitationResponse, string> = {
+export const RESPONSE_LABELS: Record<InvitationResponse, string> = {
   pending: "대기",
   accepted: "수락",
   declined: "거절",
-  tentative: "보류",
+  tentative: "미정",
+}
+
+/** 초대 목록, 내 초대, 응답, 참석자 겹침. 편집 폼의 참석자 칸과 상세 시트가 같이 쓴다. */
+export function useInvitations(event: EventResponse | null | undefined) {
+  const { authUser } = useAppContext()
+  const { toast } = useToast()
+  const path = event ? `/api/v1/events/${event.id}/invitations` : null
+  const { data, mutate } = useApiGet<EventInvitationList>(path)
+  const conflicts = useAttendeeConflicts(event ?? null, data)
+  const myInvitation = (data?.invitations ?? []).find(
+    (i) => i.invitee_sub === authUser?.id,
+  )
+
+  async function respond(response: InvitationResponse): Promise<boolean> {
+    if (!myInvitation || !path) return false
+    try {
+      await api(`${path}/${myInvitation.id}`, {
+        method: "PATCH",
+        body: { response },
+      })
+      void mutate()
+      invalidateApi("/api/v1/events")
+      return true
+    } catch (e) {
+      toast.error(`응답 실패: ${(e as Error).message}`)
+      return false
+    }
+  }
+
+  return { path, data, mutate, conflicts, myInvitation, respond }
 }
 
 export function InvitationsPanel({ event }: Props) {
   const { authUser } = useAppContext()
   const { toast } = useToast()
+  const { data, mutate, conflicts, myInvitation, respond } = useInvitations(event)
   const path = `/api/v1/events/${event.id}/invitations`
-  const { data, mutate } = useApiGet<EventInvitationList>(path)
   const [busy, setBusy] = useState(false)
 
   const isCreator = authUser?.id === event.created_by_sub
-  const conflicts = useAttendeeConflicts(event, data)
-  const myInvitation = (data?.invitations ?? []).find(
-    (i) => i.invitee_sub === authUser?.id,
-  )
 
   async function invite(sub: string) {
     setBusy(true)
@@ -74,20 +100,6 @@ export function InvitationsPanel({ event }: Props) {
       void mutate()
     } catch (e) {
       toast.error(`제거 실패: ${(e as Error).message}`)
-    }
-  }
-
-  async function respond(response: InvitationResponse) {
-    if (!myInvitation) return
-    try {
-      await api(`${path}/${myInvitation.id}`, {
-        method: "PATCH",
-        body: { response },
-      })
-      void mutate()
-      invalidateApi("/api/v1/events")
-    } catch (e) {
-      toast.error(`응답 실패: ${(e as Error).message}`)
     }
   }
 
@@ -196,7 +208,7 @@ export function InvitationsPanel({ event }: Props) {
  * 저장은 막지 않는다. 반복 일정은 저장된 첫 회차 시각 기준.
  */
 function useAttendeeConflicts(
-  event: EventResponse,
+  event: EventResponse | null,
   data: EventInvitationList | undefined,
 ): string[] {
   const [names, setNames] = useState<string[]>([])
@@ -206,9 +218,13 @@ function useAttendeeConflicts(
     .sort()
     .join(",")
 
+  const eventId = event?.id
+  const startAt = event?.start_at
+  const endAt = event?.end_at
+
   useEffect(() => {
     let cancelled = false
-    if (!subs) {
+    if (!subs || !eventId || !startAt || !endAt) {
       void Promise.resolve().then(() => !cancelled && setNames([]))
       return () => {
         cancelled = true
@@ -217,10 +233,10 @@ function useAttendeeConflicts(
     api<AttendeeConflictsResponse>("/api/v1/events/conflicts", {
       method: "POST",
       body: {
-        start_at: event.start_at,
-        end_at: event.end_at,
+        start_at: startAt,
+        end_at: endAt,
         attendee_subs: subs.split(","),
-        exclude_event_id: event.id,
+        exclude_event_id: eventId,
       },
     })
       .then((r) => !cancelled && setNames(r.conflicts.map((c) => c.name ?? c.sub)))
@@ -228,7 +244,7 @@ function useAttendeeConflicts(
     return () => {
       cancelled = true
     }
-  }, [subs, event.id, event.start_at, event.end_at])
+  }, [subs, eventId, startAt, endAt])
 
   return names
 }

@@ -3,6 +3,40 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class NotificationEventContext(BaseModel):
+    """알림 대상 일정의 지금 상태 (상세 패널의 일정 카드용). 삭제됐으면 deleted=True."""
+
+    id: str
+    title: str
+    start_at: datetime
+    end_at: datetime
+    all_day: bool
+    location: str | None
+    calendar_id: str
+    calendar_name: str | None
+    calendar_color: str | None
+    deleted: bool
+
+
+class NotificationInvitationContext(BaseModel):
+    """초대 알림: 받는 사람 본인의 초대 (바로 응답용)."""
+
+    id: str
+    event_id: str
+    response: str
+
+
+class NotificationBookingContext(BaseModel):
+    id: str
+    booking_type_id: str
+    status: str
+    slot_start_at: datetime
+    slot_end_at: datetime
+    customer_name: str | None
+    customer_email: str | None
+    calendar_event_id: str | None
+
+
 class NotificationResponse(BaseModel):
     id: str
     type: str
@@ -13,6 +47,9 @@ class NotificationResponse(BaseModel):
     payload: dict
     read_at: datetime | None
     created_at: datetime
+    event: NotificationEventContext | None = None
+    invitation: NotificationInvitationContext | None = None
+    booking: NotificationBookingContext | None = None
 
 
 class NotificationListResponse(BaseModel):

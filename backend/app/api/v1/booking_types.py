@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Path
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.context import UserContext
@@ -28,11 +28,15 @@ from app.models.calendar import Calendar
 from app.models.user_workspace_membership import UserWorkspaceMembership
 from app.schemas.booking_type import (
     BookingTypeCreate,
+    BookingTypeListItem,
     BookingTypeListResponse,
     BookingTypePatch,
     BookingTypeResponse,
+    OperatorSlotItem,
+    OperatorSlotListResponse,
 )
 from app.services.audit import write_audit
+from app.services.booking import audit_workspace_id
 
 router = APIRouter(prefix="/booking-types", tags=["booking-types"])
 
@@ -105,7 +109,41 @@ async def list_booking_types(
         .order_by(BookingType.title)
     )
     rows = list((await db.execute(stmt)).scalars().all())
-    return BookingTypeListResponse(items=[_to_response(r) for r in rows])
+
+    # 예약 통계: 다가오는 예약 수와 가장 이른 시각, 지난 30일 동안 들어온 예약 수 (취소 제외)
+    stats: dict[str, tuple[int, datetime | None, int]] = {}
+    if rows:
+        now = datetime.now(UTC)
+        since = now - timedelta(days=30)
+        upcoming = Booking.slot_start_at >= now
+        stat_stmt = (
+            select(
+                Booking.booking_type_id,
+                func.count(case((upcoming, 1))),
+                func.min(case((upcoming, Booking.slot_start_at))),
+                func.count(case((Booking.created_at >= since, 1))),
+            )
+            .where(
+                Booking.booking_type_id.in_([r.id for r in rows]),
+                Booking.status == "active",
+            )
+            .group_by(Booking.booking_type_id)
+        )
+        for bt_id, n_up, next_at, n_30 in (await db.execute(stat_stmt)).all():
+            stats[bt_id] = (int(n_up), next_at, int(n_30))
+
+    items = []
+    for r in rows:
+        n_up, next_at, n_30 = stats.get(r.id, (0, None, 0))
+        items.append(
+            BookingTypeListItem(
+                **_to_response(r).model_dump(),
+                upcoming_count=n_up,
+                next_booking_at=next_at,
+                last_30d_count=n_30,
+            )
+        )
+    return BookingTypeListResponse(items=items)
 
 
 @router.post(
@@ -179,7 +217,7 @@ async def create_booking_type(
         action="create",
         entity_type="booking_type",
         entity_id=bt.id,
-        meta={"title": bt.title, "public_key": bt.public_key},
+        meta={"name": bt.title, "title": bt.title, "public_key": bt.public_key},
     )
     await db.commit()
     await db.refresh(bt)
@@ -228,12 +266,20 @@ async def patch_booking_type(
         setattr(bt, k, v)
     await write_audit(
         db,
-        workspace_id=bt.owner_workspace_id,  # NULL OK (D-1)
+        workspace_id=await audit_workspace_id(db, bt),
         actor=user,
         action="update",
         entity_type="booking_type",
         entity_id=bt.id,
-        meta={k: v for k, v in fields.items() if k != "weekly_schedule"},
+        meta={
+            **{
+                k: v
+                for k, v in body.model_dump(exclude_unset=True, mode="json").items()
+                if k != "weekly_schedule"
+            },
+            "name": bt.title,
+            "fields": list(fields.keys()),
+        },
     )
     await db.commit()
     await db.refresh(bt)
@@ -254,14 +300,49 @@ async def delete_booking_type(
     bt.deleted_at = datetime.now(UTC)
     await write_audit(
         db,
-        workspace_id=bt.owner_workspace_id,
+        workspace_id=await audit_workspace_id(db, bt),
         actor=user,
         action="delete",
         entity_type="booking_type",
         entity_id=bt.id,
-        meta={"title": bt.title},
+        meta={"name": bt.title, "title": bt.title},
     )
     await db.commit()
+
+
+@router.get(
+    "/{booking_type_id}/slots",
+    response_model=OperatorSlotListResponse,
+    summary="운영자 슬롯 조회 (마감 포함, 일정 변경용)",
+    responses={400: {"description": "범위 오류"}},
+)
+async def list_operator_slots(
+    booking_type_id: str = Path(...),
+    from_: datetime = Query(..., alias="from"),
+    to: datetime = Query(...),
+    exclude_booking_id: str | None = Query(default=None),
+    user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> OperatorSlotListResponse:
+    from app.services.booking import operator_slots
+
+    if to <= from_:
+        raise HTTPException(400, "to must be > from")
+    if (to - from_).days > 90:
+        raise HTTPException(400, "range too large (max 90 days)")
+    bt = await _get_or_403(db, booking_type_id, user)
+    duration = timedelta(minutes=bt.duration_minutes)
+    slots = await operator_slots(
+        db, bt, from_, to, exclude_booking_id=exclude_booking_id
+    )
+    return OperatorSlotListResponse(
+        slots=[
+            OperatorSlotItem(
+                start_at=s, end_at=s + duration, remaining=rem, open=is_open
+            )
+            for s, rem, is_open in slots
+        ]
+    )
 
 
 @router.get(
@@ -358,7 +439,7 @@ async def operator_reschedule_booking(
     )
     await write_audit(
         db,
-        workspace_id=bt.owner_workspace_id,
+        workspace_id=await audit_workspace_id(db, bt),
         actor=user,
         action="update",
         entity_type="booking",
@@ -367,6 +448,12 @@ async def operator_reschedule_booking(
             "action": "reschedule",
             "old_slot": old_slot.isoformat(),
             "new_slot": new_slot.isoformat(),
+            "old_start": old_slot.isoformat(),
+            "new_start": new_slot.isoformat(),
+            "booking_type_id": bt.id,
+            "booking_type": bt.title,
+            "guest_name": booking.customer_name,
+            "calendar_event_id": booking.calendar_event_id,
             "force": force,
         },
     )
@@ -423,12 +510,18 @@ async def operator_cancel_booking(
                 ev.deleted_at = booking.cancelled_at
         await write_audit(
             db,
-            workspace_id=bt.owner_workspace_id,
+            workspace_id=await audit_workspace_id(db, bt),
             actor=user,
             action="delete",
             entity_type="booking",
             entity_id=booking.id,
-            meta={"by": "operator"},
+            meta={
+                "by": "operator",
+                "booking_type_id": bt.id,
+                "booking_type": bt.title,
+                "guest_name": booking.customer_name,
+                "slot_start_at": booking.slot_start_at.isoformat(),
+            },
         )
         await db.commit()
         # 고객과 운영자에게 취소 통지 메일
@@ -466,12 +559,12 @@ async def rotate_public_key(
     bt.public_key = _new_public_key()
     await write_audit(
         db,
-        workspace_id=bt.owner_workspace_id,
+        workspace_id=await audit_workspace_id(db, bt),
         actor=user,
         action="rotate_token",
         entity_type="booking_type",
         entity_id=bt.id,
-        meta={"new_public_key": bt.public_key},
+        meta={"new_public_key": bt.public_key, "name": bt.title},
     )
     await db.commit()
     await db.refresh(bt)
