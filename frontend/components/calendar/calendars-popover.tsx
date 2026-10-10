@@ -12,6 +12,7 @@ import { useConfirm } from "@/components/ui-custom/use-confirm"
 import { formatDateTime } from "@/lib/utils/format"
 import type { CalendarResponse } from "@/lib/types/api"
 
+import { CreateCalendarDialog } from "./create-calendar-dialog"
 import { SubscriptionModal } from "./subscription-modal"
 
 interface Props {
@@ -26,13 +27,6 @@ export function CalendarsPopover({ calendars }: Props) {
   const { toast } = useToast()
   const confirm = useConfirm()
   const [openNew, setOpenNew] = useState(false)
-  const [name, setName] = useState("")
-  const [scope, setScope] = useState<"personal" | "shared">("personal")
-  const [color, setColor] = useState("#4f46e5")
-  const [icsUrl, setIcsUrl] = useState("")
-  const [icsFile, setIcsFile] = useState<File | null>(null)
-  const [source, setSource] = useState<"native" | "url" | "file">("native")
-  const [busy, setBusy] = useState(false)
   const [subscribingCal, setSubscribingCal] = useState<CalendarResponse | null>(null)
 
   async function togglePref(cal: CalendarResponse) {
@@ -74,58 +68,6 @@ export function CalendarsPopover({ calendars }: Props) {
       invalidateApi("/api/v1/events")
     } catch (e) {
       toast.error(`삭제 실패: ${(e as Error).message}`)
-    }
-  }
-
-  async function create() {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    if (source === "url" && !icsUrl.trim()) return
-    if (source === "file" && !icsFile) return
-    setBusy(true)
-    try {
-      const cal = await api<CalendarResponse>("/api/v1/calendars", {
-        method: "POST",
-        body: {
-          name: trimmed,
-          scope,
-          color,
-          external_ics_url: source === "url" ? icsUrl.trim() : null,
-        },
-      })
-      if (source === "file" && icsFile) {
-        const form = new FormData()
-        form.append("file", icsFile)
-        // raw fetch (multipart): api-client 미경유라 timeout 가드 직접
-        const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 120_000)
-        let res: Response
-        try {
-          res = await fetch(`/api/v1/calendars/${cal.id}/import-ics`, {
-            method: "POST",
-            body: form,
-            signal: controller.signal,
-          })
-        } finally {
-          clearTimeout(timer)
-        }
-        if (!res.ok) throw new Error(`ICS import 실패 (${res.status})`)
-        const { imported } = (await res.json()) as { imported: number }
-        toast.success(`'${trimmed}' 캘린더를 만들었습니다 (일정 ${imported}개 가져옴)`)
-      } else {
-        toast.success(`'${trimmed}' 캘린더를 만들었습니다`)
-      }
-      setOpenNew(false)
-      setName("")
-      setIcsUrl("")
-      setIcsFile(null)
-      setSource("native")
-      invalidateApi("/api/v1/calendars")
-      invalidateApi("/api/v1/events")
-    } catch (e) {
-      toast.error(`생성 실패: ${(e as Error).message}`)
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -190,125 +132,7 @@ export function CalendarsPopover({ calendars }: Props) {
         </PopoverContent>
       </Popover>
 
-      {openNew && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30"
-          onClick={() => setOpenNew(false)}
-        >
-          <div
-            className="w-80 space-y-3 rounded-lg bg-white p-5 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-            data-testid="calendar-new-modal"
-          >
-            <h3 className="text-base font-semibold text-gray-900">새 캘린더</h3>
-            <input
-              autoFocus
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="이름"
-              data-testid="calendar-new-name-input"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            <div className="flex items-center gap-2 text-sm">
-              <label className="flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  checked={scope === "personal"}
-                  onChange={() => setScope("personal")}
-                  data-testid="calendar-new-scope-personal"
-                />
-                내 캘린더
-              </label>
-              <label className="flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  checked={scope === "shared"}
-                  onChange={() => setScope("shared")}
-                  data-testid="calendar-new-scope-shared"
-                />
-                워크스페이스
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">색</label>
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                data-testid="calendar-new-color-input"
-                className="h-8 w-12 cursor-pointer rounded border border-gray-300"
-              />
-            </div>
-            <div className="space-y-1.5 border-t border-gray-200 pt-2">
-              <p className="text-xs font-medium text-gray-600">초기 이벤트</p>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={source === "native"}
-                  onChange={() => setSource("native")}
-                  data-testid="calendar-new-source-native"
-                />
-                빈 캘린더
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={source === "url"}
-                  onChange={() => setSource("url")}
-                  data-testid="calendar-new-source-url"
-                />
-                외부 ICS URL 구독 (읽기 전용)
-              </label>
-              {source === "url" && (
-                <input
-                  type="url"
-                  value={icsUrl}
-                  onChange={(e) => setIcsUrl(e.target.value)}
-                  placeholder="https://.../holidays.ics"
-                  data-testid="calendar-new-ics-url-input"
-                  className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-xs focus:border-gray-500 focus:outline-none"
-                />
-              )}
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={source === "file"}
-                  onChange={() => setSource("file")}
-                  data-testid="calendar-new-source-file"
-                />
-                ICS 파일 import (1회성)
-              </label>
-              {source === "file" && (
-                <input
-                  type="file"
-                  accept=".ics,text/calendar"
-                  onChange={(e) => setIcsFile(e.target.files?.[0] ?? null)}
-                  data-testid="calendar-new-ics-file-input"
-                  className="w-full text-xs file:mr-2 file:rounded file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs file:text-gray-700 hover:file:bg-gray-50"
-                />
-              )}
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setOpenNew(false)}
-                data-testid="calendar-new-cancel"
-                className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-              >
-                취소
-              </button>
-              <button
-                onClick={create}
-                disabled={busy || !name.trim()}
-                data-testid="calendar-new-confirm"
-                className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-              >
-                만들기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateCalendarDialog open={openNew} onOpenChange={setOpenNew} />
 
       {subscribingCal && (
         <SubscriptionModal
