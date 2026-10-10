@@ -1,0 +1,438 @@
+"use client"
+
+import { useEffect, useMemo, useRef, useState } from "react"
+import FullCalendar from "@fullcalendar/react"
+import dayGridPlugin from "@fullcalendar/daygrid"
+import timeGridPlugin from "@fullcalendar/timegrid"
+import multiMonthPlugin from "@fullcalendar/multimonth"
+import listPlugin from "@fullcalendar/list"
+import interactionPlugin from "@fullcalendar/interaction"
+import type {
+  DatesSetArg,
+  EventClickArg,
+  EventDropArg,
+  EventInput,
+} from "@fullcalendar/core"
+import type {
+  DateClickArg,
+  EventResizeDoneArg,
+} from "@fullcalendar/interaction"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useToast } from "@/components/ui-custom/use-toast"
+
+import { CalendarsPopover } from "@/components/calendar/calendars-popover"
+import { EventForm } from "@/components/calendar/event-form"
+import { api } from "@/lib/api-client"
+import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
+import type {
+  CalendarListResponse,
+  EventResponse,
+  OccurrenceListResponse,
+} from "@/lib/types/api"
+
+const VIEW_OPTIONS = [
+  { value: "multiMonthYear", label: "연" },
+  { value: "dayGridMonth", label: "월" },
+  { value: "timeGridWeek", label: "주" },
+  { value: "timeGridDay", label: "일" },
+  { value: "listWeek", label: "목록" },
+]
+
+export default function CalendarPage() {
+  const { toast } = useToast()
+  const calendarRef = useRef<FullCalendar | null>(null)
+  const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  const [title, setTitle] = useState("")
+  const [view, setView] = useState("dayGridMonth")
+  const [formState, setFormState] = useState<
+    | { mode: "create"; start: Date }
+    | { mode: "edit"; eventId: string; start: Date }
+    | null
+  >(null)
+
+  const { data: calList } = useApiGet<CalendarListResponse>("/api/v1/calendars")
+  const calendars = useMemo(() => calList?.calendars ?? [], [calList])
+
+  const occUrl = range
+    ? `/api/v1/events?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+    : null
+  const { data: occList } = useApiGet<OccurrenceListResponse>(occUrl)
+
+  const colorOf = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of calendars) m.set(c.id, c.color ?? "#6b7280")
+    return m
+  }, [calendars])
+
+  // external_ics 캘린더는 읽기 전용 — 드래그 잠금.
+  const readonlyCalIds = useMemo(() => {
+    const s = new Set<string>()
+    for (const c of calendars) if (c.source === "external_ics") s.add(c.id)
+    return s
+  }, [calendars])
+
+  const events: EventInput[] = useMemo(
+    () =>
+      (occList?.occurrences ?? []).map((occ) => {
+        // 예약 연결·외부 캘린더 일정은 드래그 이동/리사이즈 불가.
+        const locked = !!occ.booking_id || readonlyCalIds.has(occ.calendar_id)
+        return {
+          id: `${occ.event_id}-${occ.start_at}`,
+          title: occ.booking_id ? `🔒 ${occ.title}` : occ.title,
+          start: occ.start_at,
+          end: occ.end_at,
+          allDay: occ.all_day,
+          editable: !locked,
+          backgroundColor: colorOf.get(occ.calendar_id) ?? "#6b7280",
+          borderColor: colorOf.get(occ.calendar_id) ?? "#6b7280",
+          extendedProps: {
+            eventId: occ.event_id,
+            bookingId: occ.booking_id,
+            isRecurring: occ.is_recurring,
+          },
+        }
+      }),
+    [occList, colorOf, readonlyCalIds],
+  )
+
+  // 반복 일정 드래그/리사이즈 시 "이 회차만 / 전체" 선택 대기 상태.
+  const [recurDrag, setRecurDrag] = useState<{
+    revert: () => void
+    eventId: string
+    occurrenceStart: string
+    startDeltaMs: number
+    endDeltaMs: number
+    newStart: string
+    newEnd: string
+  } | null>(null)
+  const [dragBusy, setDragBusy] = useState(false)
+
+  const editingEventId = formState?.mode === "edit" ? formState.eventId : null
+  const { data: editingEvent } = useApiGet<EventResponse>(
+    editingEventId ? `/api/v1/events/${editingEventId}` : null,
+  )
+
+  function handleDatesSet(info: DatesSetArg) {
+    setRange({
+      from: info.start.toISOString(),
+      to: info.end.toISOString(),
+    })
+    setTitle(info.view.title)
+    setView(info.view.type)
+  }
+
+  function handleDateClick(info: DateClickArg) {
+    const start = new Date(info.date)
+    if (info.allDay) start.setHours(9, 0, 0, 0)
+    setFormState({ mode: "create", start })
+  }
+
+  function handleEventClick(info: EventClickArg) {
+    // "+N 더보기" 팝오버에서 클릭한 경우 — 모달 띄우기 전에 팝오버 닫기 (겹침 방지).
+    document.querySelector<HTMLElement>(".fc-popover-close")?.click()
+    const eventId = info.event.extendedProps.eventId as string
+    const bookingId = info.event.extendedProps.bookingId as string | null
+    if (bookingId) {
+      toast.error(
+        "예약과 연결된 일정입니다. 예약 페이지에서 변경·취소해주세요.",
+      )
+      return
+    }
+    setFormState({
+      mode: "edit",
+      eventId,
+      start: info.event.start ?? new Date(),
+    })
+  }
+
+  // 드래그 이동·리사이즈 공통 — 반복이면 범위 선택 모달, 아니면 바로 저장.
+  function handleEventChange(info: EventDropArg | EventResizeDoneArg) {
+    const eventId = info.event.extendedProps.eventId as string
+    const isRecurring = info.event.extendedProps.isRecurring as boolean
+    const oldStart = info.oldEvent.start
+    const newStart = info.event.start
+    if (!oldStart || !newStart) {
+      info.revert()
+      return
+    }
+    const oldEnd = info.oldEvent.end ?? oldStart
+    const newEnd = info.event.end ?? newStart
+    const newStartISO = newStart.toISOString()
+    const newEndISO = newEnd.toISOString()
+
+    if (isRecurring) {
+      setRecurDrag({
+        revert: info.revert,
+        eventId,
+        occurrenceStart: oldStart.toISOString(),
+        startDeltaMs: newStart.getTime() - oldStart.getTime(),
+        endDeltaMs: newEnd.getTime() - oldEnd.getTime(),
+        newStart: newStartISO,
+        newEnd: newEndISO,
+      })
+      return
+    }
+    void patchTimes({
+      eventId,
+      start: newStartISO,
+      end: newEndISO,
+      revert: info.revert,
+    })
+  }
+
+  async function patchTimes(opts: {
+    eventId: string
+    start: string
+    end: string
+    occurrence?: string
+    revert: () => void
+    successMsg?: string
+  }) {
+    try {
+      const url = opts.occurrence
+        ? `/api/v1/events/${opts.eventId}?occurrence=${encodeURIComponent(opts.occurrence)}`
+        : `/api/v1/events/${opts.eventId}`
+      await api(url, {
+        method: "PATCH",
+        body: { start_at: opts.start, end_at: opts.end },
+      })
+      toast.success(opts.successMsg ?? "일정을 옮겼습니다")
+      invalidateApi("/api/v1/events")
+    } catch (e) {
+      opts.revert()
+      const err = e as { code?: string; message: string }
+      toast.error(
+        err.code === "ROOM_CONFLICT" ? err.message : `이동 실패: ${err.message}`,
+      )
+    }
+  }
+
+  // 반복 일정: 이 회차만 분리(occurrence) 또는 전체(마스터에 delta 반영).
+  async function applyRecurDrag(scope: "occurrence" | "series") {
+    if (!recurDrag) return
+    setDragBusy(true)
+    try {
+      if (scope === "occurrence") {
+        await patchTimes({
+          eventId: recurDrag.eventId,
+          start: recurDrag.newStart,
+          end: recurDrag.newEnd,
+          occurrence: recurDrag.occurrenceStart,
+          revert: recurDrag.revert,
+          successMsg: "이 회차를 옮겼습니다",
+        })
+      } else {
+        // 전체: 마스터 시각을 delta 만큼 이동해 앵커 보존.
+        const master = await api<EventResponse>(
+          `/api/v1/events/${recurDrag.eventId}`,
+        )
+        const mStart = new Date(
+          Date.parse(master.start_at) + recurDrag.startDeltaMs,
+        ).toISOString()
+        const mEnd = new Date(
+          Date.parse(master.end_at) + recurDrag.endDeltaMs,
+        ).toISOString()
+        await patchTimes({
+          eventId: recurDrag.eventId,
+          start: mStart,
+          end: mEnd,
+          revert: recurDrag.revert,
+          successMsg: "전체 반복 일정을 옮겼습니다",
+        })
+      }
+    } finally {
+      setDragBusy(false)
+      setRecurDrag(null)
+    }
+  }
+
+  function cancelRecurDrag() {
+    recurDrag?.revert()
+    setRecurDrag(null)
+  }
+
+  function openNewEvent() {
+    if (calendars.length === 0) {
+      toast.error("먼저 캘린더를 만들어주세요")
+      return
+    }
+    const start = new Date()
+    start.setMinutes(0, 0, 0)
+    setFormState({ mode: "create", start })
+  }
+
+  const fcApi = () => calendarRef.current?.getApi()
+
+  // 모바일은 월 그리드 대신 목록(아젠다) 뷰가 적합 — 마운트 시 1회 전환.
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 640px)").matches
+    ) {
+      calendarRef.current?.getApi().changeView("listWeek")
+    }
+  }, [])
+
+  return (
+    <div className="flex h-full flex-col px-4 py-4" data-testid="calendar-page">
+      {/* 상단 toolbar — 기존 inner sidebar 대체 */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => fcApi()?.prev()}
+            data-testid="calendar-prev-button"
+            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            aria-label="이전"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span
+            className="min-w-[8rem] text-center text-base font-semibold text-gray-900"
+            data-testid="calendar-title"
+          >
+            {title}
+          </span>
+          <button
+            onClick={() => fcApi()?.next()}
+            data-testid="calendar-next-button"
+            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            aria-label="다음"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            onClick={() => fcApi()?.today()}
+            data-testid="calendar-today-button"
+            className="ml-2 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+          >
+            오늘
+          </button>
+        </div>
+
+        <div className="ml-2">
+          {/* 보기 전환 (segmented) — 이미 선택된 항목을 다시 누르면 빈 값이 오므로 무시 */}
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={view}
+            onValueChange={(v) => {
+              if (v) fcApi()?.changeView(v)
+            }}
+            aria-label="보기"
+          >
+            {VIEW_OPTIONS.map((opt) => (
+              <ToggleGroupItem
+                key={opt.value}
+                value={opt.value}
+                data-testid={`calendar-view-${opt.value}`}
+                className="px-3 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              >
+                {opt.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <CalendarsPopover calendars={calendars} />
+          <button
+            onClick={openNewEvent}
+            data-testid="calendar-new-event-button"
+            className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            + 새 일정
+          </button>
+        </div>
+      </div>
+
+      {/* 메인 그리드 fullscreen */}
+      <section className="min-h-0 flex-1">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[
+            dayGridPlugin,
+            timeGridPlugin,
+            multiMonthPlugin,
+            listPlugin,
+            interactionPlugin,
+          ]}
+          initialView="dayGridMonth"
+          headerToolbar={false}
+          locale="ko"
+          firstDay={0}
+          height="100%"
+          expandRows
+          dayMaxEvents={true}
+          slotMinTime="06:00:00"
+          slotMaxTime="22:00:00"
+          events={events}
+          editable
+          eventDrop={handleEventChange}
+          eventResize={handleEventChange}
+          datesSet={handleDatesSet}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+        />
+      </section>
+
+      {recurDrag && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+          onClick={() => !dragBusy && cancelRecurDrag()}
+        >
+          <div
+            className="w-80 space-y-3 rounded-lg bg-white p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="calendar-recur-drag"
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              반복 일정 이동
+            </h3>
+            <p className="text-sm text-gray-600">
+              이 회차만 옮길까요, 전체 반복 일정을 옮길까요?
+            </p>
+            <div className="space-y-2 pt-1">
+              <button
+                onClick={() => applyRecurDrag("occurrence")}
+                disabled={dragBusy}
+                data-testid="calendar-recur-drag-one"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+              >
+                이 회차만 이동
+              </button>
+              <button
+                onClick={() => applyRecurDrag("series")}
+                disabled={dragBusy}
+                data-testid="calendar-recur-drag-series"
+                className="w-full rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                전체 반복 일정 이동
+              </button>
+              <button
+                onClick={cancelRecurDrag}
+                disabled={dragBusy}
+                data-testid="calendar-recur-drag-cancel"
+                className="w-full rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {formState && (formState.mode === "create" || editingEvent) && (
+        <EventForm
+          calendars={calendars}
+          initialStart={formState.start}
+          editing={formState.mode === "edit" ? editingEvent ?? null : null}
+          onClose={() => setFormState(null)}
+        />
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Ashfield Calendar",
+  "short_name": "일정",
+  "description": "Ashfield Calendar — 캘린더·예약 앱.",
+  "start_url": "/calendar",
+  "scope": "/",
+  "display": "standalone",
+  "lang": "ko",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icons/ashfield/appicon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ashfield/appicon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

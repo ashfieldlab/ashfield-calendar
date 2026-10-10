@@ -1,0 +1,187 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./theme.css";
+
+/* -----------------------------------------------------------------------
+ * FullCalendar — 앱 톤(모노톤 gray) + Pretendard 매칭.
+ * v6 CSS 변수 + 일부 selector override.
+ * ----------------------------------------------------------------------- */
+.fc {
+  --fc-border-color: theme("colors.gray.200");
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: theme("colors.gray.50");
+  --fc-today-bg-color: theme("colors.amber.50");
+  --fc-highlight-color: theme("colors.gray.100");
+  --fc-event-border-color: transparent;
+  --fc-list-event-hover-bg-color: theme("colors.gray.50");
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: theme("colors.gray.900");
+}
+
+.fc .fc-button {
+  background: #fff;
+  border: 1px solid theme("colors.gray.300");
+  color: theme("colors.gray.700");
+  font-weight: 500;
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  text-transform: none;
+}
+.fc .fc-button:hover {
+  background: theme("colors.gray.50");
+  border-color: theme("colors.gray.400");
+  color: theme("colors.gray.900");
+}
+.fc .fc-button:focus {
+  box-shadow: 0 0 0 2px theme("colors.gray.200");
+  outline: none;
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: theme("colors.gray.900");
+  border-color: theme("colors.gray.900");
+  color: #fff;
+}
+.fc .fc-button-primary:disabled {
+  background: theme("colors.gray.100");
+  border-color: theme("colors.gray.200");
+  color: theme("colors.gray.400");
+  opacity: 1;
+}
+
+.fc .fc-button-group > .fc-button {
+  border-radius: 0;
+}
+.fc .fc-button-group > .fc-button:first-child {
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+.fc .fc-button-group > .fc-button:last-child {
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.fc .fc-icon {
+  font-size: 1rem;
+}
+
+.fc .fc-col-header-cell {
+  background: theme("colors.gray.50");
+  padding: 0.5rem 0;
+}
+.fc .fc-col-header-cell-cushion {
+  color: theme("colors.gray.600");
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  text-decoration: none;
+}
+.fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+  color: theme("colors.rose.500");
+}
+.fc .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion {
+  color: theme("colors.blue.500");
+}
+
+.fc .fc-daygrid-day-number {
+  color: theme("colors.gray.700");
+  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem;
+  text-decoration: none;
+}
+.fc .fc-day-sun .fc-daygrid-day-number {
+  color: theme("colors.rose.500");
+}
+.fc .fc-day-sat .fc-daygrid-day-number {
+  color: theme("colors.blue.500");
+}
+.fc .fc-day-other .fc-daygrid-day-number {
+  /* gray-400(#9ca3af)와 gray-500(#6b7280) 사이 — 인접월이라 muted 유지하되 가독성 확보 */
+  color: #8b92a1;
+}
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: theme("colors.gray.900");
+  color: #fff;
+  border-radius: 9999px;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.25rem;
+  padding: 0 0.5rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.fc .fc-event {
+  border: 0;
+  border-radius: 0.25rem;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fc .fc-event:hover {
+  filter: brightness(0.95);
+}
+.fc .fc-event-title {
+  font-weight: 500;
+}
+
+.fc .fc-timegrid-slot {
+  height: 2.25rem;
+}
+.fc .fc-timegrid-slot-label-cushion {
+  color: theme("colors.gray.500");
+  font-size: 0.6875rem;
+}
+.fc .fc-timegrid-now-indicator-line {
+  border-color: theme("colors.rose.500");
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: theme("colors.rose.500");
+  color: theme("colors.rose.500");
+}
+
+.fc .fc-multimonth {
+  border: 0;
+}
+.fc .fc-multimonth-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: theme("colors.gray.900");
+  padding: 0.5rem 0.75rem;
+}
+
+/* 월 뷰 — 셀당 이벤트 초과 시 "+N 더보기" 링크 (회색 텍스트) */
+.fc .fc-daygrid-more-link {
+  color: theme("colors.gray.500");
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 1px 4px;
+}
+.fc .fc-daygrid-more-link:hover {
+  color: theme("colors.gray.800");
+  background: theme("colors.gray.100");
+  border-radius: 4px;
+}
+
+/* 월 뷰 "+N 더보기" 팝오버 — 기본 z-index(9999)가 앱 모달(z-50) 위로 떠서
+   일정 편집 모달과 겹침. 모달보다 아래로 낮춰 모달이 덮도록. */
+.fc .fc-popover {
+  z-index: 30;
+}

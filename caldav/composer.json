@@ -1,0 +1,22 @@
+{
+  "name": "ashfield/caldav",
+  "description": "Ashfield CalDAV server — Sabre/DAV + Custom Backend (ADR-0014)",
+  "type": "project",
+  "require": {
+    "php": ">=8.2",
+    "ext-pdo": "*",
+    "ext-pdo_pgsql": "*",
+    "sabre/dav": "^4.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ashfield\\Caldav\\": "src/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "platform": {
+      "php": "8.2.0"
+    }
+  }
+}
