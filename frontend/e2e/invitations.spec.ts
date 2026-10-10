@@ -39,7 +39,7 @@ test.describe("event invitations", () => {
     ).toBeVisible()
     await page.getByTestId("event-form-cancel-button").click()
 
-    // member_a 로 전환 (admin 의 워크스페이스를 활성 회사로) — 초대받은 이벤트가 보여야 함
+    // member_a 로 전환 (admin 의 워크스페이스를 활성 회사로): 초대받은 이벤트가 보여야 함
     await signOut(page)
     await setActiveCompany(page, companyId)
     await loginAs("member_a")
@@ -47,7 +47,7 @@ test.describe("event invitations", () => {
     await showListView(page)
     await expect(page.getByText(title).first()).toBeVisible({ timeout: 5000 })
 
-    // 초대 알림 — 헤더 벨 unread 배지 + 패널 항목
+    // 초대 알림: 헤더 벨 unread 배지 + 패널 항목
     await expect(page.getByTestId("notification-unread-badge")).toBeVisible({
       timeout: 5_000,
     })

@@ -1,9 +1,9 @@
-"""참석자 일정 겹침 — 업무 일정끼리만 본다 (개인 캘린더는 열지 않는다).
+"""참석자 일정 겹침: 업무 일정끼리만 본다 (개인 캘린더는 열지 않는다).
 
 어떤 사람이 그 시간에 "바쁨"인 경우는 셋뿐:
   1. 수락했거나 아직 응답 안 한 초대가 있는 일정 (거절은 제외)
   2. 그 사람이 회사 공유 캘린더에 올린 일정 (예: 휴가 캘린더)
-  3. 그 사람이 주최한 회의 — 초대가 하나라도 붙은 일정. 주최자 일정은 주최자 개인
+  3. 그 사람이 주최한 회의: 초대가 하나라도 붙은 일정. 주최자 일정은 주최자 개인
      캘린더에 있어서 1·2로는 안 잡힌다.
 공휴일 같은 시스템 관리형 캘린더와 외부 ICS 구독은 사람을 바쁘게 만들지 않는다.
 겹침 여부만 돌려주고 일정 제목은 내보내지 않는다 (남의 회의 내용 비노출).
@@ -49,7 +49,7 @@ async def busy_subs(
         base = and_(base, CalendarEvent.id != exclude_event_id)
     has_invite = exists().where(Inv.event_id == CalendarEvent.id)
 
-    # (event, sub) 후보 — 위 세 경우
+    # (event, sub) 후보: 위 세 경우
     invited = (
         select(CalendarEvent, Inv.invitee_sub)
         .join(Calendar, Calendar.id == CalendarEvent.calendar_id)

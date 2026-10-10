@@ -1,6 +1,6 @@
-"""/api/v1/companies/{id}/profile — 회사 표시 정보 (Company Admin).
+"""/api/v1/companies/{id}/profile: 회사 표시 정보 (Company Admin).
 
-현재는 외부 고객 이메일에 노출되는 로고 URL 만 — 이후 brand color 등 확장 가능.
+현재는 외부 고객 이메일에 노출되는 로고 URL 만: 이후 brand color 등 확장 가능.
 회사 이름(name) 수정은 이 라우트 범위 밖 (ADR-0004).
 """
 

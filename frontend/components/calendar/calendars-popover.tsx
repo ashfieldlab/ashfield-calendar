@@ -96,7 +96,7 @@ export function CalendarsPopover({ calendars }: Props) {
       if (source === "file" && icsFile) {
         const form = new FormData()
         form.append("file", icsFile)
-        // raw fetch (multipart) — api-client 미경유라 timeout 가드 직접
+        // raw fetch (multipart): api-client 미경유라 timeout 가드 직접
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), 120_000)
         let res: Response
@@ -411,7 +411,7 @@ function Section({
                 <Rss size={12} />
               </button>
             )}
-            {/* 관리형(공휴일)은 삭제 불가 — 숨김 토글만 제공 */}
+            {/* 관리형(공휴일)은 삭제 불가: 숨김 토글만 제공 */}
             {!c.managed && (
               <button
                 onClick={() => onDelete(c)}

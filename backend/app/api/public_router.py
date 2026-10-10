@@ -1,7 +1,7 @@
-"""공개(비인증) 라우터 — `/api/public/v1/*` (ADR-0011).
+"""공개(비인증) 라우터: `/api/public/v1/*` (ADR-0011).
 
 JWT dependency 가 절대 닿지 않는 별도 트리. honeypot + rate limit + audit log 의무.
-공개 booking + 캘린더 ICS subscription (ADR-0013) 만 들어감 — 일반 도메인 라우트는 X.
+공개 booking + 캘린더 ICS subscription (ADR-0013) 만 들어감: 일반 도메인 라우트는 X.
 """
 
 from fastapi import APIRouter

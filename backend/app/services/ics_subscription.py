@@ -1,10 +1,10 @@
-"""ICS subscription 렌더링 — PIPA 마스킹 강제 (ADR-0013).
+"""ICS subscription 렌더링: PIPA 마스킹 강제 (ADR-0013).
 
-booking 으로부터 만들어진 CalendarEvent 의 title 은 "{bt.title} — {customer_name}",
+booking 으로부터 만들어진 CalendarEvent 의 title 은 "{bt.title}: {customer_name}",
 description 은 customer_message 라 외부 캘린더 앱에 sync 되면 PIPA 수집목적 외 이용.
 → 이 모듈은 _masked_vevent 로 SUMMARY=bt.title 만, DESCRIPTION·LOCATION 비움.
 
-토글 없음 (코드 상수) — 운영자 실수로 풀모드 켜면 외부 서버에 sync 된 PII 회수 X.
+토글 없음 (코드 상수): 운영자 실수로 풀모드 켜면 외부 서버에 sync 된 PII 회수 X.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from app.models.booking_type import BookingType
 from app.models.calendar import Calendar
 from app.models.calendar_event import CalendarEvent
 
-# 노출 범위 — 너무 많은 과거 이벤트 노출 방지 + 응답 무거움 회피
+# 노출 범위: 너무 많은 과거 이벤트 노출 방지 + 응답 무거움 회피
 PAST_LOOKBACK_DAYS = 90
 TOKEN_BYTES = 32  # secrets.token_urlsafe(32) → ~43자
 
@@ -33,7 +33,7 @@ def new_subscription_token() -> str:
 
 
 def _masked_vevent(ev: CalendarEvent, masked_title: str) -> IcsEvent:
-    """booking-linked event 용 — PIPA 마스킹된 VEVENT.
+    """booking-linked event 용: PIPA 마스킹된 VEVENT.
 
     노출: dtstart/dtend, rrule/exdate, SUMMARY (bt.title 만).
     숨김: customer 이름·메시지·위치.
@@ -56,7 +56,7 @@ def _masked_vevent(ev: CalendarEvent, masked_title: str) -> IcsEvent:
 
 
 def _plain_vevent(ev: CalendarEvent) -> IcsEvent:
-    """운영자 직접 생성 event — 마스킹 없음. events.py 의 _event_to_vevent 복제."""
+    """운영자 직접 생성 event: 마스킹 없음. events.py 의 _event_to_vevent 복제."""
     vevent = IcsEvent()
     vevent.add("uid", f"{ev.id}@ashfield.local")
     vevent.add("summary", ev.title)

@@ -1,4 +1,4 @@
-"""/api/v1/booking-types — 운영자가 관리하는 BookingType CRUD (ADR-0012).
+"""/api/v1/booking-types: 운영자가 관리하는 BookingType CRUD (ADR-0012).
 
 권한:
   - owner_type='user'    → 본인만 (owner_user_sub == user.sub)
@@ -81,7 +81,7 @@ async def list_booking_types(
 ) -> BookingTypeListResponse:
     """본인 소유 + 본인이 admin 인 활성 회사의 회사 소유. System Admin 은 활성 회사 + 본인 것."""
     conds = [BookingType.deleted_at.is_(None)]
-    # 활성 회사를 명시적으로 받음 — 어느 회사 컨텍스트에서 보는지
+    # 활성 회사를 명시적으로 받음: 어느 회사 컨텍스트에서 보는지
     if user.is_system_admin:
         conds.append(
             (BookingType.owner_company_id == company_id)
@@ -167,7 +167,7 @@ async def create_booking_type(
         target_calendar_id=body.target_calendar_id,
         blocking_calendar_ids=body.blocking_calendar_ids,
         capacity=body.capacity,
-        # 미지정 시 — 생성한 운영자 본인을 기본으로 (user/company 둘 다).
+        # 미지정 시: 생성한 운영자 본인을 기본으로 (user/company 둘 다).
         # company-owned 도 추후 UI 에서 멤버 다중 선택해 추가 가능.
         notify_user_subs=body.notify_user_subs or [user.sub],
     )

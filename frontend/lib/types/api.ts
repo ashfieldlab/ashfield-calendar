@@ -1,5 +1,5 @@
 /**
- * 백엔드 API 응답 타입 — Pydantic 스키마와 1:1 매핑.
+ * 백엔드 API 응답 타입: Pydantic 스키마와 1:1 매핑.
  *
  * CalendarResponse / EventResponse 등.
  */
@@ -27,7 +27,7 @@ export interface CalendarResponse {
   name: string
   description: string | null
   color: string
-  // 시스템 관리형(공휴일 등) — 편집·삭제 불가, 숨김만 가능.
+  // 시스템 관리형(공휴일 등): 편집·삭제 불가, 숨김만 가능.
   managed: boolean
   external_ics_url: string | null
   external_ics_refresh_at: string | null
@@ -139,7 +139,7 @@ export interface EventResponse {
   booking_id: string | null
 }
 
-/** 회의실(Room) — 회사 예약 리소스 (ADR-0019). */
+/** 회의실(Room): 회사 예약 리소스 (ADR-0019). */
 export interface Room {
   id: string
   name: string
@@ -151,7 +151,7 @@ export interface RoomListResponse {
   rooms: Room[]
 }
 
-// 참석자 일정 겹침 — 업무 일정끼리만, 겹치는 사람만 (제목 없음)
+// 참석자 일정 겹침: 업무 일정끼리만, 겹치는 사람만 (제목 없음)
 export interface AttendeeConflictsResponse {
   conflicts: { sub: string; name: string | null }[]
 }

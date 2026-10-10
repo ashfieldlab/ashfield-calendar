@@ -1,4 +1,4 @@
-"""booking E2E — audit log + 운영자 취소 통지 + 마스킹 후 listing (E-8)."""
+"""booking E2E: audit log + 운영자 취소 통지 + 마스킹 후 listing (E-8)."""
 
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -125,7 +125,7 @@ async def test_operator_lists_bookings_including_after_mask(
     )
     await db_session.commit()
 
-    # cron 의 AsyncSessionLocal 우회 — 같은 세션 사용
+    # cron 의 AsyncSessionLocal 우회: 같은 세션 사용
     import contextlib
 
     import app.jobs.booking_pii as mod
@@ -141,7 +141,7 @@ async def test_operator_lists_bookings_including_after_mask(
     affected = await purge_expired_booking_pii({})
     assert affected == 1
 
-    # 다시 listing — PII 마스킹됨, row 는 살아있음
+    # 다시 listing: PII 마스킹됨, row 는 살아있음
     res = await client.get(f"/api/v1/booking-types/{bt['id']}/bookings", headers=h)
     items = res.json()["items"]
     assert len(items) == 1

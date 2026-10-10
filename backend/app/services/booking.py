@@ -1,4 +1,4 @@
-"""Booking 도메인 서비스 — slot 계산 + race-safe 생성/취소 (ADR-0012).
+"""Booking 도메인 서비스: slot 계산 + race-safe 생성/취소 (ADR-0012).
 
 핵심:
   - generate_candidate_slots: BookingType 의 weekly_schedule × duration → 후보 slot 목록 (UTC).
@@ -47,7 +47,7 @@ def generate_candidate_slots(
     tz = ZoneInfo(bt.timezone)
     duration = timedelta(minutes=bt.duration_minutes)
 
-    # 1) 시작 lower bound — max(range_from, now + minimum_notice, available_from 00:00 in tz)
+    # 1) 시작 lower bound: max(range_from, now + minimum_notice, available_from 00:00 in tz)
     earliest = max(range_from, now + timedelta(minutes=bt.minimum_notice_minutes))
     if bt.available_from:
         af_local = datetime.combine(bt.available_from, time.min, tzinfo=tz)
@@ -107,7 +107,7 @@ async def _fetch_blocking_events(
     cal_ids.append(bt.target_calendar_id)
     cal_ids = list(set(cal_ids))
 
-    # 자기 BookingType 이 만든 CalendarEvent 의 id 들 — 제외
+    # 자기 BookingType 이 만든 CalendarEvent 의 id 들: 제외
     own_event_ids_stmt = select(Booking.calendar_event_id).where(
         Booking.booking_type_id == bt.id,
         Booking.calendar_event_id.is_not(None),
@@ -228,7 +228,7 @@ async def create_booking(
             params={"slot_start_at": slot_start_at.isoformat()},
         )
 
-    # advisory lock — 같은 (bt, slot) 동시 호출 직렬화
+    # advisory lock: 같은 (bt, slot) 동시 호출 직렬화
     await db.execute(
         text("SELECT pg_advisory_xact_lock(:k)"),
         {"k": _lock_key(bt.id, slot_start_at)},
@@ -259,7 +259,7 @@ async def create_booking(
         )
 
     # CalendarEvent + Booking insert
-    # created_by_sub 은 target_calendar 의 owner 사용 — 항상 존재 (Calendar.owner_id NOT NULL FK).
+    # created_by_sub 은 target_calendar 의 owner 사용: 항상 존재 (Calendar.owner_id NOT NULL FK).
     # company-owned BookingType 도 shared 캘린더가 있어서 valid user_sub 보장.
     cal = await db.get(Calendar, bt.target_calendar_id)
     if cal is None:
@@ -272,7 +272,7 @@ async def create_booking(
     ev = CalendarEvent(
         id=ev_id,
         calendar_id=bt.target_calendar_id,
-        title=f"{bt.title} — {customer_name}",
+        title=f"{bt.title}: {customer_name}",
         description=customer_message,
         location=None,
         start_at=slot_start_at,
@@ -284,7 +284,7 @@ async def create_booking(
         created_by_sub=cal.owner_id,
     )
     db.add(ev)
-    await db.flush()  # FK 순서 보장 — CalendarEvent 먼저 INSERT
+    await db.flush()  # FK 순서 보장: CalendarEvent 먼저 INSERT
     booking = Booking(
         id=str(uuid.uuid7()),
         booking_type_id=bt.id,
@@ -319,7 +319,7 @@ async def dispatch_booking_received_emails(
     base_url: str,
     organization_logo_url: str | None = None,
 ) -> None:
-    """예약 직후 — 고객 안내 + 운영자 알림 (in-app + 이메일). commit 후 호출.
+    """예약 직후: 고객 안내 + 운영자 알림 (in-app + 이메일). commit 후 호출.
 
     SMTP resolve 는 booking_type 의 owner_company_id 기준 (회사 override 우선).
     """
@@ -348,7 +348,7 @@ async def dispatch_booking_received_emails(
         company_id=bt.owner_company_id,
     )
 
-    # 2) 운영자(들)에게 — in-app Notification + 이메일
+    # 2) 운영자(들)에게: in-app Notification + 이메일
     op_payload = {
         "title": bt.title,
         "customer_name": booking.customer_name or "고객",
@@ -359,14 +359,14 @@ async def dispatch_booking_received_emails(
     }
     subs = bt.notify_user_subs or []
     if subs:
-        # company_id 는 in-app Notification 의 company_id 필드용 — user-owned 면
+        # company_id 는 in-app Notification 의 company_id 필드용: user-owned 면
         # target_calendar 의 company 사용.
         company_id_for_notif = bt.owner_company_id
         if company_id_for_notif is None:
             async with AsyncSessionLocal() as nf_db:
                 cal = await nf_db.get(Calendar, bt.target_calendar_id)
                 company_id_for_notif = cal.company_id if cal else None
-        # in-app Notification — 별도 트랜잭션
+        # in-app Notification: 별도 트랜잭션
         if company_id_for_notif:
             async with AsyncSessionLocal() as nf_db:
                 for sub in subs:
@@ -398,7 +398,7 @@ async def dispatch_booking_cancelled_emails(
     base_url: str,
     organization_logo_url: str | None = None,
 ) -> None:
-    """취소 직후 — 고객 확인 + 운영자 통지 (in-app + 이메일). commit 후 호출."""
+    """취소 직후: 고객 확인 + 운영자 통지 (in-app + 이메일). commit 후 호출."""
     from app.core.db import AsyncSessionLocal
     from app.services.email import send_for_event, send_to_address
     from app.services.email_template import make_brand_html
@@ -480,7 +480,7 @@ async def reschedule_booking(
     """운영자가 booking 의 시간 (선택적으로 메모) 을 변경.
 
     force=False: 가용 규칙·capacity·blocking 검증. 양식 안의 가용 슬롯만.
-    force=True: 검증 skip — 운영자가 양식 밖 시각으로도 강제 이동 가능
+    force=True: 검증 skip: 운영자가 양식 밖 시각으로도 강제 이동 가능
                 (예: 고객과 합의 후 정규 슬롯 외 시간 잡기).
 
     호출자는 commit 책임 + 이메일 디스패치 책임.
@@ -500,7 +500,7 @@ async def reschedule_booking(
     new_slot_end_at = new_slot_start_at + duration
     now = now or datetime.now(UTC)
 
-    # 시간 동일·메모만 바꾸는 경우 — 검증 skip
+    # 시간 동일·메모만 바꾸는 경우: 검증 skip
     time_changing = new_slot_start_at != booking.slot_start_at
 
     if time_changing and not force:
@@ -517,13 +517,13 @@ async def reschedule_booking(
             )
 
     if time_changing:
-        # advisory lock — 새 슬롯 race 차단
+        # advisory lock: 새 슬롯 race 차단
         await db.execute(
             text("SELECT pg_advisory_xact_lock(:k)"),
             {"k": _lock_key(bt.id, new_slot_start_at)},
         )
         if not force:
-            # capacity — 자기 자신은 제외
+            # capacity: 자기 자신은 제외
             count_stmt = select(func.count()).where(
                 Booking.booking_type_id == bt.id,
                 Booking.slot_start_at == new_slot_start_at,
@@ -538,7 +538,7 @@ async def reschedule_booking(
                     message="Slot is full",
                     params={"capacity": bt.capacity, "booked": booked_count},
                 )
-            # blocking 이벤트 — 자기 CalendarEvent 는 제외 (_fetch_blocking_events 가 처리)
+            # blocking 이벤트: 자기 CalendarEvent 는 제외 (_fetch_blocking_events 가 처리)
             blocking = await _fetch_blocking_events(
                 db, bt, new_slot_start_at, new_slot_end_at
             )
@@ -574,7 +574,7 @@ async def dispatch_booking_rescheduled_emails(
     old_slot_start: datetime,
     organization_logo_url: str | None = None,
 ) -> None:
-    """변경 직후 — 고객 + 운영자(들) 알림. commit 후 호출."""
+    """변경 직후: 고객 + 운영자(들) 알림. commit 후 호출."""
     from app.core.db import AsyncSessionLocal
     from app.services.email import send_for_event, send_to_address
     from app.services.email_template import make_brand_html
@@ -669,7 +669,7 @@ async def cancel_booking(
     booking.cancelled_at = now or datetime.now(UTC)
     booking.cancelled_by = by  # type: ignore[assignment]
 
-    # CalendarEvent 도 soft delete — 운영자 캘린더에서 사라짐
+    # CalendarEvent 도 soft delete: 운영자 캘린더에서 사라짐
     if booking.calendar_event_id:
         ev = await db.get(CalendarEvent, booking.calendar_event_id)
         if ev is not None and ev.deleted_at is None:

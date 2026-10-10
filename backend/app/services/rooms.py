@@ -1,7 +1,7 @@
 """Room(회의실) 충돌 체크 + 조회 (ADR-0019).
 
 같은 room_id 로 시간이 겹치는 Event 가 있으면 저장 차단(이중예약 불가).
-MVP: 단순 시간 겹침 — 반복 이벤트의 미래 occurrence 점유는 미고려(후속).
+MVP: 단순 시간 겹침: 반복 이벤트의 미래 occurrence 점유는 미고려(후속).
 """
 
 import uuid
@@ -55,7 +55,7 @@ async def assert_room_free(
             status_code=409,
             detail={
                 "code": "ROOM_CONFLICT",
-                "message": f"회의실이 이미 예약돼 있습니다 — '{conflict.title}'",
+                "message": f"회의실이 이미 예약돼 있습니다: '{conflict.title}'",
                 "conflict": {
                     "event_id": conflict.id,
                     "title": conflict.title,

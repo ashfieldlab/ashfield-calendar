@@ -1,6 +1,6 @@
-"""공개 캘린더 ICS subscription — 비인증 (ADR-0013).
+"""공개 캘린더 ICS subscription: 비인증 (ADR-0013).
 
-GET /calendars/{token}.ics — 토큰만으로 캘린더 ICS 응답. PIPA 마스킹 강제 (booking-linked).
+GET /calendars/{token}.ics: 토큰만으로 캘린더 ICS 응답. PIPA 마스킹 강제 (booking-linked).
 활성화 X 거나 토큰 일치 X 면 404. IP rate limit 적용.
 """
 
@@ -53,7 +53,7 @@ async def public_calendar_ics(
     )
     cal = (await db.execute(stmt)).scalar_one_or_none()
     if cal is None:
-        # 활성화 안 됨 / 폐기 / 미존재 모두 동일 404 — 토큰 추측 공격 정보 누설 방지
+        # 활성화 안 됨 / 폐기 / 미존재 모두 동일 404: 토큰 추측 공격 정보 누설 방지
         raise HTTPException(404, "Not found")
 
     body = await render_subscription_ics(db, cal)

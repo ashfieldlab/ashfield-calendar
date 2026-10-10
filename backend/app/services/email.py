@@ -1,7 +1,7 @@
 """SMTP 발송 어댑터 + 알림 템플릿.
 
 DEV: settings.smtp_enabled=False 이면 발송 안 하고 로그만 남김.
-PROD: aiosmtplib 없이 stdlib smtplib 로 충분 — 호출 빈도 낮고 동기 OK (background task).
+PROD: aiosmtplib 없이 stdlib smtplib 로 충분: 호출 빈도 낮고 동기 OK (background task).
 
 수신자 확정:
   - users 테이블에서 email 조회 (lazy upsert 된 캐시)
@@ -32,7 +32,7 @@ from app.services.smtp_config import resolve as resolve_smtp
 
 @dataclass(frozen=True)
 class RenderedEmail:
-    """render() 결과 — sync send 가 multipart 분기에 쓰는 평탄 구조.
+    """render() 결과: sync send 가 multipart 분기에 쓰는 평탄 구조.
 
     is_html=True 면 _send_sync 가 text/plain + text/html 두 part 발송.
     text_fallback 이 비어 있으면 body 의 태그를 strip 해서 자동 생성.
@@ -52,7 +52,7 @@ def _html_to_text(html: str) -> str:
     s = re.sub(r"(?i)<br\s*/?>", "\n", html)
     s = re.sub(r"(?i)</p\s*>", "\n\n", s)
     s = _TAG_RE.sub("", s)
-    # HTML entity 일부만 처리 — 외부 lib 회피
+    # HTML entity 일부만 처리: 외부 lib 회피
     s = (
         s.replace("&nbsp;", " ")
         .replace("&amp;", "&")
@@ -63,10 +63,10 @@ def _html_to_text(html: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", s).strip()
 
 # ---------------------------------------------------------------------------
-# 템플릿 — 단순 문자열 포맷. Jinja2 도입은 Phase 3a-3 범위 밖.
+# 템플릿: 단순 문자열 포맷. Jinja2 도입은 Phase 3a-3 범위 밖.
 # ---------------------------------------------------------------------------
 
-# 시스템 기본 HTML — 회사가 커스텀 안 했을 때 외부 고객에게 가는 메일.
+# 시스템 기본 HTML: 회사가 커스텀 안 했을 때 외부 고객에게 가는 메일.
 # 회사 로고는 일부러 안 박음: 등록 안 한 회사도 깔끔하게 보이게 + 로고 등록한
 # 회사는 회사 설정 → 이메일 템플릿에서 직접 <img> 태그 추가.
 
@@ -184,7 +184,7 @@ _TEMPLATES: dict[str, tuple[str, str, bool]] = {
         "수락/거절: {base_url}/calendar\n",
         False,
     ),
-    # 외부 게스트에게 — 계정 없이 RSVP 링크로 수락/거절.
+    # 외부 게스트에게: 계정 없이 RSVP 링크로 수락/거절.
     # send_to_address 경로라 actor_name/organization_name 자동 주입 없음 → payload 로 직접 전달.
     "event_guest_invited": (
         "[{organization_name}] '{title}' 일정에 초대되었습니다",
@@ -201,49 +201,49 @@ _TEMPLATES: dict[str, tuple[str, str, bool]] = {
         False,
     ),
     "event_reminder": (
-        "[Ashfield] '{title}' — {minutes_before}분 전 알림",
+        "[Ashfield] '{title}': {minutes_before}분 전 알림",
         "'{title}' 일정 시작 {minutes_before}분 전입니다.\n"
         "시작: {occurrence_start}\n\n"
         "확인: {base_url}/calendar\n",
         False,
     ),
-    # 외부 고객에게 — 예약 접수 안내 (HTML 디자인)
+    # 외부 고객에게: 예약 접수 안내 (HTML 디자인)
     "booking_received_customer": (
         "[{organization_name}] '{title}' 예약을 접수했습니다",
         _BOOKING_HTML_RECEIVED,
         True,
     ),
-    # 운영자에게 — 새 예약 들어옴 (plain text 유지)
+    # 운영자에게: 새 예약 들어옴 (plain text 유지)
     "booking_received_operator": (
-        "[Ashfield] 새 예약이 들어왔습니다 — {title}",
+        "[Ashfield] 새 예약이 들어왔습니다: {title}",
         "{customer_name}({customer_email})님이 '{title}' 예약을 신청했습니다.\n"
         "일시: {slot_start_local}\n"
         "메시지: {customer_message}\n\n"
         "확인: {base_url}/booking-types\n",
         False,
     ),
-    # 고객 취소 — 운영자에게 통지 (plain text)
+    # 고객 취소: 운영자에게 통지 (plain text)
     "booking_cancelled_operator": (
-        "[Ashfield] 예약이 취소되었습니다 — {title}",
+        "[Ashfield] 예약이 취소되었습니다: {title}",
         "{customer_name}님이 '{title}' 예약을 취소했습니다.\n"
         "취소된 일시: {slot_start_local}\n",
         False,
     ),
-    # 취소 완료 — 고객에게 (HTML)
+    # 취소 완료: 고객에게 (HTML)
     "booking_cancelled_customer": (
         "[{organization_name}] '{title}' 예약 취소 완료",
         _BOOKING_HTML_CANCELLED,
         True,
     ),
-    # 시간 변경 — 고객에게 (HTML)
+    # 시간 변경: 고객에게 (HTML)
     "booking_rescheduled_customer": (
         "[{organization_name}] '{title}' 예약 시간 변경 안내",
         _BOOKING_HTML_RESCHEDULED,
         True,
     ),
-    # 시간 변경 — 운영자(들)에게 (plain text)
+    # 시간 변경: 운영자(들)에게 (plain text)
     "booking_rescheduled_operator": (
-        "[Ashfield] 예약 시간이 변경되었습니다 — {title}",
+        "[Ashfield] 예약 시간이 변경되었습니다: {title}",
         "{customer_name}님의 '{title}' 예약 시간이 변경되었습니다.\n"
         "이전: {old_slot_local}\n"
         "변경: {new_slot_local}\n",
@@ -260,7 +260,7 @@ async def render(
     *,
     company_id: str | None = None,
 ) -> RenderedEmail | None:
-    """Render subject/body — 회사 override(있으면) → 시스템 기본.
+    """Render subject/body: 회사 override(있으면) → 시스템 기본.
 
     db=None 인 경우는 시스템 기본만 사용 (백그라운드 worker 등 db 가용 불가시).
     회사 override 가 is_html=True 면 RenderedEmail.is_html=True, text_fallback 동봉.
@@ -321,7 +321,7 @@ def category_of(event_type: str) -> str | None:
 async def resolve_recipient(
     db: AsyncSession, *, recipient_sub: str, event_type: str | None = None
 ) -> str | None:
-    """수신 이메일 — 마스터 off거나 해당 카테고리 off면 None(발송 안 함)."""
+    """수신 이메일: 마스터 off거나 해당 카테고리 off면 None(발송 안 함)."""
     pref = await db.get(UserNotificationPreference, recipient_sub)
     if pref is not None:
         if not pref.email_enabled:
@@ -376,7 +376,7 @@ def _send_sync(cfg: SmtpRuntime, to_email: str, email: RenderedEmail) -> None:
     msg["From"] = f"{cfg.from_name} <{cfg.from_addr}>"
     msg["To"] = to_email
     if email.is_html:
-        # multipart/alternative — plain 먼저, html 가 alternative.
+        # multipart/alternative: plain 먼저, html 가 alternative.
         # RFC 2046: text/plain 을 먼저 set_content, html 은 add_alternative.
         text_part = email.text_fallback or _html_to_text(email.body)
         msg.set_content(text_part)
@@ -387,7 +387,7 @@ def _send_sync(cfg: SmtpRuntime, to_email: str, email: RenderedEmail) -> None:
     # tls_mode:
     #   'ssl'      → SMTP_SSL (implicit TLS, 보통 465)
     #   'starttls' → SMTP plain → starttls() 후 인증·발송 (보통 587)
-    #   'none'     → 평문 SMTP (보통 25 / 2525 — 운영 비추천)
+    #   'none'     → 평문 SMTP (보통 25 / 2525: 운영 비추천)
     if cfg.tls_mode == "ssl":
         with SMTP_SSL(cfg.host, cfg.port, timeout=10) as smtp:
             if cfg.user:
@@ -409,7 +409,7 @@ async def send_to_address(
     payload: dict,
     company_id: str | None = None,
 ) -> None:
-    """User 테이블 lookup 없이 직접 발송 — 외부 고객(booking 알림 등)."""
+    """User 테이블 lookup 없이 직접 발송: 외부 고객(booking 알림 등)."""
     async with AsyncSessionLocal() as db:
         cfg = await resolve_smtp(db, company_id=company_id)
         if cfg is None:
@@ -480,7 +480,7 @@ async def send_for_event(
         if to_email is None:
             return "skipped"
         actor_name = await resolve_actor_name(db, actor_sub=actor_sub)
-        # organization_* 자동 fill — booking 외 알림 (event_invited 등) 도
+        # organization_* 자동 fill: booking 외 알림 (event_invited 등) 도
         # 회사 브랜드 헤더를 사용한 HTML 템플릿 커스터마이즈 가능하게. 호출처가 이미
         # payload 에 채웠으면 보존 (booking 의 dispatch_*_emails 호환).
         if company_id and "organization_name" not in payload:

@@ -4,7 +4,7 @@
 @import "./theme.css";
 
 /* -----------------------------------------------------------------------
- * FullCalendar — 앱 톤(모노톤 gray) + Pretendard 매칭.
+ * FullCalendar: 앱 톤(모노톤 gray) + Pretendard 매칭.
  * v6 CSS 변수 + 일부 selector override.
  * ----------------------------------------------------------------------- */
 .fc {
@@ -109,7 +109,7 @@
   color: theme("colors.blue.500");
 }
 .fc .fc-day-other .fc-daygrid-day-number {
-  /* gray-400(#9ca3af)와 gray-500(#6b7280) 사이 — 인접월이라 muted 유지하되 가독성 확보 */
+  /* gray-400(#9ca3af)와 gray-500(#6b7280) 사이: 인접월이라 muted 유지하되 가독성 확보 */
   color: #8b92a1;
 }
 .fc .fc-day-today .fc-daygrid-day-number {
@@ -167,7 +167,7 @@
   padding: 0.5rem 0.75rem;
 }
 
-/* 월 뷰 — 셀당 이벤트 초과 시 "+N 더보기" 링크 (회색 텍스트) */
+/* 월 뷰: 셀당 이벤트 초과 시 "+N 더보기" 링크 (회색 텍스트) */
 .fc .fc-daygrid-more-link {
   color: theme("colors.gray.500");
   font-size: 0.75rem;
@@ -180,7 +180,7 @@
   border-radius: 4px;
 }
 
-/* 월 뷰 "+N 더보기" 팝오버 — 기본 z-index(9999)가 앱 모달(z-50) 위로 떠서
+/* 월 뷰 "+N 더보기" 팝오버: 기본 z-index(9999)가 앱 모달(z-50) 위로 떠서
    일정 편집 모달과 겹침. 모달보다 아래로 낮춰 모달이 덮도록. */
 .fc .fc-popover {
   z-index: 30;

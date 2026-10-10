@@ -3,7 +3,7 @@
 캘린더 내 CalendarEvent 의 add/modify/delete 마다 row 1개. 클라이언트가 본인이
 가진 sync_token 이후의 변경분만 받아 효율적 sync.
 
-Sabre 가 이 테이블을 INSERT — FastAPI 측 mutation 도 같이 기록해야 양방향 정합.
+Sabre 가 이 테이블을 INSERT: FastAPI 측 mutation 도 같이 기록해야 양방향 정합.
 TRIGGER 로 자동화 가능.
 """
 

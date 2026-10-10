@@ -1,8 +1,8 @@
-"""Redis 기반 fixed-window rate limit — 공개 라우트 (ADR-0011) 용.
+"""Redis 기반 fixed-window rate limit: 공개 라우트 (ADR-0011) 용.
 
 키 패턴:
-  rl:public:ip:{ip}:{minute}        — IP 분당 N개
-  rl:public:email:{email}:{minute}  — 이메일 분당 1개 (booking 시점에 추가 검사)
+  rl:public:ip:{ip}:{minute}       : IP 분당 N개
+  rl:public:email:{email}:{minute} : 이메일 분당 1개 (booking 시점에 추가 검사)
 
 윈도우는 60초 fixed. Redis SETNX + EX. 다음 분에 자동 초기화.
 """
@@ -30,7 +30,7 @@ async def check_ip_limit(ip: str, limit_per_minute: int) -> None:
         if n == 1:
             await r.expire(key, 65)  # 1분 + 여유
     except Exception as exc:
-        # Redis 다운 시 fail-open — 차단 안 함, warning 로그.
+        # Redis 다운 시 fail-open: 차단 안 함, warning 로그.
         logger.warning(
             "rate_limit_redis_unavailable",
             extra={"category": "api", "error": str(exc)},

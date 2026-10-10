@@ -1,4 +1,4 @@
-"""/api/v1/rooms — 회의실(Room) 관리 (ADR-0019).
+"""/api/v1/rooms: 회의실(Room) 관리 (ADR-0019).
 
 - 목록(GET): 활성 회사 멤버 누구나 (이벤트 폼에서 방 선택용).
 - 생성·수정·삭제: 회사 관리자만.
@@ -46,7 +46,7 @@ class RoomListResponse(BaseModel):
 async def _assert_company_admin(
     db: AsyncSession, user: UserContext, company_id: str
 ) -> None:
-    """활성 회사의 관리자(role='admin' 또는 System Admin)만 — 쓰기용. ADR-0010."""
+    """활성 회사의 관리자(role='admin' 또는 System Admin)만: 쓰기용. ADR-0010."""
     if user.is_system_admin:
         return
     m = await db.get(UserCompanyMembership, (user.sub, company_id))
@@ -120,6 +120,6 @@ async def delete_room(
 ) -> None:
     await _assert_company_admin(db, user, company_id)
     room = await get_room_or_404(db, room_id=room_id, company_id=company_id)
-    # events.room_id 는 SET NULL — 참조 이벤트는 방만 해제되고 보존.
+    # events.room_id 는 SET NULL: 참조 이벤트는 방만 해제되고 보존.
     await db.delete(room)
     await db.commit()

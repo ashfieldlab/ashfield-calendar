@@ -1,7 +1,7 @@
-"""Calendar — 회사 단위 일정 컨테이너 (ADR-0007).
+"""Calendar: 회사 단위 일정 컨테이너 (ADR-0007).
 
 scope=personal: 본인만 접근, 자동 가시 (본인이 만들면 본인에게 자동 보임).
-scope=shared: 같은 company 멤버 모두 자동 가시 — URL 별 ICS 구독 모델 대체.
+scope=shared: 같은 company 멤버 모두 자동 가시: URL 별 ICS 구독 모델 대체.
 source=native: 사용자가 작성. source=external_ics: Phase 2 (read-only 외부 동기화).
 """
 
@@ -51,7 +51,7 @@ class Calendar(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    # ICS subscription (ADR-0013) — opt-in. 활성 시 토큰 발급, 비활성 시 토큰 null + endpoint 404.
+    # ICS subscription (ADR-0013): opt-in. 활성 시 토큰 발급, 비활성 시 토큰 null + endpoint 404.
     # booking-linked event 는 응답 시 강제 마스킹 (PIPA).
     subscription_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"
@@ -60,7 +60,7 @@ class Calendar(Base, TimestampMixin):
         String(64), nullable=True, unique=True
     )
 
-    # CalDAV sync (ADR-0014) — RFC 6578 collection-sync REPORT 의 sync-token 값.
+    # CalDAV sync (ADR-0014): RFC 6578 collection-sync REPORT 의 sync-token 값.
     # 캘린더 내 객체 변경 시 1 씩 증가. 클라이언트는 이 값 기준으로 변경분만 동기화.
     sync_token: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="1"

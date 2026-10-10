@@ -50,7 +50,7 @@ def _to_utc(value: datetime | date) -> datetime:
         if value.tzinfo is None:
             return value.replace(tzinfo=UTC)
         return value.astimezone(UTC)
-    # date — all_day. 자정으로 정규화
+    # date: all_day. 자정으로 정규화
     return datetime.combine(value, time.min, tzinfo=UTC)
 
 

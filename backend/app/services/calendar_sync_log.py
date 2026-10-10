@@ -1,4 +1,4 @@
-"""CalDAV sync REPORT (RFC 6578) 용 변경 로그 — CalendarEvent ORM 이벤트 hook.
+"""CalDAV sync REPORT (RFC 6578) 용 변경 로그: CalendarEvent ORM 이벤트 hook.
 
 외부 캘린더 앱이 sync_token=N 이후 변경분만 받기 위해 호출하는 sync REPORT 에 응답
 하려면, 우리 FastAPI 가 만든·수정한·삭제한 이벤트도 `calendar_object_changes` 에
@@ -29,7 +29,7 @@ def _uri_for(target: CalendarEvent) -> str:
 
 
 def _record_change(connection, calendar_id: str, object_uri: str, operation: int) -> None:
-    """calendars.sync_token 증가 + calendar_object_changes INSERT — 같은 트랜잭션."""
+    """calendars.sync_token 증가 + calendar_object_changes INSERT: 같은 트랜잭션."""
     result = connection.execute(
         text(
             "UPDATE calendars SET sync_token = sync_token + 1 "
@@ -39,7 +39,7 @@ def _record_change(connection, calendar_id: str, object_uri: str, operation: int
     )
     row = result.first()
     if row is None:
-        # 캘린더가 삭제됐다면 row 없음. 정상 — 더 이상 sync 대상 아님.
+        # 캘린더가 삭제됐다면 row 없음. 정상: 더 이상 sync 대상 아님.
         return
     new_token = int(row[0])
     connection.execute(

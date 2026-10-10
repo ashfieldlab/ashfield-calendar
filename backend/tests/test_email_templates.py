@@ -1,4 +1,4 @@
-"""/api/v1/companies/{id}/email-templates — override CRUD + 변수 검증 + 권한."""
+"""/api/v1/companies/{id}/email-templates: override CRUD + 변수 검증 + 권한."""
 
 import pytest
 
@@ -146,7 +146,7 @@ async def test_preview_renders_sample_variables(client, auth_headers, db_session
     )
     assert res.status_code == 200
     body = res.json()
-    # 미리보기는 회사 등록 이름이 있으면 그걸 사용 — lazy upsert 된 acme-corp
+    # 미리보기는 회사 등록 이름이 있으면 그걸 사용: lazy upsert 된 acme-corp
     assert "acme-corp" in body["subject"]
     assert "홍길동" in body["body"]
 
@@ -167,9 +167,9 @@ async def test_put_html_with_text_fallback(client, auth_headers, db_session):
     h = await _make_admin(client, auth_headers, db_session, "f", "acme-corp")
     payload = {
         "subject": "[{organization_name}] {title}",
-        "body": "<p>{customer_name}님 — <b>{slot_start_local}</b></p>",
+        "body": "<p>{customer_name}님: <b>{slot_start_local}</b></p>",
         "is_html": True,
-        "text_fallback": "{customer_name}님 — {slot_start_local}",
+        "text_fallback": "{customer_name}님: {slot_start_local}",
     }
     res = await client.put(
         "/api/v1/companies/acme-corp/email-templates/booking_received_customer",
@@ -243,7 +243,7 @@ async def test_render_returns_html_rendered_email(client, auth_headers, db_sessi
         CompanyEmailTemplate(
             company_id="acme-corp",
             event_type="booking_received_customer",
-            subject="HTML — {title}",
+            subject="HTML: {title}",
             body="<p>안녕 {customer_name}</p>",
             is_html=True,
             text_fallback=None,
@@ -276,7 +276,7 @@ async def test_resolve_render_uses_company_override(
     client, auth_headers, db_session
 ):
     """services/email.render() 가 회사 override 우선 적용한다."""
-    # company row 가 있어야 FK 통과 — lazy upsert
+    # company row 가 있어야 FK 통과: lazy upsert
     h = auth_headers("u1", groups=["acme-corp"], active_company="acme-corp")
     await client.get("/api/v1/me", headers=h)
 
@@ -287,7 +287,7 @@ async def test_resolve_render_uses_company_override(
         CompanyEmailTemplate(
             company_id="acme-corp",
             event_type="booking_received_customer",
-            subject="OVERRIDE — {title}",
+            subject="OVERRIDE: {title}",
             body="안녕 {customer_name}",
         )
     )

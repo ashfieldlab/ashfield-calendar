@@ -13,7 +13,7 @@ use Sabre\DAV\PropPatch;
  *
  * 회사 격리: 매 backend 호출마다 (a) HTTP Basic Authorization 헤더의 username 으로
  * user_sub 추출, (b) DB 의 caldav_tokens 에서 그 user 의 active token row 로
- * company_id 결정. PHP 프로세스 메모리(static 등) 의존 X — fresh DB 만 신뢰.
+ * company_id 결정. PHP 프로세스 메모리(static 등) 의존 X: fresh DB 만 신뢰.
  *
  * 토큰이 acme-corp 이면 다른 회사 캘린더 보일 일 절대 없음.
  */
@@ -174,7 +174,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
         }
         $userSub = $this->currentUserSub();
         if ($userSub === null) {
-            // assertCanWrite 가 이미 거부해야 정상 — 방어적 가드.
+            // assertCanWrite 가 이미 거부해야 정상: 방어적 가드.
             throw new \Sabre\DAV\Exception\NotAuthenticated('Authentication required');
         }
         $eventId = $this->newUuid();
@@ -217,7 +217,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     public function updateCalendarObject($calendarId, $objectUri, $calendarData): ?string
     {
         $this->assertCanWrite($calendarId);
-        // booking-linked 차단 — 우리 booking 시스템이 만든 이벤트는 외부 수정 금지
+        // booking-linked 차단: 우리 booking 시스템이 만든 이벤트는 외부 수정 금지
         $existing = $this->findEventByUri($calendarId, $objectUri);
         if ($existing === null) {
             throw new NotFound('Event not found');
@@ -289,7 +289,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     }
 
     /**
-     * RFC 6578 collection-sync REPORT — sync_token 이후 변경분 반환.
+     * RFC 6578 collection-sync REPORT: sync_token 이후 변경분 반환.
      *
      * @return array|null
      */
@@ -365,7 +365,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     }
 
     /**
-     * 토큰의 company_id 가 이 캘린더에 접근 가능한지 — 회사 격리 강제.
+     * 토큰의 company_id 가 이 캘린더에 접근 가능한지: 회사 격리 강제.
      *
      * 현 request 의 HTTP Basic username (= user_sub) 와 그 user 의 active token
      * 의 company 를 매번 DB 에서 fresh lookup. 프로세스 메모리 의존 X.
@@ -398,7 +398,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
      *
      * AuthPlugin 이 beforeMethod 에서 이미 검증 완료 후에만 method handler 가 호출되므로
      * 헤더의 username 신뢰 가능. $_SERVER 는 PHP 가 매 request 마다 새로 채우는
-     * request-scoped global — process memory stale 위험 없음.
+     * request-scoped global: process memory stale 위험 없음.
      */
     private function currentUserSub(): ?string
     {
@@ -582,7 +582,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
             return null;
         }
         $vevent = $vcal->VEVENT;
-        // 여러 VEVENT (반복의 occurrence override 등) 가능 — master 한 건만 처리
+        // 여러 VEVENT (반복의 occurrence override 등) 가능: master 한 건만 처리
         if (is_iterable($vevent) && !($vevent instanceof \Sabre\VObject\Component)) {
             foreach ($vevent as $ev) {
                 $vevent = $ev;
@@ -622,7 +622,7 @@ class CalendarBackend extends AbstractBackend implements SyncSupport
     }
 
     /**
-     * PHP 에서 uuid v4 — uuid 패키지 없이 직접 (이벤트 id 용).
+     * PHP 에서 uuid v4: uuid 패키지 없이 직접 (이벤트 id 용).
      */
     private function newUuid(): string
     {

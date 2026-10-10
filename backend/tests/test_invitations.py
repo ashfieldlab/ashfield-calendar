@@ -1,4 +1,4 @@
-"""Event invitations — 초대 → 가시화, 응답, declined 제외."""
+"""Event invitations: 초대 → 가시화, 응답, declined 제외."""
 
 from datetime import UTC, datetime, timedelta
 

@@ -64,7 +64,7 @@ export function BookingTypeForm({
   const { data: calData } = useApiGet<CalendarListResponse>("/api/v1/calendars")
   const calendars = calData?.calendars ?? []
   // company-owned 일 때만 회사 멤버 fetch (다중 선택용).
-  // GET /members 는 company admin 전용 — 일반 사용자가 fetch 시도하면 403 야기.
+  // GET /members 는 company admin 전용: 일반 사용자가 fetch 시도하면 403 야기.
   // UI 측에서 owner_type='company' 옵션도 admin 에게만 허용하므로 fetch 도 admin 일 때만.
   const { data: memberData } = useApiGet<CompanyMemberList>(
     isCompanyAdmin && activeCompanyId
@@ -128,13 +128,13 @@ export function BookingTypeForm({
     )
   }
 
-  // target 으로 선택 가능한 목록 — ownerType 일치
+  // target 으로 선택 가능한 목록: ownerType 일치
   const targetCandidates = calendars.filter(
     (c) =>
       (ownerType === "user" && c.scope === "personal") ||
       (ownerType === "company" && c.scope === "shared"),
   )
-  // blocking 후보 — target 제외
+  // blocking 후보: target 제외
   const blockingCandidates = calendars.filter(
     (c) => c.id !== targetCalendarId,
   )

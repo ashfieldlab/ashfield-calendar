@@ -1,4 +1,4 @@
-"""CalendarEvent — 일정 (반복 포함).
+"""CalendarEvent: 일정 (반복 포함).
 
 반복: rrule (RFC 5545 텍스트). recurrence_exceptions = 이 occurrence 만 제외할 ISO datetime 목록.
 단일 occurrence 삭제는 series 를 지우지 않고 exception 추가로 처리.
@@ -35,7 +35,7 @@ class CalendarEvent(Base, TimestampMixin):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    # 회의실(Room) 참조 — 선택 (ADR-0019). 방 삭제 시 이벤트 보존 위해 SET NULL.
+    # 회의실(Room) 참조: 선택 (ADR-0019). 방 삭제 시 이벤트 보존 위해 SET NULL.
     room_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("rooms.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -67,7 +67,7 @@ class CalendarEvent(Base, TimestampMixin):
 
     # CalDAV 통합 (ADR-0014). Sabre 가 URL 슬러그로 사용. 우리 UI 생성 시엔 id 와 동일하게 set.
     dav_uri: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    # 외부 CalDAV 클라이언트가 보낸 raw ICS — round-trip 손실 방지. 우리 UI 생성 시 NULL,
+    # 외부 CalDAV 클라이언트가 보낸 raw ICS: round-trip 손실 방지. 우리 UI 생성 시 NULL,
     # Sabre 가 변경 시 자기 직렬화 결과로 덮어씀.
     raw_ics: Mapped[str | None] = mapped_column(Text, nullable=True)
 

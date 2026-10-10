@@ -1,4 +1,4 @@
-"""/api/v1/me/activity — 본인 관련 audit_log 타임라인.
+"""/api/v1/me/activity: 본인 관련 audit_log 타임라인.
 
 본인 관련 = 본인이 한 행동 OR 본인이 받은 알림에 연결된 entity.
 관리자 전체 audit 와 달리 일반 사용자가 볼 수 있음.
@@ -22,7 +22,7 @@ from app.models.user import User
 class ActivityItem(BaseModel):
     id: str
     actor_sub: str | None
-    actor_name: str | None  # users 캐시에서 표시명 — 없으면 None (UI fallback 처리)
+    actor_name: str | None  # users 캐시에서 표시명: 없으면 None (UI fallback 처리)
     action: str
     entity_type: str
     entity_id: str
@@ -48,7 +48,7 @@ async def my_activity(
     company_id: str = Depends(require_active_company),
     db: AsyncSession = Depends(get_db),
 ) -> ActivityResponse:
-    # 본인이 받은 알림에 연결된 entity_id 집합 — 본인이 영향받은 변경 추적
+    # 본인이 받은 알림에 연결된 entity_id 집합: 본인이 영향받은 변경 추적
     notif_entity_ids_stmt = select(Notification.entity_id).where(
         and_(
             Notification.recipient_sub == user.sub,
@@ -75,7 +75,7 @@ async def my_activity(
     )
     rows = list((await db.execute(stmt)).scalars().all())
 
-    # actor 표시명 한 번에 조회 — N+1 회피
+    # actor 표시명 한 번에 조회: N+1 회피
     actor_subs = {r.actor_sub for r in rows if r.actor_sub}
     names: dict[str, str | None] = {}
     if actor_subs:

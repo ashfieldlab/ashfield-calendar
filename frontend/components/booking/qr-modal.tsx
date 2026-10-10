@@ -11,7 +11,7 @@ interface Props {
 }
 
 /**
- * 공개 URL 의 QR 코드 모달 — 부스 출력·인쇄 용. PNG 다운로드 버튼.
+ * 공개 URL 의 QR 코드 모달: 부스 출력·인쇄 용. PNG 다운로드 버튼.
  */
 export function QrModal({ url, title, onClose }: Props) {
   const [dataUrl, setDataUrl] = useState<string | null>(null)

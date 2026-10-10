@@ -1,4 +1,4 @@
-"""/api/v1/companies/{id}/profile — 로고 URL CRUD + 권한 + 검증."""
+"""/api/v1/companies/{id}/profile: 로고 URL CRUD + 권한 + 검증."""
 
 import pytest
 

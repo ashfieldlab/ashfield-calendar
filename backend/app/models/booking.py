@@ -1,4 +1,4 @@
-"""Booking — 외부 고객이 제출한 예약 인스턴스 (ADR-0012).
+"""Booking: 외부 고객이 제출한 예약 인스턴스 (ADR-0012).
 
 각 Booking 은 1:1 로 CalendarEvent 와 연결 (calendar_event_id). 운영자는 평소
 캘린더 뷰에서 그대로 본다. 취소 시 둘 다 정리.
@@ -50,17 +50,17 @@ class Booking(Base, TimestampMixin):
         unique=True,
     )
 
-    # PII — 30일 후 마스킹 대상
+    # PII: 30일 후 마스킹 대상
     customer_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     customer_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # 동의 시각 — PIPA 제15조 동의 기록
+    # 동의 시각: PIPA 제15조 동의 기록
     agreed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
 
-    # 취소 토큰 — secrets.token_urlsafe(16) ~ 22 chars. 취소 후 NULL.
+    # 취소 토큰: secrets.token_urlsafe(16) ~ 22 chars. 취소 후 NULL.
     cancel_token: Mapped[str | None] = mapped_column(
         String(64), nullable=True, unique=True, index=True
     )
@@ -75,7 +75,7 @@ class Booking(Base, TimestampMixin):
         String(16), nullable=True
     )
 
-    # 감사 — 마스킹 대상
+    # 감사: 마스킹 대상
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

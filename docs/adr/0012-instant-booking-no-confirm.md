@@ -1,8 +1,8 @@
-# 즉시 등록 약속 모델 — RSVP 컨펌 흐름 폐기
+# 즉시 등록 약속 모델: RSVP 컨펌 흐름 폐기
 
 ## 컨텍스트
 
-외부 고객 예약 기능을 도입한다 (BookingType / Booking — CONTEXT.md). 표준 흐름은 두 갈래:
+외부 고객 예약 기능을 도입한다 (BookingType / Booking: CONTEXT.md). 표준 흐름은 두 갈래:
 
 **A. 컨펌 메일 흐름** (Nextcloud Appointments)
 1. 고객 폼 제출
@@ -16,7 +16,7 @@
 
 ## 결정
 
-**B 채택** — 즉시 등록.
+**B 채택**: 즉시 등록.
 
 ```
 [공개 페이지] /book/{public_key}
@@ -29,9 +29,9 @@
    │ ③ 충돌 검사 (existing Booking + blocking_calendar 이벤트)
    │ ④ Booking + CalendarEvent INSERT (한 트랜잭션)
    │ ⑤ 운영자에게 in-app + 이메일 (기존 SMTP resolve)
-   │ ⑥ 고객에게 안내 이메일 ("예약 접수했습니다 — 일시·취소 링크")
+   │ ⑥ 고객에게 안내 이메일 ("예약 접수했습니다: 일시·취소 링크")
    ▼
-"감사합니다 — 안내 메일 발송했습니다" 페이지
+"감사합니다: 안내 메일 발송했습니다" 페이지
 ```
 
 ## 왜 A 를 안 채택했나
@@ -57,14 +57,14 @@
 
 ## 동의·보관
 
-PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권리)을 폼 안에 인라인 표시. 별도 약관 페이지 X — 회사 측 부담 최소화. 동의 미체크 시 제출 차단. `Booking.agreed_at` 에 timestamp 기록.
+PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권리)을 폼 안에 인라인 표시. 별도 약관 페이지 X: 회사 측 부담 최소화. 동의 미체크 시 제출 차단. `Booking.agreed_at` 에 timestamp 기록.
 
-보관 기간은 `slot_end_at + 30일`. `purge_expired_booking_pii` cron (기존 trash purge 패턴) 이 매일 1회 만료 row 의 `customer_name/customer_email/message/cancel_token` NULL 로 마스킹 — row 자체는 통계용 보존.
+보관 기간은 `slot_end_at + 30일`. `purge_expired_booking_pii` cron (기존 trash purge 패턴) 이 매일 1회 만료 row 의 `customer_name/customer_email/message/cancel_token` NULL 로 마스킹: row 자체는 통계용 보존.
 
 ## 대안
 
 ### A. 컨펌 메일 흐름 (Nextcloud)
-- 이메일 검증 자연 — 하지만 사용자 마찰·예약 누락이 단점
+- 이메일 검증 자연: 하지만 사용자 마찰·예약 누락이 단점
 - 마케팅 부서의 일관된 불만 (Nextcloud GitHub issue 다수)
 - 기각
 
@@ -92,10 +92,10 @@ PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권�
 - `app/jobs/purge_booking_pii.py` cron
 - email template `booking_received` (고객용) + `booking_received_operator` (운영자용)
 - frontend `/book/{public_key}` 공개 페이지 + `/cancel/{token}` 페이지
-- frontend 운영자 페이지 — BookingType CRUD + 공개 URL 복사 + Booking 목록
+- frontend 운영자 페이지: BookingType CRUD + 공개 URL 복사 + Booking 목록
 
 ## 참고
 
-- ADR-0007 — 캘린더 모델 (Booking 이 여기 CalendarEvent 로 매핑)
-- ADR-0010 — 회사 admin 권한 (BookingType.owner_type=company 인 경우 require_company_admin)
-- ADR-0011 — 공개 라우트 카브-아웃 (이 모델이 위에서 동작)
+- ADR-0007: 캘린더 모델 (Booking 이 여기 CalendarEvent 로 매핑)
+- ADR-0010: 회사 admin 권한 (BookingType.owner_type=company 인 경우 require_company_admin)
+- ADR-0011: 공개 라우트 카브-아웃 (이 모델이 위에서 동작)

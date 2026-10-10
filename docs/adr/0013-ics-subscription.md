@@ -1,4 +1,4 @@
-# ADR-0013 — 캘린더 ICS subscription (외부 미러 + PIPA 마스킹)
+# ADR-0013: 캘린더 ICS subscription (외부 미러 + PIPA 마스킹)
 
 - **상태**: 결정 (2026-06-07)
 - **컨텍스트 ADR**: [0011](0011-public-route-carveout.md) 공개 라우트 카브-아웃
@@ -10,9 +10,9 @@ Ashfield 일정을 일방향 미러링하려는 요구. CalDAV 풀구현은 헤�
 이지만 ICS subscription 은 대부분 외부 캘린더 앱이 지원하는 단방향 사용 케이스에 충분.
 
 핵심 위험은 외부 라우트가 다음 두 가지를 동시에 노출한다는 점:
-- **자격 증명 부재** — 외부 캘린더 클라이언트는 OAuth/세션 인증을 못 보냄.
+- **자격 증명 부재**: 외부 캘린더 클라이언트는 OAuth/세션 인증을 못 보냄.
   토큰-in-URL 만 가능 (Google Calendar private ICS URL, Outlook publish URL 패턴 동일).
-- **고객 PII** — booking 으로부터 만든 `CalendarEvent` 의 title/description 에
+- **고객 PII**: booking 으로부터 만든 `CalendarEvent` 의 title/description 에
   외부 고객의 이름·자유 텍스트 메시지가 들어 있음. 그대로 노출하면
   PIPA "수집 목적 외 이용" 위반 (고객은 "예약 처리" 동의했지 "운영자의 외부 캘린더 앱
   서버로 전송" 까지 동의 X).
@@ -21,7 +21,7 @@ Ashfield 일정을 일방향 미러링하려는 요구. CalDAV 풀구현은 헤�
 
 ### 1. 단방향 ICS subscription 만 지원 (CalDAV 미구현)
 
-`GET /api/public/v1/calendars/{token}.ics` — 인증 없는 외부 라우트, ICS 응답.
+`GET /api/public/v1/calendars/{token}.ics`: 인증 없는 외부 라우트, ICS 응답.
 CalDAV 는 양방향 sync 가 정말 필요해질 때 별도 ADR.
 
 ### 2. 보안 안전장치 (필수)
@@ -29,7 +29,7 @@ CalDAV 는 양방향 sync 가 정말 필요해질 때 별도 ADR.
 | 항목 | 정책 |
 |---|---|
 | 토큰 길이 | `secrets.token_urlsafe(32)` (≈ 43자) |
-| 활성화 | **opt-in** — 기본 OFF, 운영자 명시적 활성화 (활성 안 됐으면 endpoint 404) |
+| 활성화 | **opt-in**: 기본 OFF, 운영자 명시적 활성화 (활성 안 됐으면 endpoint 404) |
 | HTTPS | 운영에서 강제 (배포 단 reverse proxy) |
 | 회전 | 운영자가 "토큰 재발급" 클릭 시 새 토큰. 기존 URL 즉시 무효 |
 | 비활성화 | 토큰 null + endpoint 404 |
@@ -43,9 +43,9 @@ CalDAV 는 양방향 sync 가 정말 필요해질 때 별도 ADR.
 |---|---|
 | 개인 (scope=personal) | 소유자만 |
 | 회사 공유 (scope=shared) | Company Admin 만 (활동이 외부 노출되는 결정이라 보수적) |
-| 초대받은(invited) | 불가 — 본인 데이터 아니므로 |
+| 초대받은(invited) | 불가: 본인 데이터 아니므로 |
 
-### 4. PIPA 마스킹 — **booking-linked event 는 비협상 강제 마스킹**
+### 4. PIPA 마스킹: **booking-linked event 는 비협상 강제 마스킹**
 
 ICS subscription 응답에서 `Booking.calendar_event_id` 로 연결된 `CalendarEvent` 는:
 
@@ -56,7 +56,7 @@ ICS subscription 응답에서 `Booking.calendar_event_id` 로 연결된 `Calenda
 | `LOCATION` | 비움 |
 | `DTSTART` / `DTEND` / `RRULE` | 그대로 (BUSY 표시 용도) |
 
-운영자가 직접 만든 event 는 마스킹 X. 토글 없음(코드 상수) —
+운영자가 직접 만든 event 는 마스킹 X. 토글 없음(코드 상수).
 운영자 실수로 풀모드 켜면 PIPA 위반 + 회복 불가(외부 서버에 sync 된 데이터 회수 X).
 필요해지면 별도 ADR + 위탁 동의 약관 갱신 후 추가.
 

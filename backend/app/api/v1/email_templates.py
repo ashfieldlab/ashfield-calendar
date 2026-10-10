@@ -1,4 +1,4 @@
-"""/api/v1/companies/{id}/email-templates — Company Admin 이메일 템플릿 override.
+"""/api/v1/companies/{id}/email-templates: Company Admin 이메일 템플릿 override.
 
 대상 event_type 은 services/email_template.CUSTOMIZABLE_EVENT_TYPES 화이트리스트.
 override row 가 있으면 services/email.render 가 시스템 기본보다 우선 적용.
@@ -27,7 +27,7 @@ router = APIRouter(
 
 
 class EmailTemplateItem(BaseModel):
-    """리스트 응답의 한 행 — 어떤 event_type 이 커스텀돼 있는지."""
+    """리스트 응답의 한 행: 어떤 event_type 이 커스텀돼 있는지."""
 
     event_type: str
     label: str
@@ -50,7 +50,7 @@ class EmailTemplateDetail(BaseModel):
     text_fallback: str | None = None
     default_subject: str
     default_body: str
-    # 시스템 기본 템플릿이 HTML 인지 — 회사가 커스텀 안 한 새 row 의 초기값 결정에 사용.
+    # 시스템 기본 템플릿이 HTML 인지: 회사가 커스텀 안 한 새 row 의 초기값 결정에 사용.
     default_is_html: bool = False
 
 
@@ -114,7 +114,7 @@ async def list_templates(
 @router.get(
     "/{event_type}",
     response_model=EmailTemplateDetail,
-    summary="이메일 템플릿 단건 — 현재 active (override 또는 기본)",
+    summary="이메일 템플릿 단건: 현재 active (override 또는 기본)",
 )
 async def get_template(
     company_id: str = Path(...),
@@ -198,7 +198,7 @@ async def put_template(
 @router.delete(
     "/{event_type}",
     status_code=204,
-    summary="회사 override 삭제 — 시스템 기본 사용으로 복귀",
+    summary="회사 override 삭제: 시스템 기본 사용으로 복귀",
 )
 async def delete_template(
     company_id: str = Path(...),
@@ -226,7 +226,7 @@ async def delete_template(
 @router.post(
     "/{event_type}/preview",
     response_model=EmailTemplatePreviewResponse,
-    summary="템플릿 미리보기 — 샘플 변수로 렌더링",
+    summary="템플릿 미리보기: 샘플 변수로 렌더링",
 )
 async def preview_template(
     body: EmailTemplatePreviewRequest,
@@ -236,11 +236,11 @@ async def preview_template(
     db: AsyncSession = Depends(get_db),
 ) -> EmailTemplatePreviewResponse:
     _assert_supported(event_type)
-    # 저장 전 검증 — 운영자에게 즉시 에러 피드백
+    # 저장 전 검증: 운영자에게 즉시 에러 피드백
     validate_template(
         event_type, body.subject, body.body, text_fallback=body.text_fallback
     )
-    # 회사 등록 정보가 있으면 placeholder 대신 실제 값 사용 — 미리보기가 발송과 일치하게.
+    # 회사 등록 정보가 있으면 placeholder 대신 실제 값 사용: 미리보기가 발송과 일치하게.
     ctx = dict(SAMPLE_VARIABLES[event_type])
     from app.models.company import Company
     from app.services.email_template import make_brand_html

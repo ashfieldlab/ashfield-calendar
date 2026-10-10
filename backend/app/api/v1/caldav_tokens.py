@@ -1,4 +1,4 @@
-"""/api/v1/me/caldav-tokens — CalDAV App Token CRUD (ADR-0014).
+"""/api/v1/me/caldav-tokens: CalDAV App Token CRUD (ADR-0014).
 
 사용자가 본인 캘린더를 외부 캘린더 앱 (Apple Calendar/Thunderbird/DAVx5 등)
 과 sync 하기 위해 발급. (user_sub, active_company_id) 한 쌍에 묶임.
@@ -51,7 +51,7 @@ class CalDavTokenCreated(BaseModel):
     name: str
     company_id: str
     username: str  # = user_sub. 사용자 친화적으로 별도 키 노출
-    secret: str  # 평문 — 이 응답에만 한 번
+    secret: str  # 평문: 이 응답에만 한 번
     server_url: str  # 사용자 안내용 (URL 고정)
 
 
@@ -61,7 +61,7 @@ def _generate_secret() -> str:
 
 
 def _hash_secret(secret: str) -> str:
-    """bcrypt — PHP password_verify 와 호환되는 $2b$ 포맷."""
+    """bcrypt: PHP password_verify 와 호환되는 $2b$ 포맷."""
     return bcrypt.hashpw(secret.encode(), bcrypt.gensalt()).decode()
 
 
@@ -109,7 +109,7 @@ async def list_tokens(
     "",
     response_model=CalDavTokenCreated,
     status_code=201,
-    summary="CalDAV 토큰 발급 — secret 평문은 응답에만",
+    summary="CalDAV 토큰 발급: secret 평문은 응답에만",
 )
 async def create_token(
     body: CalDavTokenCreate,
@@ -158,7 +158,7 @@ async def create_token(
 @router.delete(
     "/{token_id}",
     status_code=204,
-    summary="CalDAV 토큰 폐기 — 즉시 무효",
+    summary="CalDAV 토큰 폐기: 즉시 무효",
 )
 async def revoke_token(
     token_id: str = Path(...),

@@ -1,4 +1,4 @@
-"""Audit log helper — 변경 일으키는 라우터가 호출.
+"""Audit log helper: 변경 일으키는 라우터가 호출.
 
 write_audit() 는 row 만 add, commit 은 호출자가 함께 (트랜잭션 일체화).
 """

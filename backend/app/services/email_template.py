@@ -2,7 +2,7 @@
 
 회사 override 우선, 없으면 services/email.py 의 _TEMPLATES 시스템 기본.
 
-대상 (CUSTOMIZABLE_EVENT_TYPES) 은 외부 고객용 3종만 — 내부 알림은 운영자가 받기
+대상 (CUSTOMIZABLE_EVENT_TYPES) 은 외부 고객용 3종만: 내부 알림은 운영자가 받기
 때문에 커스텀 가치 낮음. event_type 화이트리스트로 confused-deputy 방지.
 """
 
@@ -21,7 +21,7 @@ def make_brand_html(organization_name: str, logo_url: str | None) -> str:
     """헤더에 들어갈 회사 로고/이름 HTML 조각.
 
     logo_url 등록 시 <img>, 미등록 시 회사명 텍스트로 fallback.
-    더미 이미지 사용 X — 등록 안 한 회사는 텍스트만 보임.
+    더미 이미지 사용 X: 등록 안 한 회사는 텍스트만 보임.
     """
     name_esc = html.escape(organization_name or "")
     if logo_url:
@@ -35,17 +35,17 @@ def make_brand_html(organization_name: str, logo_url: str | None) -> str:
         f'letter-spacing:1px; color:#65435c;">{name_esc}</span>'
     )
 
-# 화이트리스트 — 이 이외 event_type 으로는 override 저장 불가
+# 화이트리스트: 이 이외 event_type 으로는 override 저장 불가
 CUSTOMIZABLE_EVENT_TYPES: dict[str, str] = {
-    "booking_received_customer": "예약 접수 — 고객",
-    "booking_cancelled_customer": "예약 취소 — 고객",
-    "booking_rescheduled_customer": "예약 시간 변경 — 고객",
+    "booking_received_customer": "예약 접수: 고객",
+    "booking_cancelled_customer": "예약 취소: 고객",
+    "booking_rescheduled_customer": "예약 시간 변경: 고객",
     "event_invited": "일정 초대",
     "event_invitation_response": "일정 초대 응답",
     "event_reminder": "일정 시작 전 알림",
 }
 
-# 각 event 에 사용 가능한 {변수} 키 — render 시 항상 채워짐
+# 각 event 에 사용 가능한 {변수} 키: render 시 항상 채워짐
 KNOWN_VARIABLES: dict[str, list[str]] = {
     "booking_received_customer": [
         "customer_name",
@@ -107,7 +107,7 @@ KNOWN_VARIABLES: dict[str, list[str]] = {
     ],
 }
 
-# render 미리보기 — 운영자가 편집 중 보는 sample data
+# render 미리보기: 운영자가 편집 중 보는 sample data
 SAMPLE_VARIABLES: dict[str, dict[str, str]] = {
     "booking_received_customer": {
         "customer_name": "홍길동",
@@ -169,13 +169,13 @@ SAMPLE_VARIABLES: dict[str, dict[str, str]] = {
     },
 }
 
-# 시스템 기본 정의는 services/email.py 의 _TEMPLATES — 단방향 참조 회피용 lazy import
+# 시스템 기본 정의는 services/email.py 의 _TEMPLATES: 단방향 참조 회피용 lazy import
 _VAR_PATTERN = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
 
 def extract_variables(text: str) -> set[str]:
     """{var} 패턴 추출. {{ 와 }} (literal brace) 는 제외."""
-    # str.format 의 escape: {{ → {, }} → } — 추출 전 제거
+    # str.format 의 escape: {{ → {, }} → }: 추출 전 제거
     stripped = text.replace("{{", "").replace("}}", "")
     return set(_VAR_PATTERN.findall(stripped))
 
@@ -189,7 +189,7 @@ def validate_template(
 ) -> None:
     """subject/body/text_fallback 가 화이트리스트 외 변수를 쓰지 않는지 검증.
 
-    빈 값 / 너무 긴 값도 BusinessError. text_fallback 은 옵션 — 주어졌으면 검증.
+    빈 값 / 너무 긴 값도 BusinessError. text_fallback 은 옵션: 주어졌으면 검증.
     """
     if event_type not in CUSTOMIZABLE_EVENT_TYPES:
         raise BusinessError(
@@ -244,7 +244,7 @@ async def resolve_template(
 ) -> tuple[str, str] | None:
     """company override → 시스템 기본 (_TEMPLATES). 둘 다 없으면 None.
 
-    리턴: (subject_template, body_template). 호환용 — render 는 resolve_full_template 사용.
+    리턴: (subject_template, body_template). 호환용: render 는 resolve_full_template 사용.
     """
     full = await resolve_full_template(
         db, event_type=event_type, company_id=company_id

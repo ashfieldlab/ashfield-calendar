@@ -1,4 +1,4 @@
-"""반복 일정 '이 회차만 수정' — series EXDATE + 독립 이벤트 분리."""
+"""반복 일정 '이 회차만 수정': series EXDATE + 독립 이벤트 분리."""
 
 from datetime import UTC, datetime, timedelta
 

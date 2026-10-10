@@ -1,4 +1,4 @@
-"""/api/v1/booking-types — 운영자 CRUD + 권한 분기 (E-1)."""
+"""/api/v1/booking-types: 운영자 CRUD + 권한 분기 (E-1)."""
 
 import pytest
 
@@ -97,7 +97,7 @@ async def test_company_owned_requires_shared_calendar(client, auth_headers, db_s
 
     h = auth_headers("alice", groups=["acme-corp"], active_company="acme-corp", roles=["admin"])
     await client.get("/api/v1/me", headers=h)
-    cal_id = await _make_personal_calendar(client, h)  # personal — 거부돼야
+    cal_id = await _make_personal_calendar(client, h)  # personal: 거부돼야
 
     res = await client.post(
         "/api/v1/booking-types",

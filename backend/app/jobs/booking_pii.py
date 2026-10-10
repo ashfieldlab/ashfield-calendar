@@ -1,4 +1,4 @@
-"""Booking PII 자동 마스킹 cron — ADR-0012 + PIPA 제21조 (지체 없이 파기).
+"""Booking PII 자동 마스킹 cron: ADR-0012 + PIPA 제21조 (지체 없이 파기).
 
 slot_end_at + settings.booking_pii_retention_days(기본 30) 지난 row 의
 개인정보 필드(name/email/message/cancel_token/ip/user_agent) NULL 로 마스킹.

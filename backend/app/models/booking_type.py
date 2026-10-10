@@ -1,12 +1,12 @@
-"""BookingType — 외부 고객 예약 양식 (ADR-0012).
+"""BookingType: 외부 고객 예약 양식 (ADR-0012).
 
 운영자가 정의: 공개 URL · 가용 시간 · duration · capacity · 충돌 체크 캘린더 ·
 booking 알림 받을 사람. 공개 페이지(`/book/{public_key}`) 에서 슬롯 계산 후
 고객이 선택 → Booking 생성.
 
 owner_type:
-  'user'    — 개인 양식. owner_user_sub 가짐. 권한: 본인만.
-  'company' — 회사 양식. owner_company_id 가짐. 권한: 그 회사 admin.
+  'user'   : 개인 양식. owner_user_sub 가짐. 권한: 본인만.
+  'company': 회사 양식. owner_company_id 가짐. 권한: 그 회사 admin.
 
 CHECK 제약: 정확히 owner_user_sub XOR owner_company_id.
 """
@@ -46,7 +46,7 @@ class BookingType(Base, TimestampMixin):
         String(128), ForeignKey("companies.id"), nullable=True
     )
 
-    # 공개 URL — secrets.token_urlsafe(8) ~ 11 chars, 유추 불가
+    # 공개 URL: secrets.token_urlsafe(8) ~ 11 chars, 유추 불가
     public_key: Mapped[str] = mapped_column(
         String(32), nullable=False, unique=True, index=True
     )
@@ -71,7 +71,7 @@ class BookingType(Base, TimestampMixin):
         Integer, nullable=False, server_default="30"
     )
 
-    # 캘린더 — 예약은 target_calendar 에 INSERT, blocking_calendar 들은 충돌 체크용
+    # 캘린더: 예약은 target_calendar 에 INSERT, blocking_calendar 들은 충돌 체크용
     target_calendar_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("calendars.id"), nullable=False
     )
@@ -82,7 +82,7 @@ class BookingType(Base, TimestampMixin):
     # 정원
     capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
-    # 알림 — booking 들어오면 in-app + 이메일 보낼 사용자들
+    # 알림: booking 들어오면 in-app + 이메일 보낼 사용자들
     notify_user_subs: Mapped[list[str]] = mapped_column(
         JSONB, nullable=False, default=list
     )

@@ -1,8 +1,8 @@
-"""공개 일정 RSVP 라우트 — 비인증 (ADR-0011).
+"""공개 일정 RSVP 라우트: 비인증 (ADR-0011).
 
 외부 게스트가 이메일 링크(/rsvp/{token})로 일정 초대에 응답한다.
-  GET   /events/rsvp/{token}   — 초대/일정 요약 (노출 최소화)
-  POST  /events/rsvp/{token}   — 수락/거절/미정
+  GET   /events/rsvp/{token}  : 초대/일정 요약 (노출 최소화)
+  POST  /events/rsvp/{token}  : 수락/거절/미정
 
 노출 최소화: 일정 제목·시작/종료·초대 회사명·본인 이메일만. 운영자 신원·다른
 초대자 정보 X. 보호: IP rate limit + audit log.
@@ -38,7 +38,7 @@ def _client_ip(request: Request, x_forwarded_for: str | None) -> str:
 
 
 class PublicRsvpView(BaseModel):
-    """공개 표시 — 운영자 신원·다른 초대자 노출 X."""
+    """공개 표시: 운영자 신원·다른 초대자 노출 X."""
 
     title: str
     start_at: datetime

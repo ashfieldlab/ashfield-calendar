@@ -1,4 +1,4 @@
-# ADR-0014 — CalDAV 양방향 sync (Sabre/DAV + App Token 인증)
+# ADR-0014: CalDAV 양방향 sync (Sabre/DAV + App Token 인증)
 
 - **상태**: 결정 (2026-06-07)
 - **컨텍스트 ADR**:
@@ -10,7 +10,7 @@
 [ADR-0013](0013-ics-subscription.md) 의 ICS subscription 으로 단방향 read 는 커버되지만, 운영자가 본인 자체 호스팅 Nextcloud / Apple Calendar / Thunderbird 에서 일정을 **만들고·수정**하길 원하는 요구. 양방향 sync 가 필요.
 
 핵심 제약:
-- **외부 CalDAV 클라이언트는 HTTP Basic 만 보냄** (OAuth 받는 클라이언트 거의 없음 — DAVx5 일부 제외). 웹 로그인용 JWT(Better Auth, 5분 수명) 직접 전송 불가.
+- **외부 CalDAV 클라이언트는 HTTP Basic 만 보냄** (OAuth 받는 클라이언트 거의 없음: DAVx5 일부 제외). 웹 로그인용 JWT(Better Auth, 5분 수명) 직접 전송 불가.
 - **JWT exp 가 짧음** (수십 분). 캘린더 앱은 수년간 한 번 등록하고 쓰는 패턴.
 - **CalDAV 풀구현은 1-2개월**, 클라이언트 quirk 매트릭스 큼.
 - **Python 생태계에 동급 CalDAV 라이브러리 없음**. Radicale 도 호환성 충분하지만 우리 도메인 모델과 통합 시 plugin API ergonomic 떨어짐.
@@ -61,9 +61,9 @@ WHERE company_id = $token.company_id
 
 다른 회사 캘린더는 토큰이 다르므로 노출 불가.
 
-#### 3.1 TokenContext 폐기 — DB-only (2026-06-08)
+#### 3.1 TokenContext 폐기: DB-only (2026-06-08)
 
-초기 구현은 `validateUserPass` 단계에서 `(user_sub, company_id)` 를 정적 클래스 (`TokenContext`) 에 set 한 뒤 `getCalendarsForUser` 가 그 값을 읽는 형태였음. 운영 첫 배포에서 일부 호출 시점에 `TokenContext` 가 NULL 상태로 backend 가 호출되는 케이스 관찰 — 결과적으로 빈 캘린더 목록 → individual calendar 404.
+초기 구현은 `validateUserPass` 단계에서 `(user_sub, company_id)` 를 정적 클래스 (`TokenContext`) 에 set 한 뒤 `getCalendarsForUser` 가 그 값을 읽는 형태였음. 운영 첫 배포에서 일부 호출 시점에 `TokenContext` 가 NULL 상태로 backend 가 호출되는 케이스 관찰: 결과적으로 빈 캘린더 목록 → individual calendar 404.
 
 vendor 코드 분석 (AuthPlugin priority 10, DAVACL 20, 다른 plugin 은 `beforeMethod` 미등록) 상 이론적으로 발생하지 않아야 하나, PHP-FPM multi-worker 환경의 race / 미확인 edge case 로 추정. 정적 변수는 process scope (worker 가 살아있는 동안 유지) 라 우리가 명시 reset 안 하면 stale 값 위험도 존재.
 
@@ -72,7 +72,7 @@ vendor 코드 분석 (AuthPlugin priority 10, DAVACL 20, 다른 plugin 은 `befo
 1. **user_sub**: `$_SERVER['HTTP_AUTHORIZATION']` 의 HTTP Basic 헤더에서 직접 추출 (request-scoped global, stale 위험 없음)
 2. **company_id**: `caldav_tokens WHERE user_sub = ? AND revoked_at IS NULL` 로 매번 DB lookup
 
-성능 영향 무시 가능 — `caldav_tokens.user_sub` index 로 ~0.1ms / 호출. 정확성 > 성능.
+성능 영향 무시 가능: `caldav_tokens.user_sub` index 로 ~0.1ms / 호출. 정확성 > 성능.
 
 ```php
 private function currentUserSub(): ?string {
@@ -87,7 +87,7 @@ private function currentUserSub(): ?string {
 
 `TokenContext.php` 클래스 삭제. AuthPlugin 이 method handler 호출 전에 검증을 완료하므로 backend 에 도달한 시점의 Authorization 헤더 username 신뢰 가능.
 
-### 4. 마스킹 X — 인증 채널이라 PIPA 마스킹 불필요
+### 4. 마스킹 X: 인증 채널이라 PIPA 마스킹 불필요
 
 [ADR-0013](0013-ics-subscription.md) 의 마스킹은 **token-in-URL 비인증** 라우트의 destination 불명 위험 때문. CalDAV 는:
 - 인증 채널 (HTTP Basic + DB 검증)
@@ -98,14 +98,14 @@ private function currentUserSub(): ?string {
 
 대신 안전장치:
 - 토큰 발급 시 약관 명시: "이 토큰은 운영자 본인의 트러스트 안에서만 사용. 외부 SaaS (Google/Apple iCloud) 에 등록 시 PIPA 위탁 검토 필요"
-- App Token 별 access log (`last_used_at` + IP 별 audit) — 의심스러우면 revoke
+- App Token 별 access log (`last_used_at` + IP 별 audit): 의심스러우면 revoke
 - 분리 권고: 외부 공개용 = ICS subscription (마스킹), 본인 통합용 = CalDAV (풀모드)
 
 ### 5. write 경로 정책
 
 외부 클라이언트 → Sabre → DB:
 - 일반 native event: 자유 (생성·수정·삭제 모두 OK)
-- **booking-linked event = 외부 수정 차단 (403)** — booking 시스템과의 일관성 유지. read 만 허용
+- **booking-linked event = 외부 수정 차단 (403)**: booking 시스템과의 일관성 유지. read 만 허용
 - external_ics calendar 도 외부 write 차단 (기존 정책 유지)
 - 모든 mutation audit_logs 기록
 

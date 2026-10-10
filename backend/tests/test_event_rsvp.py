@@ -1,4 +1,4 @@
-"""외부 게스트 일정 초대 — 이메일 초대 + 공개 RSVP 토큰 (ADR-0011)."""
+"""외부 게스트 일정 초대: 이메일 초대 + 공개 RSVP 토큰 (ADR-0011)."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -60,7 +60,7 @@ async def test_external_guest_invite_and_rsvp(
     assert body["invitee_email"] == "guest@ext.example"
     assert body["response"] == "pending"
 
-    # rsvp_token 은 응답에 노출되지 않음 — DB 에서만 확인.
+    # rsvp_token 은 응답에 노출되지 않음: DB 에서만 확인.
     inv = (
         await db_session.execute(
             select(CalendarEventInvitation).where(
@@ -71,13 +71,13 @@ async def test_external_guest_invite_and_rsvp(
     token = inv.rsvp_token
     assert token and len(token) >= 16
 
-    # 공개 GET — 로그인 없이 요약.
+    # 공개 GET: 로그인 없이 요약.
     r = await client.get(f"/api/public/v1/events/rsvp/{token}")
     assert r.status_code == 200
     assert r.json()["title"] == "외부미팅"
     assert r.json()["response"] == "pending"
 
-    # 공개 POST — 수락.
+    # 공개 POST: 수락.
     r = await client.post(
         f"/api/public/v1/events/rsvp/{token}", json={"response": "accepted"}
     )

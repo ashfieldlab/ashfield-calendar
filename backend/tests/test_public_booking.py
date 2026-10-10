@@ -1,4 +1,4 @@
-"""공개 booking 라우트 — 비인증, 동의·honeypot·rate limit (E-3)."""
+"""공개 booking 라우트: 비인증, 동의·honeypot·rate limit (E-3)."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -150,7 +150,7 @@ async def test_honeypot_silently_rejects(client, auth_headers):
     assert res.status_code == 201
     # 하지만 실제 토큰은 'discarded'
     assert res.json()["cancel_token"] == "discarded"
-    # 슬롯도 여전히 가용 — 실제로 안 만들어짐
+    # 슬롯도 여전히 가용: 실제로 안 만들어짐
     from_ = _FROM
     to = _TO
     res = await client.get(
@@ -203,7 +203,7 @@ async def test_submit_race_capacity_1_returns_409(client, auth_headers):
     res2 = await client.post(f"/api/public/v1/booking/{pk}/submit", json=payload2)
     assert res2.status_code == 409
     body = res2.json()
-    # BusinessError 형식 — code + message + params (skeleton 표준)
+    # BusinessError 형식: code + message + params (skeleton 표준)
     assert body["code"] == "BOOKING_SLOT_FULL"
     assert body["params"]["capacity"] == 1
     assert "request_id" in body

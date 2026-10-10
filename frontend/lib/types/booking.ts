@@ -1,4 +1,4 @@
-/** 외부 고객 예약 — BookingType / Booking 도메인 타입 (E-1~E-5 backend 와 매칭). */
+/** 외부 고객 예약: BookingType / Booking 도메인 타입 (E-1~E-5 backend 와 매칭). */
 
 export type BookingTypeOwner = "user" | "company"
 

@@ -1,6 +1,6 @@
 """FastAPI 측 CalendarEvent mutation 이 calendar_object_changes 에 자동 기록되는지.
 
-ADR-0014 — 외부 캘린더 앱이 sync REPORT 효율 sync 받으려면 우리 측 변경도
+ADR-0014: 외부 캘린더 앱이 sync REPORT 효율 sync 받으려면 우리 측 변경도
 같은 로그에 들어가야 함. SQLAlchemy ORM event listener 가 hook.
 """
 

@@ -214,7 +214,7 @@ export default function CalDavTokensPage() {
         </div>
       )}
 
-      {/* 발급된 secret 노출 모달 — 한 번만 */}
+      {/* 발급된 secret 노출 모달: 한 번만 */}
       {created && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"

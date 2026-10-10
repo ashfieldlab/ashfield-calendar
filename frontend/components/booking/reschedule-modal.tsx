@@ -23,7 +23,7 @@ export function RescheduleModal({
 }: Props) {
   const { toast } = useToast()
 
-  // 기본값 — 기존 슬롯 + 1시간 후로 제안
+  // 기본값: 기존 슬롯 + 1시간 후로 제안
   const initial = new Date(new Date(booking.slot_start_at).getTime() + 60 * 60 * 1000)
   const initialIso = isoForInput(initial)
 

@@ -1,4 +1,4 @@
-"""booking 서비스 — slot 계산 + race-safe 생성 + 취소 (E-2)."""
+"""booking 서비스: slot 계산 + race-safe 생성 + 취소 (E-2)."""
 
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -99,7 +99,7 @@ async def test_generate_slots_respects_minimum_notice(db_session):
     range_from = now
     range_to = now + timedelta(days=3)
     slots = generate_candidate_slots(bt, range_from, range_to, now=now)
-    # 월 슬롯은 다 잘림 (24h 안), 화도 weekly_schedule 에 없음 — 0
+    # 월 슬롯은 다 잘림 (24h 안), 화도 weekly_schedule 에 없음: 0
     # weekly 가 mon 만 있어서 → 다음 주 월요일 09:00 부터
     assert all(s > now + timedelta(hours=23) for s in slots)
 
@@ -198,7 +198,7 @@ async def test_create_booking_rejects_off_schedule_slot(db_session):
     bt = _make_bt(db_session)
     await db_session.flush()
     now = datetime(2026, 6, 1, tzinfo=UTC)
-    # 12:30 KST = 03:30 UTC — 점심시간 (블록 사이)
+    # 12:30 KST = 03:30 UTC: 점심시간 (블록 사이)
     off = datetime(2026, 6, 8, 3, 30, tzinfo=UTC)
 
     from app.core.errors import BusinessError
@@ -273,7 +273,7 @@ async def test_cancel_booking_idempotent(db_session):
     ev = await db_session.get(CalendarEvent, b1.calendar_event_id)
     assert ev.deleted_at is not None
 
-    # 두 번째 호출 — 멱등
+    # 두 번째 호출: 멱등
     b2 = await cancel_booking(db_session, cancel_token=token, by="customer", now=now)
     assert b2.status == "cancelled"
 

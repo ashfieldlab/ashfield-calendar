@@ -1,4 +1,4 @@
-"""calendars / events — 자동 가시, RRULE expand, occurrence 예외."""
+"""calendars / events: 자동 가시, RRULE expand, occurrence 예외."""
 
 from datetime import UTC, datetime, timedelta
 

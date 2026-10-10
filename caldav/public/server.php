@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Ashfield CalDAV Server — Sabre/DAV 엔트리 (ADR-0014).
+ * Ashfield CalDAV Server: Sabre/DAV 엔트리 (ADR-0014).
  *
  * 외부 캘린더 앱이 보낸 모든 CalDAV/WebDAV 요청 (PROPFIND, REPORT, GET, PUT, DELETE,
  * MKCALENDAR 등) 이 nginx → php-fpm 으로 라우팅돼 여기로 들어옴.
  *
- * 인증: HTTP Basic — username=user_sub, password=토큰 평문 (cdv_xxx).
+ * 인증: HTTP Basic: username=user_sub, password=토큰 평문 (cdv_xxx).
  * 권한 분기: 토큰에 박힌 (user_sub, company_id) 로 회사 격리.
  */
 
@@ -17,7 +17,7 @@ use Ashfield\Caldav\Backend\CalendarBackend;
 use Ashfield\Caldav\Backend\PrincipalBackend;
 
 // ---------------------------------------------------------------------------
-// DB 연결 — Postgres. backend 와 같은 DB.
+// DB 연결: Postgres. backend 와 같은 DB.
 // ---------------------------------------------------------------------------
 
 $dsn = getenv('CALDAV_DB_DSN');
@@ -75,7 +75,7 @@ $nodes = [
 
 $server = new \Sabre\DAV\Server($nodes);
 
-// URL 의 prefix — nginx 가 /caldav/* 로 들어온 요청을 그대로 전달.
+// URL 의 prefix: nginx 가 /caldav/* 로 들어온 요청을 그대로 전달.
 // Sabre 가 자기 URL 인식하게 baseUri 설정.
 $server->setBaseUri('/caldav/');
 

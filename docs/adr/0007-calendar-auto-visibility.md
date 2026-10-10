@@ -1,6 +1,6 @@
 # 캘린더: multi-calendar + 자동 가시성 (Nextcloud ICS 구독 패턴 폐기)
 
-Calendar는 별도 엔티티 (Google Calendar 패턴). 사용자 한 명은 여러 캘린더 보유 가능 — 회사 공유 캘린더는 **명시적 구독 액션 없이 자동 노출**.
+Calendar는 별도 엔티티 (Google Calendar 패턴). 사용자 한 명은 여러 캘린더 보유 가능: 회사 공유 캘린더는 **명시적 구독 액션 없이 자동 노출**.
 
 ## Nextcloud 문제
 
@@ -18,13 +18,13 @@ Nextcloud는 ICS URL 기반 공유. 회사 admin이 캘린더 만들고 URL 안�
 
 `calendars.source: 'native' | 'external_ics'` 컬럼:
 - `external_ics`: 외부 URL 주기적 fetch, readonly
-- `scope='shared' + source='external_ics'` 조합 가능 — 한 사용자가 외부 공휴일 ICS 구독해서 회사 전체에 자동 노출. Nextcloud엔 없는 시나리오.
+- `scope='shared' + source='external_ics'` 조합 가능: 한 사용자가 외부 공휴일 ICS 구독해서 회사 전체에 자동 노출. Nextcloud엔 없는 시나리오.
 
 ## UI
 
 Google Calendar 스타일 사이드바, 체크박스 hidden 토글:
 - 자동 가시 + 본인이 안 보고 싶으면 `user_calendar_preferences.hidden=true`
-- 구독은 자동, 숨김만 수동 — 반대 방향.
+- 구독은 자동, 숨김만 수동: 반대 방향.
 
 ## Phase
 

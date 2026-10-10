@@ -1,4 +1,4 @@
-"""/api/v1/events — 일정 CRUD + 범위 occurrence 조회 + .ics export + 초대.
+"""/api/v1/events: 일정 CRUD + 범위 occurrence 조회 + .ics export + 초대.
 
 반복 일정은 RFC 5545 RRULE 텍스트로 저장. `GET /events?from=&to=` 는 dateutil 로
 구간을 expand 한 occurrence 목록을 반환 (마스터 event 가 아니라 발생 인스턴스).
@@ -6,7 +6,7 @@
 초대받은 이벤트는 본인이 접근 권한 없는 캘린더의 일정이라도 occurrence 목록에 포함.
 declined 응답은 제외.
 
-source=external_ics 캘린더의 이벤트는 read-only — `POST/PATCH/DELETE` 모두 422.
+source=external_ics 캘린더의 이벤트는 read-only: `POST/PATCH/DELETE` 모두 422.
 """
 
 from datetime import UTC, datetime
@@ -112,7 +112,7 @@ def _event_to_vevent(ev: CalendarEvent) -> IcsEvent:
 @router.post(
     "/conflicts",
     response_model=AttendeeConflictsResponse,
-    summary="참석자 일정 겹침 — 업무 일정끼리만, 겹치는 사람만 (제목 비노출)",
+    summary="참석자 일정 겹침: 업무 일정끼리만, 겹치는 사람만 (제목 비노출)",
 )
 async def attendee_conflicts(
     body: AttendeeConflictsRequest,
@@ -179,7 +179,7 @@ async def list_events(
     status_code=201,
     summary="일정 생성",
     responses={
-        422: {"description": "external_ics 캘린더 — read-only"},
+        422: {"description": "external_ics 캘린더: read-only"},
         400: {"description": "end_at < start_at"},
         403: {"description": "캘린더 write 권한 없음"},
     },
@@ -248,7 +248,7 @@ async def export_event_ics(
     company_id: str = Depends(require_active_company),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """단건 .ics 다운로드 — RFC 5545. master + RRULE + EXDATE 그대로 export."""
+    """단건 .ics 다운로드: RFC 5545. master + RRULE + EXDATE 그대로 export."""
     ev, cal = await get_event_with_calendar_or_404(db, event_id)
     assert_calendar_access(cal, user=user, company_id=company_id, permission="read")
 
@@ -257,7 +257,7 @@ async def export_event_ics(
     ics.add("version", "2.0")
     ics.add_component(_event_to_vevent(ev))
     body = ics.to_ical()
-    # HTTP 헤더는 latin-1 — ASCII fallback + RFC 5987 UTF-8 percent-encoded.
+    # HTTP 헤더는 latin-1: ASCII fallback + RFC 5987 UTF-8 percent-encoded.
     # 브라우저는 filename* 우선 사용해 한글 파일명 그대로 표시.
     from urllib.parse import quote
 
@@ -310,7 +310,7 @@ async def patch_event(
     body: EventPatch,
     occurrence: datetime | None = Query(
         None,
-        description="ISO datetime. rrule 이벤트에서 주어지면 그 회차만 분리 수정 — "
+        description="ISO datetime. rrule 이벤트에서 주어지면 그 회차만 분리 수정: "
         "series 는 해당 회차를 EXDATE 처리하고 새 단일 이벤트를 만들어 반환.",
     ),
     user: UserContext = Depends(get_current_user),
@@ -338,7 +338,7 @@ async def patch_event(
         setattr(ev, k, v)
     if ev.end_at < ev.start_at:
         raise HTTPException(400, "end_at must be >= start_at")
-    # 회의실 지정 시 이중예약 차단 (변경 후 값 기준, 자기 자신 제외) — ADR-0019
+    # 회의실 지정 시 이중예약 차단 (변경 후 값 기준, 자기 자신 제외): ADR-0019
     if ev.room_id:
         await assert_room_free(
             db,
@@ -362,7 +362,7 @@ async def _detach_occurrence(
     user: UserContext,
     company_id: str,
 ) -> EventResponse:
-    """반복 일정의 한 회차만 수정 — 원 series 에서 그 회차를 EXDATE 하고,
+    """반복 일정의 한 회차만 수정: 원 series 에서 그 회차를 EXDATE 하고,
     수정된 값으로 rrule 없는 독립 이벤트를 새로 만들어 반환한다."""
     # 1) 원 series 에서 이 회차 제외 (삭제와 동일한 EXDATE 규칙).
     key = occurrence.astimezone(UTC).replace(microsecond=0).isoformat()
@@ -436,7 +436,7 @@ async def delete_event(
     event_id: str,
     occurrence: datetime | None = Query(
         None,
-        description="ISO datetime. 주어지면 그 occurrence 만 EXDATE 처리 — series 유지.",
+        description="ISO datetime. 주어지면 그 occurrence 만 EXDATE 처리: series 유지.",
     ),
     user: UserContext = Depends(get_current_user),
     company_id: str = Depends(require_active_company),
@@ -448,7 +448,7 @@ async def delete_event(
         raise HTTPException(422, "Cannot delete events on a non-native calendar")
     await _assert_not_booking_linked(db, event_id)
     if occurrence and ev.rrule:
-        # 단일 occurrence 만 제외 — series 유지
+        # 단일 occurrence 만 제외: series 유지
         key = occurrence.astimezone(UTC).replace(microsecond=0).isoformat()
         excs = list(ev.recurrence_exceptions or [])
         if key not in excs:
@@ -533,7 +533,7 @@ async def list_invitations(
     "/{event_id}/invitations",
     response_model=EventInvitationResponse,
     status_code=201,
-    summary="초대 추가 — 작성자/캘린더 owner 만",
+    summary="초대 추가: 작성자/캘린더 owner 만",
     responses={
         403: {"description": "creator/owner 아님"},
         404: {"description": "이벤트 없음"},
@@ -556,7 +556,7 @@ async def create_invitation(
     if ev.created_by_sub != user.sub and cal.owner_id != user.sub:
         raise HTTPException(403, "Only creator can invite")
 
-    # 대상 확정 — 정확히 하나. 이메일이 이미 아는 사용자면 내부 초대로 승격.
+    # 대상 확정: 정확히 하나. 이메일이 이미 아는 사용자면 내부 초대로 승격.
     invitee_sub = body.invitee_sub
     invitee_email = str(body.invitee_email).lower() if body.invitee_email else None
     if (invitee_sub is None) == (invitee_email is None):
@@ -633,7 +633,7 @@ async def _create_internal_invitation(
     user: UserContext,
     invitee_sub: str,
 ) -> EventInvitationResponse:
-    """내부 멤버 초대 — in-app 알림 + 이메일 (기존 동작)."""
+    """내부 멤버 초대: in-app 알림 + 이메일 (기존 동작)."""
     import uuid
 
     from sqlalchemy import select
@@ -735,7 +735,7 @@ async def patch_invitation(
 @router.delete(
     "/{event_id}/invitations/{invitation_id}",
     status_code=204,
-    summary="초대 제거 — 작성자/owner 만",
+    summary="초대 제거: 작성자/owner 만",
     responses={
         403: {"description": "creator/owner 아님"},
         404: {"description": "초대 없음"},

@@ -1,4 +1,4 @@
-"""/api/v1/calendars — 캘린더 CRUD + 개인 가시 토글 + 외부 ICS 구독.
+"""/api/v1/calendars: 캘린더 CRUD + 개인 가시 토글 + 외부 ICS 구독.
 
 자동 가시 (ADR-0007): 회사의 모든 shared 캘린더 + 본인 personal 캘린더 자동 노출.
 ICS URL 구독 방식의 재공유 불가 한계를 우회.
@@ -117,7 +117,7 @@ async def create_calendar(
     await db.flush()
 
     if is_external:
-        # 첫 fetch — 실패하면 캘린더도 생성 안 됨 (rollback)
+        # 첫 fetch: 실패하면 캘린더도 생성 안 됨 (rollback)
         await refresh_external_calendar(db, cal=cal, actor_sub=user.sub)
 
     await write_audit(
@@ -143,7 +143,7 @@ async def create_calendar(
     response_model=CalendarResponse,
     summary="캘린더 메타 수정 (이름·색·설명)",
     responses={
-        403: {"description": "write 권한 없음 — personal 의 owner 아님"},
+        403: {"description": "write 권한 없음: personal 의 owner 아님"},
         404: {"description": "없거나 다른 회사"},
     },
 )
@@ -303,7 +303,7 @@ async def refresh_calendar(
     company_id: str = Depends(require_active_company),
     db: AsyncSession = Depends(get_db),
 ) -> CalendarResponse:
-    """외부 ICS 캘린더 재동기화 — owner 또는 admin 만."""
+    """외부 ICS 캘린더 재동기화: owner 또는 admin 만."""
     cal = await get_calendar_or_404(db, calendar_id)
     assert_calendar_access(cal, user=user, company_id=company_id, permission="write")
     await refresh_external_calendar(db, cal=cal, actor_sub=user.sub)
@@ -329,7 +329,7 @@ class IcsImportResponse(BaseModel):
 @router.post(
     "/{calendar_id}/import-ics",
     response_model=IcsImportResponse,
-    summary="ICS 파일 1회성 import — 파일은 보관하지 않음",
+    summary="ICS 파일 1회성 import: 파일은 보관하지 않음",
     responses={
         400: {"description": "외부 ICS 구독 캘린더에는 import 불가"},
         413: {"description": "파일 5MB 초과"},
@@ -363,7 +363,7 @@ async def import_ics(
 
 
 # ---------------------------------------------------------------------------
-# ICS subscription (ADR-0013) — opt-in 토큰 기반 외부 미러
+# ICS subscription (ADR-0013): opt-in 토큰 기반 외부 미러
 # ---------------------------------------------------------------------------
 
 
@@ -376,7 +376,7 @@ class SubscriptionResponse(BaseModel):
 async def _assert_can_manage_subscription(
     db: AsyncSession, cal: Calendar, user: UserContext
 ) -> None:
-    """ADR-0013 권한 분기 — personal=소유자, shared=company admin."""
+    """ADR-0013 권한 분기: personal=소유자, shared=company admin."""
     if cal.scope == "personal":
         if cal.owner_id != user.sub:
             raise HTTPException(403, "Forbidden")
@@ -456,7 +456,7 @@ async def enable_subscription(
 @router.post(
     "/{calendar_id}/subscription/rotate",
     response_model=SubscriptionResponse,
-    summary="ICS subscription 토큰 회전 — 기존 URL 즉시 무효",
+    summary="ICS subscription 토큰 회전: 기존 URL 즉시 무효",
 )
 async def rotate_subscription(
     calendar_id: str,

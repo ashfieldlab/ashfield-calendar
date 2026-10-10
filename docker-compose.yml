@@ -40,7 +40,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # SMTP catcher — dev 전용. 실제 메일 발송 없이 web UI 로 확인.
+  # SMTP catcher: dev 전용. 실제 메일 발송 없이 web UI 로 확인.
   #   SMTP:  localhost:${MAILPIT_SMTP_HOST_PORT:-11035}
   #   Web:   http://localhost:${MAILPIT_WEB_HOST_PORT:-18035}
   mailpit:
@@ -54,7 +54,7 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
-  # CalDAV server (ADR-0014) — Sabre/DAV (PHP). 우리 backend 와 같은 DB 공유.
+  # CalDAV server (ADR-0014): Sabre/DAV (PHP). 우리 backend 와 같은 DB 공유.
   #   외부 캘린더 앱 endpoint: http://localhost:${CALDAV_HOST_PORT:-18090}/caldav/
   #   PROD 에선 같은 nginx 가 /caldav/* → caldav-nginx 로 라우팅
   caldav-php:
@@ -80,7 +80,7 @@ services:
     depends_on:
       - caldav-php
 
-  # 백그라운드 잡 워커 (arq) — cron 잡 실행 → JobRun 원장(모니터링 페이지 데이터원).
+  # 백그라운드 잡 워커 (arq): cron 잡 실행 → JobRun 원장(모니터링 페이지 데이터원).
   # backend 는 호스트 실행이지만 워커는 상주 프로세스라 컨테이너로(caldav-php 와 동일 패턴).
   # 라이브 잡 코드 마운트(app 만) → 이미지 재빌드 없이 워커 재시작만으로 반영.
   # 설정은 호스트 .env 상속 + 컨테이너 내부 주소(postgres/redis/mailpit)만 override.
@@ -99,7 +99,7 @@ services:
       SMTP_USE_TLS: "false"
     volumes:
       - ./backend/app:/app/app:ro
-    # 이미지 HEALTHCHECK 는 uvicorn :8000/health 용 — arq 워커엔 그 포트가 없어
+    # 이미지 HEALTHCHECK 는 uvicorn :8000/health 용: arq 워커엔 그 포트가 없어
     # 항상 unhealthy 로 오인됨. dev 에선 비활성화(잡 자체 관측은 JobRun 원장이 담당).
     healthcheck:
       disable: true

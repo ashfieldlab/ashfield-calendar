@@ -1,45 +1,54 @@
+<div align="center">
+
+<img src="frontend/public/icons/ashfield/mark.svg" width="72" alt="Ashfield" />
+
 # Ashfield Calendar
 
-멀티테넌트 일정·예약 앱입니다. 일정, 회의실, 외부 고객 예약, 알림, CalDAV 동기화를 다루며 데이터는 회사(테넌트) 단위로 격리됩니다. 파일 앱 [ashfield-drive](https://github.com/ashfieldlab/ashfield-drive)와는 레포·백엔드·DB가 분리된 별도 서비스입니다.
+일정과 회의실, 예약을 한곳에서
 
-문서: [CONTEXT.md](CONTEXT.md) (도메인 용어) · [docs/adr/](docs/adr/) (설계 결정) · [SPEC.md](SPEC.md)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![CalDAV](https://img.shields.io/badge/CalDAV-Sabre%2FDAV-777BB4?style=flat-square&logo=php&logoColor=white)](https://sabre.io/dav/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square)](LICENSE)
 
-## 구성
+</div>
 
-```
-frontend/   Next.js 16 · Tailwind · FullCalendar
-backend/    FastAPI · SQLAlchemy 2.0 async · Alembic · arq 워커
-caldav/     Sabre/DAV (PHP) CalDAV 서버, 같은 DB 공유
-infra       Postgres · Redis · Mailpit   (docker compose, dev)
-```
+팀의 일정을 함께 보고, 회의실을 잡고, 외부 손님의 예약까지 받습니다.
 
-## 현재 상태
+- **일정**: 반복 일정, 드래그로 옮기기, 멤버와 외부 손님 초대
+- **회의실**: 겹치지 않게 예약
+- **예약 페이지**: 외부 손님이 빈 시간을 골라 직접 예약
+- **어디서나 동기화**: CalDAV 와 ICS 로 휴대폰, 데스크톱 캘린더와 연결
 
-- 로그인은 [Ashfield 계정 서버](https://github.com/ashfieldlab/ashfield-account)(OIDC)를 통한 SSO 입니다. 한 번 로그인하면 Calendar·Drive 를 오갈 때 다시 로그인하지 않습니다 ([ADR-0024](docs/adr/0024-account-server-sso.md)).
-- 워크스페이스 소속과 멤버 관리는 계정 서버가 맡고, 앱은 로그인 토큰으로 소속을 동기화합니다.
-- 프론트엔드 UI 는 shadcn/ui(Radix + Tailwind 4) 기반 로컬 컴포넌트입니다 — `frontend/components/ui/`(shadcn 원본), `frontend/components/ui-custom/`(앱 프레임·사용자 메뉴·확인창·토스트 훅). 외부 비공개 패키지 의존은 없습니다.
+## 시작하기
 
-## 기능
+Node 24+, Python 3.14, Docker 가 필요합니다. [Ashfield Account](https://github.com/ashfieldlab/ashfield-account) 를 먼저 띄워 주세요.
 
-- **일정**: CRUD, 반복(RRULE, 회차별 수정·삭제), 드래그 이동·리사이즈, 내부 멤버·외부 게스트 초대(링크 RSVP), 회의실 예약(겹침 차단), CalDAV, 외부 ICS 구독
-- **예약**: 외부 고객용 공개 예약 폼, 가용 슬롯 계산, 취소·변경
-- **알림**: 인앱, 이메일(유형별 on/off), 웹훅, 시작 전 리마인더
-- **관리**: 멤버·권한, SMTP, 예약 메일 템플릿, 감사 로그(CSV 내보내기), 잡 실행 모니터링
-
-## 로컬 개발
-
-Ashfield 계정 서버(`ashfield-account`, http://localhost:3300)를 먼저 띄운 뒤 이 앱을 띄웁니다. 웹 3100, 백엔드 8100 을 씁니다.
-설치 순서, 환경 변수, 포트 표, E2E 전제는 [docs/local-dev.md](docs/local-dev.md) 에 있습니다.
-
-## 검증
-
-```
-make pytest        # 백엔드 테스트
-make vitest        # 프론트 단위·스토리북 테스트
-make e2e           # Playwright (계정 서버 필요, docs/local-dev.md)
-make typecheck     # 프론트 타입 체크
-make lint          # 프론트 eslint + 백엔드 ruff
-make ci-local      # 위 전체 + 프론트 빌드
+```bash
+make setup   # 의존성 설치, 인프라 기동, DB 준비
+make dev     # http://localhost:3100
 ```
 
-전체 명령은 `make help`.
+## 문서
+
+- [로컬 개발](docs/local-dev.md): 환경 변수, 포트, 테스트
+- [도메인 용어](CONTEXT.md)
+- [설계 결정](docs/adr/)
+
+## Ashfield
+
+| | |
+|---|---|
+| [Account](https://github.com/ashfieldlab/ashfield-account) | 계정 · 워크스페이스 |
+| [Calendar](https://github.com/ashfieldlab/ashfield-calendar) | 일정 · 회의실 · 예약 |
+| [Drive](https://github.com/ashfieldlab/ashfield-drive) | 파일 저장 · 공유 |
+| [Sync](https://github.com/ashfieldlab/ashfield-sync) | Drive 데스크톱 동기화 (Windows) |
+
+## 라이선스
+
+MIT

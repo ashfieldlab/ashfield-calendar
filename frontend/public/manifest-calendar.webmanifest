@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Ashfield Calendar",
   "short_name": "일정",
-  "description": "Ashfield Calendar — 캘린더·예약 앱.",
+  "description": "Ashfield Calendar: 캘린더·예약 앱.",
   "start_url": "/calendar",
   "scope": "/",
   "display": "standalone",

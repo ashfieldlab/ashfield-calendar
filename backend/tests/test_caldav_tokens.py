@@ -1,4 +1,4 @@
-"""CalDAV App Token API (ADR-0014) — 발급·목록·revoke + 회사 격리 + bcrypt 검증."""
+"""CalDAV App Token API (ADR-0014): 발급·목록·revoke + 회사 격리 + bcrypt 검증."""
 
 import bcrypt
 import pytest

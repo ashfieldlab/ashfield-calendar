@@ -1,9 +1,9 @@
-"""캘린더 알림 디스패처 — 매 분 cron.
+"""캘린더 알림 디스패처: 매 분 cron.
 
 전략:
   1. reminder_minutes_before 가 설정된 모든 이벤트 후보 fetch (deleted 제외).
      단일(rrule=NULL) 이벤트는 start_at 으로 lookback 윈도우 만큼 좁힘.
-     반복 이벤트는 전체 — expand_event 가 다음 occurrence 만 추림.
+     반복 이벤트는 전체: expand_event 가 다음 occurrence 만 추림.
   2. 각 후보에 대해 expand_event(range=[T + N - lookback, T + N + lookahead]).
      N = reminder_minutes_before.
   3. 각 occurrence 에 대해 dispatches PK insert 시도.
@@ -35,7 +35,7 @@ from app.services.notifications import emit_notification
 
 LOOKBACK = timedelta(minutes=5)
 LOOKAHEAD = timedelta(seconds=60)
-MAX_REMINDER_MINUTES = 10080  # 1주 — schema ge/le 와 동일
+MAX_REMINDER_MINUTES = 10080  # 1주: schema ge/le 와 동일
 
 
 async def _recipients(db: AsyncSession, ev: CalendarEvent) -> set[str]:
@@ -86,7 +86,7 @@ async def _dispatch_one(
             db,
             recipient_sub=sub,
             company_id=cal.company_id,
-            actor_sub=None,  # 시스템 발송 — 본인에게도 가야 함
+            actor_sub=None,  # 시스템 발송: 본인에게도 가야 함
             type_="event_reminder",
             entity_type="event",
             entity_id=ev.id,
@@ -143,7 +143,7 @@ async def dispatch_due_reminders(ctx: dict) -> int:
         else:
             await db.rollback()
 
-    # commit 후 이메일 발송 — 실패해도 dispatch row 는 남음 (재시도 X, in-app 은 정상).
+    # commit 후 이메일 발송: 실패해도 dispatch row 는 남음 (재시도 X, in-app 은 정상).
     for recipient_sub, company_id, payload in email_jobs:
         await send_for_event(
             recipient_sub=recipient_sub,

@@ -39,7 +39,7 @@ async def test_purge_old_pii(db_session):
     await db_session.flush()
 
     now = datetime.now(UTC)
-    # 35일 전 slot 종료 — 마스킹 대상
+    # 35일 전 slot 종료: 마스킹 대상
     old = Booking(
         id=str(uuid.uuid7()),
         booking_type_id=bt.id,
@@ -54,7 +54,7 @@ async def test_purge_old_pii(db_session):
         ip_address="1.2.3.4",
         user_agent="agent",
     )
-    # 5일 전 slot — 유지
+    # 5일 전 slot: 유지
     fresh = Booking(
         id=str(uuid.uuid7()),
         booking_type_id=bt.id,
@@ -70,7 +70,7 @@ async def test_purge_old_pii(db_session):
     db_session.add_all([old, fresh])
     await db_session.commit()
 
-    # patch AsyncSessionLocal — 같은 db_session 재사용
+    # patch AsyncSessionLocal: 같은 db_session 재사용
     import contextlib
 
     import app.jobs.booking_pii as mod
@@ -87,7 +87,7 @@ async def test_purge_old_pii(db_session):
     affected = await purge_expired_booking_pii({})
     assert affected == 1
 
-    # ORM identity map 우회 — 마스킹은 bulk UPDATE 라 session 객체는 stale
+    # ORM identity map 우회: 마스킹은 bulk UPDATE 라 session 객체는 stale
     from sqlalchemy import select, text
 
     row = (
@@ -112,6 +112,6 @@ async def test_purge_old_pii(db_session):
     ).one()
     assert row2[0] == "fresh@x.com"
 
-    # 멱등 — 두 번째 호출은 0
+    # 멱등: 두 번째 호출은 0
     affected2 = await purge_expired_booking_pii({})
     assert affected2 == 0

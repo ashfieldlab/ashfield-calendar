@@ -1,10 +1,10 @@
-"""공개 booking 라우트 — 비인증 (ADR-0011/0012).
+"""공개 booking 라우트: 비인증 (ADR-0011/0012).
 
 엔드포인트:
-  GET    /booking/{public_key}                — BookingType 공개 정보 (회사 이름 + 양식)
-  GET    /booking/{public_key}/slots          — 가용 슬롯 (range_from/range_to)
-  POST   /booking/{public_key}/submit         — 예약 제출 (honeypot + rate limit + 동의)
-  POST   /booking/cancel/{cancel_token}       — 취소
+  GET    /booking/{public_key}               : BookingType 공개 정보 (회사 이름 + 양식)
+  GET    /booking/{public_key}/slots         : 가용 슬롯 (range_from/range_to)
+  POST   /booking/{public_key}/submit        : 예약 제출 (honeypot + rate limit + 동의)
+  POST   /booking/cancel/{cancel_token}      : 취소
 
 노출 정보 최소화 (ADR-0011): 회사 이름 + 양식 title/description/duration 만.
 운영자 신원·이메일 노출 X. 다른 예약자 정보 노출 X.
@@ -46,12 +46,12 @@ router = APIRouter(prefix="/booking", tags=["public-booking"])
 
 
 # ---------------------------------------------------------------------------
-# 응답 모델 — 노출 정보 최소화
+# 응답 모델: 노출 정보 최소화
 # ---------------------------------------------------------------------------
 
 
 class PublicBookingTypeResponse(BaseModel):
-    """공개 표시 — 운영자 신원 노출 X."""
+    """공개 표시: 운영자 신원 노출 X."""
 
     public_key: str
     title: str
@@ -82,12 +82,12 @@ class PublicBookingSubmit(BaseModel):
     customer_email: EmailStr
     customer_message: str | None = Field(default=None, max_length=2000)
     consent: bool                          # 필수 동의
-    # honeypot — 사람은 비워둠. 봇이 채우면 거부.
+    # honeypot: 사람은 비워둠. 봇이 채우면 거부.
     website: str | None = Field(default=None, max_length=200)
 
 
 class PublicBookingResponse(BaseModel):
-    """제출 직후 응답 — 예약자에게 보여줄 정보 + cancel 링크용 token."""
+    """제출 직후 응답: 예약자에게 보여줄 정보 + cancel 링크용 token."""
 
     cancel_token: str
     slot_start_at: datetime
@@ -116,13 +116,13 @@ async def _get_active_or_404(
 async def _organization_branding(
     db: AsyncSession, bt: BookingType
 ) -> tuple[str, str | None]:
-    """노출용 — (name, logo_url). user-owned 면 logo_url 없음."""
+    """노출용: (name, logo_url). user-owned 면 logo_url 없음."""
     if bt.owner_company_id:
         c = await db.get(Company, bt.owner_company_id)
         if c is not None:
             return c.name, c.logo_url
         return bt.owner_company_id, None
-    # user-owned — 운영자 이름 노출 X. 도메인만 fallback, logo 없음.
+    # user-owned: 운영자 이름 노출 X. 도메인만 fallback, logo 없음.
     if bt.owner_user_sub:
         u = await db.get(User, bt.owner_user_sub)
         if u and u.email:
@@ -131,7 +131,7 @@ async def _organization_branding(
 
 
 async def _organization_name(db: AsyncSession, bt: BookingType) -> str:
-    """호환용 — 이름만 필요한 곳에서 사용."""
+    """호환용: 이름만 필요한 곳에서 사용."""
     name, _ = await _organization_branding(db, bt)
     return name
 
@@ -217,7 +217,7 @@ async def get_slots(
     "/{public_key}/submit",
     response_model=PublicBookingResponse,
     status_code=201,
-    summary="예약 제출 (즉시 등록 — ADR-0012)",
+    summary="예약 제출 (즉시 등록: ADR-0012)",
     responses={
         409: {"description": "슬롯 만석 또는 차단"},
         422: {"description": "동의 미체크, 가용 외 슬롯, validation 실패"},
@@ -237,13 +237,13 @@ async def submit_booking(
     await check_ip_limit(ip, per_ip)
     await check_email_limit(body.customer_email, per_email)
 
-    # honeypot — 채워졌으면 봇 의심, 성공 흉내 (silent reject)
+    # honeypot: 채워졌으면 봇 의심, 성공 흉내 (silent reject)
     if body.website:
         logger.info(
             "honeypot_triggered",
             extra={"category": "api", "ip": ip, "email": body.customer_email},
         )
-        # 정상 응답 흉내 — 봇이 알아채지 못하게. 가짜 토큰.
+        # 정상 응답 흉내: 봇이 알아채지 못하게. 가짜 토큰.
         return PublicBookingResponse(
             cancel_token="discarded",
             slot_start_at=body.slot_start_at,
@@ -292,7 +292,7 @@ async def submit_booking(
             "ip": ip,
         },
     )
-    # 이메일 발송 — commit 후 (실패해도 booking 은 살아있음)
+    # 이메일 발송: commit 후 (실패해도 booking 은 살아있음)
     org, org_logo = await _organization_branding(db, bt)
     await dispatch_booking_received_emails(
         booking,
@@ -325,7 +325,7 @@ async def cancel(
     await check_ip_limit(ip, per_ip)
 
     booking = await cancel_booking(db, cancel_token=cancel_token, by="customer")
-    # audit — booking_type 의 owner 회사로 연결 가능하면
+    # audit: booking_type 의 owner 회사로 연결 가능하면
     bt = await db.get(BookingType, booking.booking_type_id)
     await write_audit(
         db,

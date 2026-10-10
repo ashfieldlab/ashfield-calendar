@@ -1,5 +1,5 @@
 /**
- * 공개(비인증) BFF Proxy — `/api/public/v1/*` → 백엔드로 forward.
+ * 공개(비인증) BFF Proxy: `/api/public/v1/*` → 백엔드로 forward.
  *
  *   - JWT 없음 (ADR-0011 카브-아웃)
  *   - 클라이언트 IP 를 x-forwarded-for 헤더로 백엔드에 전달 (rate limit 키)
@@ -23,7 +23,7 @@ async function proxy(
 
   const headers = new Headers()
 
-  // 백엔드가 rate limit per IP 키로 쓰는 헤더 — 우리가 명시적으로 채워줘야
+  // 백엔드가 rate limit per IP 키로 쓰는 헤더: 우리가 명시적으로 채워줘야
   const incomingXff = req.headers.get("x-forwarded-for")
   // Next.js 가 forwarded 헤더 안 채우면 req.ip 가 NextRequest 에 있을 수 있음 (런타임 의존).
   // 가장 안전한 값: 들어온 xff → 그대로, 없으면 비워둠 (백엔드 ip=unknown 처리).

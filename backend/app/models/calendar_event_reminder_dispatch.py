@@ -1,4 +1,4 @@
-"""CalendarEventReminderDispatch — 알림 발송 멱등성 테이블.
+"""CalendarEventReminderDispatch: 알림 발송 멱등성 테이블.
 
 cron 디스패처가 매 분 RRULE 확장 결과를 훑어 (event_id, occurrence_start) 키로
 이 테이블에 row insert + Notification insert 를 한 트랜잭션으로 처리. PK 충돌 = 이미 보냄.

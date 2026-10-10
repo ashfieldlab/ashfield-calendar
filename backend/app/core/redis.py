@@ -1,5 +1,5 @@
 """
-Redis 클라이언트 — 공개 라우트 rate limit 등 (인증 경로는 Redis 를 쓰지 않는다).
+Redis 클라이언트: 공개 라우트 rate limit 등 (인증 경로는 Redis 를 쓰지 않는다).
 
 앱 lifecycle:
   startup: get_redis()가 lazy 생성

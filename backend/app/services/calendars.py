@@ -68,7 +68,7 @@ async def ensure_holidays_calendar(
 ) -> None:
     """회사에 기본 공휴일 캘린더(관리형 external_ics)를 idempotent 시드.
 
-    fetch 는 하지 않는다 — external_ics_refresh 잡(매 5분)이 채운다. GET 경로에서
+    fetch 는 하지 않는다: external_ics_refresh 잡(매 5분)이 채운다. GET 경로에서
     호출되므로 외부 피드 장애가 캘린더 목록을 깨지 않게 한다.
     """
     from app.core.config import settings
@@ -263,7 +263,7 @@ async def list_occurrences(
         )
         events = list((await db.execute(stmt)).scalars().all())
 
-    # 초대받은 이벤트도 포함 — 본인이 declined 한 건 제외
+    # 초대받은 이벤트도 포함: 본인이 declined 한 건 제외
     inv_stmt = (
         select(CalendarEvent)
         .join(
@@ -290,7 +290,7 @@ async def list_occurrences(
     for ev in events:
         out.extend(expand_event(ev, range_from=range_from, range_to=range_to))
 
-    # booking-linked event 표시 — 캘린더 UI 가 readonly 처리
+    # booking-linked event 표시: 캘린더 UI 가 readonly 처리
     event_ids = {x["event_id"] for x in out}
     if event_ids:
         bstmt = select(Booking.calendar_event_id, Booking.id).where(

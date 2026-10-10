@@ -1,9 +1,9 @@
-"""외부 ICS 구독 캘린더의 주기 refresh — 외부 캘린더 측 변경 반영.
+"""외부 ICS 구독 캘린더의 주기 refresh: 외부 캘린더 측 변경 반영.
 
 cron 매 5분 실행. 활성 external_ics 캘린더를 순회하면서 refresh_external_calendar
 를 호출 (wipe-and-reload). 개별 캘린더 실패는 warning 로그만, 다음 cycle 에 재시도.
 
-캘린더별 별도 트랜잭션 — 한 캘린더의 fetch 실패가 다른 캘린더에 영향 X.
+캘린더별 별도 트랜잭션: 한 캘린더의 fetch 실패가 다른 캘린더에 영향 X.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ async def refresh_all_external_ics(ctx: dict) -> int:
                 )
                 await db.commit()
             refreshed += 1
-        except Exception as exc:  # noqa: BLE001 — 개별 실패는 다음 cycle 재시도
+        except Exception as exc:  # noqa: BLE001: 개별 실패는 다음 cycle 재시도
             failures += 1
             logger.warning(
                 "ics_refresh_failed",

@@ -1,6 +1,6 @@
 {
   "name": "ashfield/caldav",
-  "description": "Ashfield CalDAV server — Sabre/DAV + Custom Backend (ADR-0014)",
+  "description": "Ashfield CalDAV server: Sabre/DAV + Custom Backend (ADR-0014)",
   "type": "project",
   "require": {
     "php": ">=8.2",

@@ -8,9 +8,9 @@
 import type { NotificationResponse } from "@/lib/types/api"
 
 interface RenderedNotification {
-  /** 한 줄 제목 — 무엇이 일어났는지. */
+  /** 한 줄 제목: 무엇이 일어났는지. */
   title: string
-  /** 한 줄 부연 — 대상의 이름·시간·세부. 없으면 빈 문자열. */
+  /** 한 줄 부연: 대상의 이름·시간·세부. 없으면 빈 문자열. */
   subtitle: string
   /** 클릭 시 이동할 URL. */
   href: string
@@ -82,7 +82,7 @@ export function renderNotification(
       const slot = (p.slot_start_local as string) || ""
       const btId = (p.booking_type_id as string) || ""
       return {
-        title: `새 예약 — ${title}`,
+        title: `새 예약: ${title}`,
         subtitle: slot ? `${name} · ${slot}` : name,
         href: btId ? `/booking-types/${btId}` : "/booking-types",
       }
@@ -93,7 +93,7 @@ export function renderNotification(
       const newSlot = (p.new_slot_local as string) || ""
       const btId = (p.booking_type_id as string) || ""
       return {
-        title: `예약 시간 변경 — ${title}`,
+        title: `예약 시간 변경: ${title}`,
         subtitle: newSlot ? `${name} · ${newSlot}` : name,
         href: btId ? `/booking-types/${btId}` : "/booking-types",
       }
@@ -104,7 +104,7 @@ export function renderNotification(
       const slot = (p.slot_start_local as string) || ""
       const btId = (p.booking_type_id as string) || ""
       return {
-        title: `예약 취소 — ${title}`,
+        title: `예약 취소: ${title}`,
         subtitle: slot ? `${name} · ${slot}` : name,
         href: btId ? `/booking-types/${btId}` : "/booking-types",
       }

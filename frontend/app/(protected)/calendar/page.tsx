@@ -66,7 +66,7 @@ export default function CalendarPage() {
     return m
   }, [calendars])
 
-  // external_ics 캘린더는 읽기 전용 — 드래그 잠금.
+  // external_ics 캘린더는 읽기 전용: 드래그 잠금.
   const readonlyCalIds = useMemo(() => {
     const s = new Set<string>()
     for (const c of calendars) if (c.source === "external_ics") s.add(c.id)
@@ -130,7 +130,7 @@ export default function CalendarPage() {
   }
 
   function handleEventClick(info: EventClickArg) {
-    // "+N 더보기" 팝오버에서 클릭한 경우 — 모달 띄우기 전에 팝오버 닫기 (겹침 방지).
+    // "+N 더보기" 팝오버에서 클릭한 경우: 모달 띄우기 전에 팝오버 닫기 (겹침 방지).
     document.querySelector<HTMLElement>(".fc-popover-close")?.click()
     const eventId = info.event.extendedProps.eventId as string
     const bookingId = info.event.extendedProps.bookingId as string | null
@@ -147,7 +147,7 @@ export default function CalendarPage() {
     })
   }
 
-  // 드래그 이동·리사이즈 공통 — 반복이면 범위 선택 모달, 아니면 바로 저장.
+  // 드래그 이동·리사이즈 공통: 반복이면 범위 선택 모달, 아니면 바로 저장.
   function handleEventChange(info: EventDropArg | EventResizeDoneArg) {
     const eventId = info.event.extendedProps.eventId as string
     const isRecurring = info.event.extendedProps.isRecurring as boolean
@@ -265,7 +265,7 @@ export default function CalendarPage() {
 
   const fcApi = () => calendarRef.current?.getApi()
 
-  // 모바일은 월 그리드 대신 목록(아젠다) 뷰가 적합 — 마운트 시 1회 전환.
+  // 모바일은 월 그리드 대신 목록(아젠다) 뷰가 적합: 마운트 시 1회 전환.
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
@@ -277,7 +277,7 @@ export default function CalendarPage() {
 
   return (
     <div className="flex h-full flex-col px-4 py-4" data-testid="calendar-page">
-      {/* 상단 toolbar — 기존 inner sidebar 대체 */}
+      {/* 상단 toolbar: 기존 inner sidebar 대체 */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1">
           <button
@@ -312,7 +312,7 @@ export default function CalendarPage() {
         </div>
 
         <div className="ml-2">
-          {/* 보기 전환 (segmented) — 이미 선택된 항목을 다시 누르면 빈 값이 오므로 무시 */}
+          {/* 보기 전환 (segmented): 이미 선택된 항목을 다시 누르면 빈 값이 오므로 무시 */}
           <ToggleGroup
             type="single"
             variant="outline"

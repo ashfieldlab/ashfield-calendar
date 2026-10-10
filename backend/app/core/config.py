@@ -1,5 +1,5 @@
 """
-환경 설정 — pydantic-settings.
+환경 설정: pydantic-settings.
 
 .env 파일 또는 환경변수에서 로드. SPEC §3.2.
 """
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # Redis (공개 라우트 rate limit 등)
     redis_url: str = "redis://localhost:16489"
 
-    # SMTP (Phase 3a-3) — dev 에선 비활성. 운영에선 환경변수로 주입.
+    # SMTP (Phase 3a-3): dev 에선 비활성. 운영에선 환경변수로 주입.
     smtp_enabled: bool = False
     smtp_host: str = "localhost"
     smtp_port: int = 1025
@@ -38,23 +38,23 @@ class Settings(BaseSettings):
     smtp_from_name: str = "Ashfield"
     # 이메일·구독·CalDAV 링크 base URL (ashfield-calendar 앱 origin).
     calendar_base_url: str = "http://localhost:3100"
-    # SMTP 비밀번호 등 민감 컬럼 암호화 키 — Fernet 32 bytes base64.
+    # SMTP 비밀번호 등 민감 컬럼 암호화 키: Fernet 32 bytes base64.
     # 분실해도 SMTP 재설정만 하면 복구. 운영은 secret manager 에서 주입.
     smtp_encryption_key: str = ""
 
-    # 기본 공휴일 캘린더 — 회사마다 자동 시드되는 external_ics 구독 URL.
+    # 기본 공휴일 캘린더: 회사마다 자동 시드되는 external_ics 구독 URL.
     # 빈 값이면 시드 안 함. external_ics_refresh 잡(매 5분)이 채운다.
     holidays_ics_url: str = ""
 
-    # JobRun 원장 보관 — N일 지난 cron 실행 기록은 일 1회 자동 삭제.
+    # JobRun 원장 보관: N일 지난 cron 실행 기록은 일 1회 자동 삭제.
     job_run_retention_days: int = 14
 
     # 공개 라우트 (ADR-0011) rate limit. 0 = 비활성.
-    # IP 분당 한도 — CGNAT(모바일 캐리어·공유 WiFi) 고려해 넉넉히. 실제 어뷰즈
+    # IP 분당 한도: CGNAT(모바일 캐리어·공유 WiFi) 고려해 넉넉히. 실제 어뷰즈
     # 방어선은 per-email + honeypot. 운영 관찰 후 줄여도 무방.
     public_rate_limit_per_ip: int = 1000
     public_rate_limit_per_email: int = 1      # booking 제출 시 같은 이메일 분당 수
-    # Booking PII 보관 — slot 종료 + N일 후 마스킹.
+    # Booking PII 보관: slot 종료 + N일 후 마스킹.
     booking_pii_retention_days: int = 30
 
     # 인증: Ashfield 계정 서버(OIDC 제공자)가 발급한 액세스 토큰(JWT)을 JWKS 로 검증한다

@@ -1,7 +1,7 @@
-# 운영 배포 — 단일 호스트 docker compose.
+# 운영 배포: 단일 호스트 docker compose.
 #
 # 인프라(redis·postgres) + 앱(backend·worker·frontend·caldav) 모두 컨테이너로.
-# 모든 서비스 `restart: unless-stopped` — 죽으면 즉시 재시작 (운영 supervision).
+# 모든 서비스 `restart: unless-stopped`: 죽으면 즉시 재시작 (운영 supervision).
 #
 # 시작:
 #   1. .env.prod 작성 (예시는 .env.prod.example)
@@ -50,10 +50,10 @@ services:
       ENVIRONMENT: production
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
-      # presigned URL 유효기간 — 대용량 다운로드/미리보기 시작 여유 (기본 30s 는 빠듯)
+      # presigned URL 유효기간: 대용량 다운로드/미리보기 시작 여유 (기본 30s 는 빠듯)
       PRESIGN_DOWNLOAD_TTL_SECONDS: ${PRESIGN_DOWNLOAD_TTL_SECONDS:-300}
       PRESIGN_PREVIEW_TTL_SECONDS: ${PRESIGN_PREVIEW_TTL_SECONDS:-300}
-      # SMTP / 인증 / 기타 — .env.prod 에서 docker 가 자동 전달
+      # SMTP / 인증 / 기타: .env.prod 에서 docker 가 자동 전달
       SMTP_ENABLED: ${SMTP_ENABLED:-false}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -91,7 +91,7 @@ services:
       start_period: 10s
       retries: 3
 
-  # arq worker — 같은 backend 이미지, CMD 만 다름. 동일 env 공유.
+  # arq worker: 같은 backend 이미지, CMD 만 다름. 동일 env 공유.
   worker:
     build:
       context: ./backend
@@ -119,7 +119,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     healthcheck:
-      # arq 자체는 health 엔드포인트 없음 — 프로세스 생존만 점검.
+      # arq 자체는 health 엔드포인트 없음: 프로세스 생존만 점검.
       # Redis 연결 ping 시도로 갈음. 실패 시 docker 가 재시작.
       test: ["CMD-SHELL", "pgrep -f 'arq app.jobs' || exit 1"]
       interval: 30s
@@ -152,7 +152,7 @@ services:
       - postgres
       - redis
 
-  # Better Auth 테이블 생성·갱신 (스키마 auth) — 일회성. `make prod-auth-migrate`.
+  # Better Auth 테이블 생성·갱신 (스키마 auth): 일회성. `make prod-auth-migrate`.
   # 런타임 이미지엔 CLI 가 없어 builder 단계 이미지(전체 node_modules + 소스)로 실행.
   auth-migrate:
     build:
@@ -173,7 +173,7 @@ services:
       start_period: 20s
       retries: 3
 
-  # ───── CalDAV (Sabre/DAV PHP) — ADR-0014. 같은 Postgres 공유.
+  # ───── CalDAV (Sabre/DAV PHP): ADR-0014. 같은 Postgres 공유.
   caldav-php:
     build:
       context: ./caldav

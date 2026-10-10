@@ -1,16 +1,16 @@
-# 공개(비인증) 라우트 카브-아웃 — `/api/public/v1/*`
+# 공개(비인증) 라우트 카브-아웃: `/api/public/v1/*`
 
 ## 컨텍스트
 
 모든 `/api/v1/*` 호출은 백엔드가 검증한 신원(Better Auth JWT, ADR-0023)만 신뢰한다. 의도는 **caller identity 의 진실 출처를 단일화** 하는 것이다.
 
-새 기능(외부 고객 예약 — Booking)이 들어오면서 **신원 자체가 없는** 라우트가 필요해졌다:
+새 기능(외부 고객 예약: Booking)이 들어오면서 **신원 자체가 없는** 라우트가 필요해졌다:
 
 - 슬롯 조회: 누구나 가능 시간 보기
 - Booking 제출: 외부 고객이 자기 이름·이메일 입력
 - Booking 취소: 응답 메일의 토큰으로 자기 예약 취소
 
-이들은 JWT 가 없는 게 정상 — 우리 회사 멤버가 아닌 외부인이 호출.
+이들은 JWT 가 없는 게 정상: 우리 회사 멤버가 아닌 외부인이 호출.
 
 ## 결정
 
@@ -37,7 +37,7 @@ backend/app/api/
 
 main.py:
   app.include_router(api_router)         # 기존
-  app.include_router(public_api_router)  # 신규 — 별도 의존성 트리
+  app.include_router(public_api_router)  # 신규: 별도 의존성 트리
 ```
 
 `Depends(get_current_user)` 가 절대 닿지 않는 라우터로 분리해 실수 방지. 미래 reader 는 prefix 만 보면 "여긴 비인증" 즉시 식별.
@@ -46,11 +46,11 @@ main.py:
 
 ### 외부 SaaS (cal.com 자체호스팅·Calendly)
 - 비인증 layer 책임 외부화 가능
-- 하지만 페이지·메일 커스터마이징 한계(Nextcloud 와 동일 문제). 기각 — 별도 결정 (사용자 confirm 2026-06-04).
+- 하지만 페이지·메일 커스터마이징 한계(Nextcloud 와 동일 문제). 기각: 별도 결정 (사용자 confirm 2026-06-04).
 
 ### 부분 인증 (이메일 OTP)
 - "고객 이메일 입력 → OTP 코드 → 예약" 흐름. JWT 까진 안 발급, 단기 토큰만.
-- UX 큰 마찰. cal.com·Calendly·SavvyCal 다 안 함 — 시장 검증된 모델 아님.
+- UX 큰 마찰. cal.com·Calendly·SavvyCal 다 안 함: 시장 검증된 모델 아님.
 
 ### 별도 마이크로서비스 (booking 서버)
 - 비인증 부담 별도 서비스로 분리. 우리 SMTP·캘린더와의 통합은 webhook 또는 CalDAV.
@@ -66,9 +66,9 @@ main.py:
 
 - `app/api/public_router.py` 신규
 - `app/middleware/rate_limit.py` 신규 (Redis fixed-window)
-- `app/services/audit.py::write_audit` 가 `actor_type="public"` 케이스 처리 — 이미 nullable company_id 라 수정 적음
+- `app/services/audit.py::write_audit` 가 `actor_type="public"` 케이스 처리: 이미 nullable company_id 라 수정 적음
 - 환경변수: `PUBLIC_CAPTCHA_PROVIDER`, `PUBLIC_RATE_LIMIT_PER_IP`, `PUBLIC_RATE_LIMIT_PER_EMAIL`
 
 ## 참고
 
-- ADR-0012 — 즉시 등록 모델 (본 prefix 위에서 동작)
+- ADR-0012: 즉시 등록 모델 (본 prefix 위에서 동작)

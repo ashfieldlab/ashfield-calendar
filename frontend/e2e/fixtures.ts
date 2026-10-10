@@ -31,7 +31,7 @@ export async function loginAs(page: Page, key: E2EUserKey): Promise<void> {
 }
 
 /**
- * 앱 확인 창(useConfirm — components/ui-custom/use-confirm.tsx)의 확인 버튼을 누른다.
+ * 앱 확인 창(useConfirm: components/ui-custom/use-confirm.tsx)의 확인 버튼을 누른다.
  */
 export async function confirmDialog(page: Page): Promise<void> {
   await page.getByTestId("confirm-dialog-confirm").click()
@@ -51,7 +51,7 @@ export async function createCalendar(
   await page.getByTestId("calendar-new-name-input").fill(name)
   if (shared) await page.getByTestId("calendar-new-scope-shared").check()
   await page.getByTestId("calendar-new-confirm").click()
-  // 새 캘린더 창이 뜨면서 팝오버는 닫힌다 — 다시 열어 목록에 생겼는지 확인 후 닫는다.
+  // 새 캘린더 창이 뜨면서 팝오버는 닫힌다: 다시 열어 목록에 생겼는지 확인 후 닫는다.
   await expect(page.getByTestId("calendar-new-modal")).toHaveCount(0)
   await page.getByTestId("calendars-popover-trigger").click()
   await expect(page.getByTestId("calendars-popover-content").getByText(name)).toBeVisible()

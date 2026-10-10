@@ -47,7 +47,7 @@ export default function SettingsPage() {
 
   function toggleCategory(key: string) {
     if (!data) return
-    // 키 없으면 on 이 기본 — 없으면 현재값 true 로 간주.
+    // 키 없으면 on 이 기본: 없으면 현재값 true 로 간주.
     const current = data.email_categories[key] !== false
     void patchPref({ email_categories: { [key]: !current } })
   }

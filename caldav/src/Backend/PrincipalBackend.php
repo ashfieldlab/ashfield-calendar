@@ -36,7 +36,7 @@ class PrincipalBackend extends AbstractBackend
 
     /**
      * 현 request 의 인증된 user_sub. HTTP Basic Authorization 헤더에서 추출.
-     * $_SERVER 는 request-scoped — process memory stale 위험 없음.
+     * $_SERVER 는 request-scoped: process memory stale 위험 없음.
      */
     private function currentUserSub(): ?string
     {

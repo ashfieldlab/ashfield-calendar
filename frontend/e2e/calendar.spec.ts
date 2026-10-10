@@ -18,7 +18,7 @@ test.describe("/calendar", () => {
     const title = `테스트-${Date.now()}`
     await page.getByTestId("calendar-new-event-button").click()
     await page.getByTestId("event-form-title-input").fill(title)
-    // 캘린더 select — calName 으로 변경 (회사 기본 캘린더가 위에 있을 수 있어 명시)
+    // 캘린더 select: calName 으로 변경 (회사 기본 캘린더가 위에 있을 수 있어 명시)
     await selectCalendar(page, calName)
     await page.getByTestId("event-form-save-button").click()
     await showListView(page)
@@ -48,7 +48,7 @@ test.describe("/calendar", () => {
       .getByTestId(/^calendar-sidebar-checkbox-/)
       .filter({ hasText: calName })
       .getByTestId(/^calendar-sidebar-toggle-/)
-    // 체크 상태는 서버 응답 뒤 바뀐다 (낙관적 갱신 없음) — 클릭 후 꺼질 때까지 기다린다.
+    // 체크 상태는 서버 응답 뒤 바뀐다 (낙관적 갱신 없음): 클릭 후 꺼질 때까지 기다린다.
     await toggle.click()
     await expect(toggle).not.toBeChecked()
     await page.keyboard.press("Escape")

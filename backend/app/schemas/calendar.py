@@ -18,11 +18,11 @@ class CalendarResponse(BaseModel):
     name: str
     description: str | None
     color: str
-    # 시스템 관리형(공휴일 등) — 편집·삭제 불가, 숨김만 가능.
+    # 시스템 관리형(공휴일 등): 편집·삭제 불가, 숨김만 가능.
     managed: bool = False
     external_ics_url: str | None = None
     external_ics_refresh_at: datetime | None = None
-    # 호출자의 개인 토글 — null이면 미설정 (= 기본 가시, 색 그대로)
+    # 호출자의 개인 토글: null이면 미설정 (= 기본 가시, 색 그대로)
     hidden: bool = False
     color_override: str | None = None
 
@@ -32,7 +32,7 @@ class CalendarCreate(BaseModel):
     scope: CalendarScope = "personal"
     color: str = "#4f46e5"
     description: str | None = None
-    # 외부 ICS 구독 — URL 이 주어지면 source=external_ics 로 즉시 fetch.
+    # 외부 ICS 구독: URL 이 주어지면 source=external_ics 로 즉시 fetch.
     external_ics_url: str | None = None
 
 
@@ -70,7 +70,7 @@ class EventResponse(BaseModel):
 
 
 class EventOccurrence(BaseModel):
-    """Expanded occurrence — 마스터 event 의 한 발생.
+    """Expanded occurrence: 마스터 event 의 한 발생.
 
     series 식별자는 event_id (불변), occurrence 식별자는 start_at (ISO).
     """
@@ -120,7 +120,7 @@ class EventPatch(BaseModel):
     rrule: str | None = None
     reminder_minutes_before: int | None = Field(default=None, ge=0, le=10080)
     # room_id 는 별도 취급 (충돌 체크). None="변경 안 함"과 "방 해제"를 구분하려면
-    # 프론트가 명시적으로 보냄 — exclude_unset 로 구분.
+    # 프론트가 명시적으로 보냄: exclude_unset 로 구분.
     room_id: str | None = None
 
 
@@ -152,7 +152,7 @@ class EventInvitationResponse(BaseModel):
 
 
 class EventInvitationCreate(BaseModel):
-    # 둘 중 정확히 하나 — 내부 멤버(sub) 또는 외부 게스트(email).
+    # 둘 중 정확히 하나: 내부 멤버(sub) 또는 외부 게스트(email).
     invitee_sub: str | None = None
     invitee_email: EmailStr | None = None
 

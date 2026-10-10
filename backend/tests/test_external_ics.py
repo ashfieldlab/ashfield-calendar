@@ -1,4 +1,4 @@
-"""외부 ICS 구독 — fetch+parse+upsert, read-only 가드."""
+"""외부 ICS 구독: fetch+parse+upsert, read-only 가드."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -14,7 +14,7 @@ VERSION:2.0
 PRODID:-//test//
 BEGIN:VEVENT
 UID:event-1@test
-SUMMARY:공휴일 — 신정
+SUMMARY:공휴일: 신정
 DTSTART;VALUE=DATE:20260101
 DTEND;VALUE=DATE:20260102
 END:VEVENT
@@ -31,7 +31,7 @@ END:VCALENDAR
 
 @pytest.fixture
 def mock_ics(monkeypatch):
-    """external_ics._fetch 만 패치 — httpx 전역 패치는 test client 망가뜨림."""
+    """external_ics._fetch 만 패치: httpx 전역 패치는 test client 망가뜨림."""
     from app.services import external_ics as svc
 
     async def fake_fetch(url: str) -> bytes:  # noqa: ARG001
@@ -58,7 +58,7 @@ async def test_create_external_ics_fetches_and_imports(
     assert cal["source"] == "external_ics"
     assert cal["external_ics_refresh_at"] is not None
 
-    # 1월 1주차 ~ 1월 말 범위로 occurrence 확인 — RRULE COUNT=3 으로 3주치 + all-day 1건
+    # 1월 1주차 ~ 1월 말 범위로 occurrence 확인: RRULE COUNT=3 으로 3주치 + all-day 1건
     params = {
         "from": "2026-01-01T00:00:00+00:00",
         "to": "2026-01-31T00:00:00+00:00",
@@ -67,7 +67,7 @@ async def test_create_external_ics_fetches_and_imports(
         await client.get("/api/v1/events", params=params, headers=h)
     ).json()["occurrences"]
     titles = [o["title"] for o in occ]
-    assert "공휴일 — 신정" in titles
+    assert "공휴일: 신정" in titles
     assert titles.count("매주 표준회의") == 3
 
 
@@ -128,13 +128,13 @@ async def test_refresh_reloads_events(
         )
     ).json()
 
-    # 새 ICS 본문 — 이벤트 1개만 (회의 RRULE 제거됨)
+    # 새 ICS 본문: 이벤트 1개만 (회의 RRULE 제거됨)
     state["body"] = """BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//test//
 BEGIN:VEVENT
 UID:event-1@test
-SUMMARY:공휴일 — 신정
+SUMMARY:공휴일: 신정
 DTSTART;VALUE=DATE:20260101
 DTEND;VALUE=DATE:20260102
 END:VEVENT
@@ -151,5 +151,5 @@ END:VCALENDAR
         await client.get("/api/v1/events", params=params, headers=h)
     ).json()["occurrences"]
     titles = [o["title"] for o in occ]
-    assert "공휴일 — 신정" in titles
+    assert "공휴일: 신정" in titles
     assert "매주 표준회의" not in titles

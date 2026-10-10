@@ -67,7 +67,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     editing?.calendar_id ?? writable[0]?.id ?? "",
   )
   const [title, setTitle] = useState(editing?.title ?? "")
-  // 반복 일정 편집은 클릭한 "회차"의 시각을 보여줌(마스터 앵커 아님) — 이 회차만
+  // 반복 일정 편집은 클릭한 "회차"의 시각을 보여줌(마스터 앵커 아님): 이 회차만
   // 수정 시 올바른 날짜에 분리되도록. 종료는 회차 시작 + 마스터 지속시간.
   const [startAt, setStartAt] = useState<Date>(() =>
     editing?.rrule
@@ -213,7 +213,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     }
   }
 
-  // 실제 삭제 — scope: 'occurrence'(이 회차만 EXDATE) | 'series'(전체)
+  // 실제 삭제: scope: 'occurrence'(이 회차만 EXDATE) | 'series'(전체)
   async function doDelete(scope: "occurrence" | "series") {
     if (!editing) return
     setBusy(true)
@@ -242,7 +242,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
 
   async function remove() {
     if (!editing) return
-    // 반복 일정이면 "이 일정만 / 전체" 선택 — 안 그러면 회차 하나 지우려다 시리즈 통째 삭제됨
+    // 반복 일정이면 "이 일정만 / 전체" 선택: 안 그러면 회차 하나 지우려다 시리즈 통째 삭제됨
     if (editing.rrule) {
       setShowRecurDelete(true)
       return

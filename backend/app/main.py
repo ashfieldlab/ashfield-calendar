@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-# ORM event listener 등록 — import 부수 효과로 hook 활성화 (ADR-0014)
+# ORM event listener 등록: import 부수 효과로 hook 활성화 (ADR-0014)
 import app.services.calendar_sync_log  # noqa: F401
 from app.api.public_router import public_api_router
 from app.api.router import api_router
@@ -44,7 +44,7 @@ ashfield-calendar 백엔드: 일정·예약 SaaS.
 | 400 | 요청 자체가 잘못됨 |
 | 401 | 인증 실패 (토큰 없음·만료·서명·iss·aud 불일치) |
 | 403 | 인증은 됐지만 권한 없음 |
-| 404 | 리소스 없음 — 다른 회사 리소스도 404 로 마스킹 |
+| 404 | 리소스 없음: 다른 회사 리소스도 404 로 마스킹 |
 | 409 | 상태 충돌 (예: 회의실 시간 겹침) |
 | 422 | 검증 실패 (Pydantic) |
 
@@ -75,7 +75,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# 미들웨어 (등록 역순으로 실행 — request_id가 가장 먼저)
+# 미들웨어 (등록 역순으로 실행: request_id가 가장 먼저)
 app.add_middleware(RequestIdMiddleware)
 
 # 글로벌 예외 처리
@@ -83,13 +83,13 @@ register_error_handlers(app)
 
 # 라우터
 app.include_router(api_router)
-app.include_router(public_api_router)  # ADR-0011 — 비인증, JWT dependency 없음
+app.include_router(public_api_router)  # ADR-0011: 비인증, JWT dependency 없음
 
 
 @app.get("/health", tags=["meta"], summary="헬스 체크")
 async def health() -> dict[str, str]:
     """LB/cron 용. 인증 불필요. 항상 `{"status": "ok"}` 반환.
 
-    DB 연결 실패해도 200 — DB 의존 핸들러에서 별도 503 응답.
+    DB 연결 실패해도 200: DB 의존 핸들러에서 별도 503 응답.
     """
     return {"status": "ok"}

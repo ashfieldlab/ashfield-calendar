@@ -37,9 +37,9 @@ class AuthBackend extends AbstractBasic
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         foreach ($rows as $row) {
-            // bcrypt hash 는 Python bcrypt 가 $2b$ 포맷 — PHP password_verify 호환
+            // bcrypt hash 는 Python bcrypt 가 $2b$ 포맷: PHP password_verify 호환
             if (password_verify($password, $row['secret_hash'])) {
-                // last_used_at 갱신 (비차단 — 실패해도 무시)
+                // last_used_at 갱신 (비차단: 실패해도 무시)
                 try {
                     $upd = $this->db->prepare(
                         'UPDATE caldav_tokens SET last_used_at = NOW() WHERE id = :id'

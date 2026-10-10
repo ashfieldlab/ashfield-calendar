@@ -77,7 +77,7 @@ export default function PublicBookPage({
     })()
   }, [key])
 
-  // 슬롯 load — 재로드 가능하게 함수 분리
+  // 슬롯 load: 재로드 가능하게 함수 분리
   async function loadSlots(btCurrent: PublicBookingType) {
     setSlotsLoading(true)
     try {
@@ -101,7 +101,7 @@ export default function PublicBookPage({
   useEffect(() => {
     if (!bt) return
     void loadSlots(bt)
-    // loadSlots 는 같은 render 안에서만 호출 — eslint exhaustive-deps 무시
+    // loadSlots 는 같은 render 안에서만 호출: eslint exhaustive-deps 무시
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bt, key])
 
@@ -264,7 +264,7 @@ export default function PublicBookPage({
             />
           </Field>
 
-          {/* honeypot — 사람은 안 보임 */}
+          {/* honeypot: 사람은 안 보임 */}
           <input
             type="text"
             value={website}
@@ -392,7 +392,7 @@ const SlotGrid = memo(function SlotGrid({
     )
   }, [selectedYmd])
 
-  // 가용 월 범위 — 네비게이션 한계
+  // 가용 월 범위: 네비게이션 한계
   const monthRange = useMemo(() => {
     if (buckets.length === 0) return null
     const first = buckets[0].date
@@ -457,7 +457,7 @@ const SlotGrid = memo(function SlotGrid({
           />
         </div>
 
-        {/* 시간 슬롯 패널 — 양쪽 공용 (min-w-0: 그리드 1fr 컬럼의 자식 overflow 방어) */}
+        {/* 시간 슬롯 패널: 양쪽 공용 (min-w-0: 그리드 1fr 컬럼의 자식 overflow 방어) */}
         <div className="min-w-0 space-y-2">
           {selectedBucket ? (
             <>
@@ -512,7 +512,7 @@ function parseYmd(ymd: string): Date {
   return new Date(y, m - 1, d)
 }
 
-/** 월 그리드 — 7열, 일~토. 가용 날짜만 클릭 가능. */
+/** 월 그리드: 7열, 일~토. 가용 날짜만 클릭 가능. */
 function MonthCalendar({
   viewMonth,
   selectedYmd,
@@ -619,7 +619,7 @@ function MonthCalendar({
   )
 }
 
-/** 모바일용 가로 날짜 칩 — 가용한 날짜만 표시, 가로 스크롤. */
+/** 모바일용 가로 날짜 칩: 가용한 날짜만 표시, 가로 스크롤. */
 function DateChips({
   buckets,
   selectedYmd,

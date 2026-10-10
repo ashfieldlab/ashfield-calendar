@@ -164,7 +164,7 @@ export default function EmailTemplatesPage({
   }
 
   function insertVar(name: string) {
-    // HTML 모드에서 URL 변수는 의도가 분명함 — img/anchor 태그로 자동 감쌈.
+    // HTML 모드에서 URL 변수는 의도가 분명함: img/anchor 태그로 자동 감쌈.
     // plain text 모드거나 HTML 이어도 일반 변수는 그냥 placeholder.
     let snippet = `{${name}}`
     if (isHtml) {
