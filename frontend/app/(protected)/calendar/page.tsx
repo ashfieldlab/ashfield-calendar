@@ -17,12 +17,11 @@ import type {
   DateClickArg,
   EventResizeDoneArg,
 } from "@fullcalendar/interaction"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useToast } from "@/components/ui-custom/use-toast"
 
-import { CalendarsPopover } from "@/components/calendar/calendars-popover"
 import { EventForm } from "@/components/calendar/event-form"
 import { api } from "@/lib/api-client"
 import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
@@ -275,109 +274,107 @@ export default function CalendarPage() {
     }
   }, [])
 
+  const today = new Date()
+
   return (
-    <div className="flex h-full flex-col px-4 py-4" data-testid="calendar-page">
-      {/* 상단 toolbar: 기존 inner sidebar 대체 */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => fcApi()?.prev()}
-            data-testid="calendar-prev-button"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-            aria-label="이전"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span
-            className="min-w-[8rem] text-center text-base font-semibold text-gray-900"
-            data-testid="calendar-title"
-          >
+    <div className="flex h-full" data-testid="calendar-page">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="px-6 pt-5">
+          <p className="text-sm font-medium text-muted-foreground">
+            {today.toLocaleDateString("ko-KR", { weekday: "long" })}
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl" data-testid="calendar-today-heading">
+            {today.toLocaleDateString("ko-KR", { month: "long", day: "numeric" })}
+          </h1>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:px-5">
+          <Button variant="outline" size="sm" onClick={() => fcApi()?.today()} data-testid="calendar-today-button">
+            오늘
+          </Button>
+          <div className="flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => fcApi()?.prev()}
+              data-testid="calendar-prev-button"
+              aria-label="이전"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => fcApi()?.next()}
+              data-testid="calendar-next-button"
+              aria-label="다음"
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+          <span className="text-lg font-semibold" data-testid="calendar-title">
             {title}
           </span>
-          <button
-            onClick={() => fcApi()?.next()}
-            data-testid="calendar-next-button"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-            aria-label="다음"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button
-            onClick={() => fcApi()?.today()}
-            data-testid="calendar-today-button"
-            className="ml-2 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-          >
-            오늘
-          </button>
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="inline-flex rounded-lg bg-muted p-0.5 text-sm" role="radiogroup" aria-label="보기">
+              {VIEW_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={view === opt.value}
+                  onClick={() => fcApi()?.changeView(opt.value)}
+                  data-testid={`calendar-view-${opt.value}`}
+                  className={
+                    view === opt.value
+                      ? "rounded-md bg-background px-3 py-1 font-medium shadow-sm"
+                      : "rounded-md px-3 py-1 font-medium text-muted-foreground hover:text-foreground"
+                  }
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <Button onClick={openNewEvent} size="sm" className="gap-1.5" data-testid="calendar-new-event-button">
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">새 일정</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="ml-2">
-          {/* 보기 전환 (segmented): 이미 선택된 항목을 다시 누르면 빈 값이 오므로 무시 */}
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            size="sm"
-            spacing={0}
-            value={view}
-            onValueChange={(v) => {
-              if (v) fcApi()?.changeView(v)
-            }}
-            aria-label="보기"
-          >
-            {VIEW_OPTIONS.map((opt) => (
-              <ToggleGroupItem
-                key={opt.value}
-                value={opt.value}
-                data-testid={`calendar-view-${opt.value}`}
-                className="px-3 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
-                {opt.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-
-        <div className="ml-auto flex items-center gap-2">
-          <CalendarsPopover calendars={calendars} />
-          <button
-            onClick={openNewEvent}
-            data-testid="calendar-new-event-button"
-            className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            + 새 일정
-          </button>
-        </div>
-      </div>
-
-      {/* 메인 그리드 fullscreen */}
-      <section className="min-h-0 flex-1">
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[
-            dayGridPlugin,
-            timeGridPlugin,
-            multiMonthPlugin,
-            listPlugin,
-            interactionPlugin,
-          ]}
-          initialView="dayGridMonth"
-          headerToolbar={false}
-          locale="ko"
-          firstDay={0}
-          height="100%"
-          expandRows
-          dayMaxEvents={true}
-          slotMinTime="06:00:00"
-          slotMaxTime="22:00:00"
-          events={events}
-          editable
-          eventDrop={handleEventChange}
-          eventResize={handleEventChange}
-          datesSet={handleDatesSet}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
+        <section className="min-h-0 flex-1 px-4 pb-4">
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[
+              dayGridPlugin,
+              timeGridPlugin,
+              multiMonthPlugin,
+              listPlugin,
+              interactionPlugin,
+            ]}
+            initialView="dayGridMonth"
+            headerToolbar={false}
+            locale="ko"
+            firstDay={0}
+            height="100%"
+            expandRows
+            dayMaxEvents={true}
+            slotMinTime="06:00:00"
+            slotMaxTime="22:00:00"
+            events={events}
+            editable
+            eventDrop={handleEventChange}
+            eventResize={handleEventChange}
+            datesSet={handleDatesSet}
+            dateClick={handleDateClick}
+            eventClick={handleEventClick}
         />
-      </section>
+        </section>
+
+      </div>
 
       {recurDrag && (
         <div

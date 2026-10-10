@@ -46,16 +46,12 @@ export async function createCalendar(
   name: string,
   { shared = false }: { shared?: boolean } = {},
 ): Promise<void> {
-  await page.getByTestId("calendars-popover-trigger").click()
   await page.getByTestId("calendar-new-button").click()
   await page.getByTestId("calendar-new-name-input").fill(name)
   if (shared) await page.getByTestId("calendar-new-scope-shared").check()
   await page.getByTestId("calendar-new-confirm").click()
-  // 새 캘린더 창이 뜨면서 팝오버는 닫힌다: 다시 열어 목록에 생겼는지 확인 후 닫는다.
   await expect(page.getByTestId("calendar-new-modal")).toHaveCount(0)
-  await page.getByTestId("calendars-popover-trigger").click()
-  await expect(page.getByTestId("calendars-popover-content").getByText(name)).toBeVisible()
-  await page.keyboard.press("Escape")
+  await expect(page.getByTestId("calendar-list").getByText(name)).toBeVisible()
 }
 
 /** 일정 편집 창에서 캘린더를 이름으로 고른다. */

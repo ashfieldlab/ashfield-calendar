@@ -42,8 +42,7 @@ test.describe("/calendar", () => {
     await showListView(page)
     await expect(page.getByText(title).first()).toBeVisible()
 
-    // 캘린더 목록 팝오버에서 토글
-    await page.getByTestId("calendars-popover-trigger").click()
+    // 왼쪽 캘린더 목록에서 토글
     const toggle = page
       .getByTestId(/^calendar-sidebar-checkbox-/)
       .filter({ hasText: calName })
@@ -51,7 +50,6 @@ test.describe("/calendar", () => {
     // 체크 상태는 서버 응답 뒤 바뀐다 (낙관적 갱신 없음): 클릭 후 꺼질 때까지 기다린다.
     await toggle.click()
     await expect(toggle).not.toBeChecked()
-    await page.keyboard.press("Escape")
 
     await expect(page.getByText(title)).toHaveCount(0)
   })

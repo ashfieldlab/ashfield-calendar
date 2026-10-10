@@ -17,6 +17,7 @@ import { UserMenu } from "@/components/ui-custom/user-menu"
 import { useAppContext } from "@/components/providers/app-context"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { NotificationBell } from "@/components/layout/notification-bell"
+import { CalendarSidebar } from "@/components/calendar/calendar-sidebar"
 import { signOutAction } from "@/lib/actions/auth"
 import { APP } from "@/lib/apps"
 import { env } from "@/lib/env"
@@ -97,6 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       headerTrailing={headerTrailing}
       navItems={sidebarItems}
       renderNavLink={sidebarRenderLink}
+      sidebarExtra={pathname.startsWith("/calendar") ? <CalendarSidebar /> : undefined}
       // 뷰포트 높이로 고정: 페이지가 자체 h-full overflow-y-auto 로 내부 스크롤.
       // (프레임 기본은 min-h-screen 이라 안 잡으면 페이지 대신 창 전체가 스크롤됨)
       className="h-screen"
