@@ -11,6 +11,8 @@ export const env = {
   apiUrl: (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, ""),
   apiTimeoutMs: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 10_000),
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Ashfield",
+  /** 개발용 UI 플레이그라운드(/playground). 개발 모드는 항상, 운영은 NEXT_PUBLIC_PLAYGROUND=true 일 때만. */
+  playground: process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_PLAYGROUND === "true",
 }
 
 // 쿠키 이름 namespace: 같은 localhost 에서 여러 앱이 cookie 충돌 안 나도록.

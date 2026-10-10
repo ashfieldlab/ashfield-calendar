@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { Activity, CalendarClock, Calendar, Settings } from "lucide-react"
+import { Activity, CalendarClock, Calendar, FlaskConical, Settings } from "lucide-react"
 
 import {
   AppFrame,
@@ -19,6 +19,7 @@ import { GlobalSearch } from "@/components/layout/global-search"
 import { NotificationBell } from "@/components/layout/notification-bell"
 import { signOutAction } from "@/lib/actions/auth"
 import { APP } from "@/lib/apps"
+import { env } from "@/lib/env"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { authUser, workspaces, workspaceNames, activeWorkspaceId, setActiveWorkspace, isSystemAdmin } =
@@ -32,6 +33,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { id: "booking-types", label: "예약 양식", href: "/booking-types", icon: <CalendarClock size={16} />, active: pathname.startsWith("/booking-types") },
       { id: "activity", label: "활동", href: "/activity", icon: <Activity size={16} />, active: pathname.startsWith("/activity") },
       { id: "settings", label: "설정", href: "/settings", icon: <Settings size={16} />, active: pathname.startsWith("/settings") },
+      ...(env.playground
+        ? [{ id: "playground", label: "플레이그라운드", href: "/playground", icon: <FlaskConical size={16} />, active: pathname.startsWith("/playground") }]
+        : []),
     ],
     [pathname],
   )
