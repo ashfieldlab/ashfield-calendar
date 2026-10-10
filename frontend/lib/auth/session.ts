@@ -23,7 +23,7 @@ import { createSingleFlight, expiresWithin } from "@/lib/auth/token-refresh"
 import { authEnv } from "@/lib/env"
 import { logger } from "@/lib/utils/logger"
 
-/** 이보다 적게 남으면 미리 갱신 (백엔드 도착 전 만료, 시계 오차 대비). */
+/** 이보다 적게 남으면 미리 갱신 (백엔드 도착 전 만료와 시계 오차 대비). */
 const REFRESH_MARGIN_MS = 60_000
 
 export type BackendAuth =

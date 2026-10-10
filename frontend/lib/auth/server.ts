@@ -32,7 +32,7 @@ import { logger } from "../utils/logger"
 /** Better Auth 테이블 스키마. backend/alembic/env.py 의 EXCLUDED_SCHEMAS 와 같아야 한다. */
 export const AUTH_DB_SCHEMA = "auth"
 
-/** genericOAuth provider id: 콜백 경로, account.providerId 에 쓰인다. 계정 서버 redirect_uri 와 짝. */
+/** genericOAuth provider id: 콜백 경로와 account.providerId 에 쓰인다. 계정 서버 redirect_uri 와 짝. */
 export const ACCOUNT_PROVIDER_ID = "ashfield"
 
 /** 계약(ADR-0001 §3)의 scope: offline_access 가 있어야 refresh_token 이 나온다. */
