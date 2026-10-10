@@ -283,9 +283,11 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 readOnly={readOnly}
-                placeholder="새 일정"
+                placeholder="제목"
+                aria-label="제목"
+                aria-required="true"
                 data-testid="event-form-title-input"
-                className="w-full bg-transparent text-2xl font-semibold outline-none placeholder:text-muted-foreground/50"
+                className="w-full border-b-2 border-input bg-transparent pb-2 text-2xl font-semibold outline-none transition placeholder:font-medium placeholder:text-muted-foreground/60 hover:border-ring/50 focus:border-primary read-only:border-transparent"
               />
               {(readOnly || (editing?.rrule && !readOnly)) && (
                 <div className="flex gap-1.5">
