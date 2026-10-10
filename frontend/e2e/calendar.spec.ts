@@ -53,4 +53,40 @@ test.describe("/calendar", () => {
 
     await expect(page.getByText(title)).toHaveCount(0)
   })
+
+  test("월 보기에서 날짜 칸을 누르면 그날 일정 목록, + 는 새 일정, 날짜 숫자는 일 보기", async ({ page, loginAs }) => {
+    await loginAs("member_a")
+    await page.goto("/calendar")
+    const calName = `칸-${Date.now()}`
+    await createCalendar(page, calName)
+
+    const title = `칸이벤트-${Date.now()}`
+    await page.getByTestId("calendar-new-event-button").click()
+    await page.getByTestId("event-form-title-input").fill(title)
+    await selectCalendar(page, calName)
+    await page.getByTestId("event-form-save-button").click()
+    await expect(page.getByTestId("event-form")).toHaveCount(0)
+
+    // 오늘 칸의 빈 곳을 누르면 팝오버에 방금 만든 일정이 보인다
+    const today = page.locator(".fc-daygrid-day.fc-day-today")
+    const box = (await today.boundingBox())!
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height - 8)
+    const pop = page.getByTestId("calendar-day-popover")
+    await expect(pop).toBeVisible()
+    await expect(pop.getByText(title)).toBeVisible()
+    await pop.getByText(title).click()
+    await expect(page.getByTestId("event-form-title-input")).toHaveValue(title)
+    await page.getByTestId("event-form-cancel-button").click()
+
+    // + 는 바로 새 일정
+    await today.hover()
+    await today.locator(".cal-day-add").click()
+    await expect(page.getByTestId("event-form")).toBeVisible()
+    await expect(page.getByTestId("calendar-day-popover")).toHaveCount(0)
+    await page.getByTestId("event-form-cancel-button").click()
+
+    // 날짜 숫자는 일 보기로
+    await today.locator("a.fc-daygrid-day-number").click()
+    await expect(page.locator(".fc-timeGridDay-view")).toBeVisible()
+  })
 })

@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 
 import { useToast } from "@/components/ui-custom/use-toast"
 
+import { DayPopover, type DayPopoverState } from "@/components/calendar/day-popover"
 import { EventForm } from "@/components/calendar/event-form"
 import {
   renderDayCellContent,
@@ -34,6 +35,7 @@ import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
 import type {
   CalendarListResponse,
   EventResponse,
+  EventOccurrence,
   OccurrenceListResponse,
 } from "@/lib/types/api"
 
@@ -114,6 +116,7 @@ export default function CalendarPage() {
     newEnd: string
   } | null>(null)
   const [dragBusy, setDragBusy] = useState(false)
+  const [dayPop, setDayPop] = useState<DayPopoverState | null>(null)
 
   const editingEventId = formState?.mode === "edit" ? formState.eventId : null
   const { data: editingEvent } = useApiGet<EventResponse>(
@@ -129,10 +132,37 @@ export default function CalendarPage() {
     setView(info.view.type)
   }
 
+  // 월·연 보기에서 날짜 칸을 누르면 그날 일정 목록, 주·일 보기는 그 시각으로 새 일정.
   function handleDateClick(info: DateClickArg) {
-    const start = new Date(info.date)
-    if (info.allDay) start.setHours(9, 0, 0, 0)
+    if (info.view.type === "dayGridMonth" || info.view.type === "multiMonthYear") {
+      setDayPop({ date: info.date, rect: info.dayEl.getBoundingClientRect() })
+      return
+    }
+    createAt(info.date, info.allDay)
+  }
+
+  function createAt(date: Date, allDay = true) {
+    setDayPop(null)
+    if (calendars.length === 0) {
+      toast.error("먼저 캘린더를 만들어주세요")
+      return
+    }
+    const start = new Date(date)
+    if (allDay) start.setHours(9, 0, 0, 0)
     setFormState({ mode: "create", start })
+  }
+  const createAtRef = useRef(createAt)
+  useEffect(() => {
+    createAtRef.current = createAt
+  })
+
+  function openOccurrence(occ: EventOccurrence) {
+    setDayPop(null)
+    if (occ.booking_id) {
+      toast.error("예약과 연결된 일정입니다. 예약 페이지에서 변경·취소해주세요.")
+      return
+    }
+    setFormState({ mode: "edit", eventId: occ.event_id, start: new Date(occ.start_at) })
   }
 
   function handleEventClick(info: EventClickArg) {
@@ -382,6 +412,32 @@ export default function CalendarPage() {
             eventResize={handleEventChange}
             datesSet={handleDatesSet}
             dateClick={handleDateClick}
+            navLinks
+            navLinkDayClick="timeGridDay"
+            moreLinkClick={(arg) => {
+              const cell = (arg.jsEvent.target as HTMLElement).closest(".fc-daygrid-day")
+              if (cell) setDayPop({ date: arg.date, rect: cell.getBoundingClientRect() })
+            }}
+            dayCellDidMount={(arg) => {
+              if (arg.view.type !== "dayGridMonth") return
+              const frame = arg.el.querySelector(".fc-daygrid-day-frame")
+              if (!frame) return
+              // 날짜 칸 오른쪽 위 "+" (마우스를 올리면 보임): 그날로 바로 새 일정
+              const btn = document.createElement("button")
+              btn.type = "button"
+              btn.className = "cal-day-add"
+              btn.textContent = "+"
+              btn.setAttribute("aria-label", "새 일정")
+              btn.dataset.testid = `calendar-day-add-${arg.date.getFullYear()}-${arg.date.getMonth() + 1}-${arg.date.getDate()}`
+              const stop = (e: Event) => e.stopPropagation()
+              btn.addEventListener("pointerdown", stop)
+              btn.addEventListener("mousedown", stop)
+              btn.addEventListener("click", (e) => {
+                e.stopPropagation()
+                createAtRef.current(arg.date)
+              })
+              frame.appendChild(btn)
+            }}
             eventClick={handleEventClick}
         />
         </section>
@@ -433,6 +489,15 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      <DayPopover
+        state={dayPop}
+        occurrences={occList?.occurrences ?? []}
+        colorOf={colorOf}
+        onClose={() => setDayPop(null)}
+        onOpenEvent={openOccurrence}
+        onCreate={(d) => createAt(d)}
+      />
 
       {formState && (formState.mode === "create" || editingEvent) && (
         <EventForm
