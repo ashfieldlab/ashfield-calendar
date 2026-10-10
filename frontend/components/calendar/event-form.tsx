@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import DatePicker, { registerLocale } from "react-datepicker"
+import { ArrowRight, Download, Users } from "lucide-react"
 import { ko } from "date-fns/locale/ko"
 import "react-datepicker/dist/react-datepicker.css"
 
+import { Button } from "@/components/ui/button"
 import { api, apiDownload } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 import { useConfirm } from "@/components/ui-custom/use-confirm"
 import { InvitationsPanel } from "@/components/calendar/invitations-panel"
 import { useToast } from "@/components/ui-custom/use-toast"
@@ -251,284 +254,297 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
     await doDelete("series")
   }
 
+  const dateLabel = startAt.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })
+  const pickerClass = cn(fieldClass, "w-full")
+  const visibleCalendars = editing
+    ? calendars.filter((c) => c.id === calendarId)
+    : writable
+
   return (
     <>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-[480px] space-y-3 overflow-y-auto rounded-lg bg-white p-6 shadow-lg"
+        className="flex max-h-[90vh] w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         data-testid="event-form"
+        role="dialog"
+        aria-modal="true"
+        aria-label={readOnly ? "일정 상세" : editing ? "일정 수정" : "새 일정"}
       >
-        <div>
-          <h3 className="text-base font-semibold text-gray-900">
-            {readOnly ? "일정 상세" : editing ? "일정 수정" : "새 일정"}
-          </h3>
-          {readOnly && (
-            <p className="mt-0.5 truncate text-xs text-gray-500">읽기 전용</p>
-          )}
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[1fr_260px]">
+          <div className="space-y-6 p-7">
+            <div className="space-y-2">
+              <input
+                autoFocus={!readOnly}
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                readOnly={readOnly}
+                placeholder="새 일정"
+                data-testid="event-form-title-input"
+                className="w-full bg-transparent text-2xl font-semibold outline-none placeholder:text-muted-foreground/50"
+              />
+              {(readOnly || (editing?.rrule && !readOnly)) && (
+                <div className="flex gap-1.5">
+                  {readOnly && <Badge>읽기 전용</Badge>}
+                  {editing?.rrule && !readOnly && (
+                    <Badge testid="event-form-recur-notice">반복 일정</Badge>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">{dateLabel}</p>
+                {!readOnly && (
+                  <div role="radiogroup" aria-label="시간" className="inline-flex rounded-lg bg-muted p-0.5 text-xs">
+                    {([
+                      [false, "시간 지정"],
+                      [true, "종일"],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        role="radio"
+                        aria-checked={allDay === value}
+                        onClick={() => setAllDay(value)}
+                        data-testid={value ? "event-form-allday-on" : "event-form-allday-off"}
+                        className={cn(
+                          "rounded-md px-2.5 py-1 font-medium transition",
+                          allDay === value ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <DatePicker
+                  selected={startAt}
+                  onChange={(d: Date | null) => {
+                    if (!d) return
+                    setStartAt(d)
+                    if (endAt.getTime() <= d.getTime()) {
+                      setEndAt(new Date(d.getTime() + 60 * 60 * 1000))
+                    }
+                  }}
+                  showTimeSelect={!allDay}
+                  timeIntervals={15}
+                  dateFormat={allDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"}
+                  timeFormat="HH:mm"
+                  locale="ko"
+                  wrapperClassName="w-full"
+                  disabled={readOnly}
+                  className={pickerClass}
+                />
+                <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
+                <DatePicker
+                  selected={endAt}
+                  onChange={(d: Date | null) => {
+                    if (!d) return
+                    setEndAt(d)
+                    if (startAt.getTime() >= d.getTime()) {
+                      setStartAt(new Date(d.getTime() - 60 * 60 * 1000))
+                    }
+                  }}
+                  showTimeSelect={!allDay}
+                  timeIntervals={15}
+                  dateFormat={allDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"}
+                  timeFormat="HH:mm"
+                  locale="ko"
+                  wrapperClassName="w-full"
+                  disabled={readOnly}
+                  className={pickerClass}
+                />
+              </div>
+            </div>
+
+            {(!readOnly || description) && (
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                readOnly={readOnly}
+                placeholder="메모"
+                rows={5}
+                data-testid="event-form-description-input"
+                className="w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
+              />
+            )}
+
+            {editing && !readOnly && <InvitationsPanel event={editing} />}
+          </div>
+
+          <aside className="space-y-5 border-t bg-muted/40 p-5 md:border-t-0 md:border-l">
+            <Prop label="캘린더">
+              <div role="radiogroup" aria-label="캘린더" className="space-y-1" data-testid="event-form-calendar-select">
+                {(readOnly && editingCalendar ? [editingCalendar] : visibleCalendars).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={calendarId === c.id}
+                    disabled={readOnly || !!editing}
+                    onClick={() => setCalendarId(c.id)}
+                    data-testid={`event-form-calendar-${c.id}`}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition",
+                      calendarId === c.id
+                        ? "bg-background font-medium shadow-sm"
+                        : "text-muted-foreground hover:bg-background/60",
+                    )}
+                  >
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: c.color_override ?? c.color }} />
+                    <span className="truncate">{c.name}</span>
+                    {c.scope === "shared" && <Users className="ml-auto size-3.5 shrink-0 opacity-60" aria-label="워크스페이스" />}
+                  </button>
+                ))}
+              </div>
+            </Prop>
+
+            {rooms.length > 0 && (!readOnly || roomId) && (
+              <Prop label="회의실">
+                <select
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  disabled={readOnly}
+                  data-testid="event-form-room-select"
+                  className={cn(fieldClass, "w-full")}
+                >
+                  <option value="">없음</option>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                      {r.capacity != null ? ` (${r.capacity}인)` : ""}
+                    </option>
+                  ))}
+                </select>
+              </Prop>
+            )}
+
+            {(!readOnly || location) && (
+              <Prop label="장소">
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  readOnly={readOnly}
+                  data-testid="event-form-location-input"
+                  className={cn(fieldClass, "w-full")}
+                />
+              </Prop>
+            )}
+
+            {(!readOnly || repeatPreset !== "none") && (
+              <Prop label="반복">
+                <select
+                  value={repeatPreset}
+                  onChange={(e) => setRepeatPreset(e.target.value as RepeatPreset)}
+                  disabled={readOnly}
+                  data-testid="event-form-repeat-select"
+                  className={cn(fieldClass, "w-full")}
+                >
+                  <option value="none">반복 안 함</option>
+                  <option value="daily">매일</option>
+                  <option value="weekly">매주</option>
+                  <option value="monthly">매월</option>
+                  <option value="yearly">매년</option>
+                  <option value="custom">직접 입력 (RRULE)</option>
+                </select>
+                {repeatPreset === "custom" && (
+                  <input
+                    type="text"
+                    value={customRrule}
+                    onChange={(e) => setCustomRrule(e.target.value)}
+                    readOnly={readOnly}
+                    placeholder="FREQ=WEEKLY;BYDAY=MO,WE"
+                    data-testid="event-form-rrule-input"
+                    className={cn(fieldClass, "mt-1.5 w-full font-mono text-xs")}
+                  />
+                )}
+              </Prop>
+            )}
+
+            {(!readOnly || reminderMinutes !== null) && (
+              <Prop label="알림">
+                <select
+                  value={reminderMinutes === null ? "" : String(reminderMinutes)}
+                  onChange={(e) =>
+                    setReminderMinutes(e.target.value === "" ? null : Number(e.target.value))
+                  }
+                  disabled={readOnly}
+                  data-testid="event-form-reminder-select"
+                  className={cn(fieldClass, "w-full")}
+                >
+                  <option value="">알림 없음</option>
+                  <option value="5">5분 전</option>
+                  <option value="15">15분 전</option>
+                  <option value="30">30분 전</option>
+                  <option value="60">1시간 전</option>
+                  <option value="1440">1일 전</option>
+                </select>
+              </Prop>
+            )}
+
+            {editing && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await apiDownload(
+                      `/api/v1/events/${editing.id}/ics`,
+                      `${editing.title || "event"}.ics`,
+                    )
+                  } catch (e) {
+                    toast.error(`다운로드 실패: ${(e as Error).message}`)
+                  }
+                }}
+                data-testid="event-form-ics-download"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                <Download className="size-3.5" />
+                .ics 다운로드
+              </button>
+            )}
+          </aside>
         </div>
 
-        {editing?.rrule && !readOnly && (
-          <div
-            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
-            data-testid="event-form-recur-notice"
-          >
-            반복 일정
-          </div>
-        )}
-
-        <Field label="제목">
-          <input
-            autoFocus={!readOnly}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            readOnly={readOnly}
-            data-testid="event-form-title-input"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none read-only:bg-gray-50"
-          />
-        </Field>
-
-        <Field label="캘린더">
-          {readOnly && editingCalendar ? (
-            <p className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-              {editingCalendar.scope === "shared" ? "[공유] " : ""}
-              {editingCalendar.name}
-            </p>
-          ) : (
-            <select
-              value={calendarId}
-              onChange={(e) => setCalendarId(e.target.value)}
-              data-testid="event-form-calendar-select"
-              disabled={!!editing}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
-            >
-              {writable.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.scope === "shared" ? "[공유] " : ""}
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="시작">
-            <DatePicker
-              selected={startAt}
-              onChange={(d: Date | null) => {
-                if (!d) return
-                setStartAt(d)
-                if (endAt.getTime() <= d.getTime()) {
-                  setEndAt(new Date(d.getTime() + 60 * 60 * 1000))
-                }
-              }}
-              showTimeSelect={!allDay}
-              timeIntervals={15}
-              dateFormat={allDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"}
-              timeFormat="HH:mm"
-              locale="ko"
-              wrapperClassName="w-full"
-              disabled={readOnly}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
-            />
-          </Field>
-          <Field label="종료">
-            <DatePicker
-              selected={endAt}
-              onChange={(d: Date | null) => {
-                if (!d) return
-                setEndAt(d)
-                if (startAt.getTime() >= d.getTime()) {
-                  setStartAt(new Date(d.getTime() - 60 * 60 * 1000))
-                }
-              }}
-              showTimeSelect={!allDay}
-              timeIntervals={15}
-              dateFormat={allDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"}
-              timeFormat="HH:mm"
-              locale="ko"
-              wrapperClassName="w-full"
-              disabled={readOnly}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
-            />
-          </Field>
-        </div>
-
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={allDay}
-            onChange={(e) => setAllDay(e.target.checked)}
-            disabled={readOnly}
-            data-testid="event-form-allday-checkbox"
-          />
-          종일
-        </label>
-
-        {rooms.length > 0 && (!readOnly || roomId) && (
-          <Field label="회의실">
-            <select
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              disabled={readOnly}
-              data-testid="event-form-room-select"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
-            >
-              <option value="">회의실 없음</option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                  {r.capacity != null ? ` (${r.capacity}인)` : ""}
-                </option>
-              ))}
-            </select>
-          </Field>
-        )}
-
-        {(!readOnly || location) && (
-          <Field label="장소">
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              readOnly={readOnly}
-              data-testid="event-form-location-input"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none read-only:bg-gray-50"
-            />
-          </Field>
-        )}
-
-        {(!readOnly || description) && (
-          <Field label="설명">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              readOnly={readOnly}
-              data-testid="event-form-description-input"
-              rows={3}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none read-only:bg-gray-50"
-            />
-          </Field>
-        )}
-
-        {editing && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await apiDownload(
-                    `/api/v1/events/${editing.id}/ics`,
-                    `${editing.title || "event"}.ics`,
-                  )
-                } catch (e) {
-                  toast.error(`다운로드 실패: ${(e as Error).message}`)
-                }
-              }}
-              data-testid="event-form-ics-download"
-              className="text-xs font-medium text-gray-600 hover:text-gray-900 hover:underline"
-            >
-              .ics 다운로드
-            </button>
-          </div>
-        )}
-        {editing && !readOnly && <InvitationsPanel event={editing} />}
-
-        {(!readOnly || repeatPreset !== "none") && (
-          <Field label="반복">
-            <select
-              value={repeatPreset}
-              onChange={(e) => setRepeatPreset(e.target.value as RepeatPreset)}
-              disabled={readOnly}
-              data-testid="event-form-repeat-select"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
-            >
-              <option value="none">반복 없음</option>
-              <option value="daily">매일</option>
-              <option value="weekly">매주</option>
-              <option value="monthly">매월</option>
-              <option value="yearly">매년</option>
-              <option value="custom">직접 입력 (RRULE)</option>
-            </select>
-          </Field>
-        )}
-
-        {repeatPreset === "custom" && (
-          <Field label="RRULE (RFC 5545)" hint="예: FREQ=WEEKLY;BYDAY=MO,WE">
-            <input
-              type="text"
-              value={customRrule}
-              onChange={(e) => setCustomRrule(e.target.value)}
-              readOnly={readOnly}
-              placeholder="FREQ=WEEKLY;BYDAY=MO,WE"
-              data-testid="event-form-rrule-input"
-              className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-xs focus:border-gray-500 focus:outline-none read-only:bg-gray-50"
-            />
-          </Field>
-        )}
-
-        {(!readOnly || reminderMinutes !== null) && (
-          <Field label="알림">
-            <select
-              value={reminderMinutes === null ? "" : String(reminderMinutes)}
-              onChange={(e) =>
-                setReminderMinutes(e.target.value === "" ? null : Number(e.target.value))
-              }
-              disabled={readOnly}
-              data-testid="event-form-reminder-select"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
-            >
-              <option value="">알림 없음</option>
-              <option value="5">5분 전</option>
-              <option value="15">15분 전</option>
-              <option value="30">30분 전</option>
-              <option value="60">1시간 전</option>
-              <option value="1440">1일 전</option>
-            </select>
-          </Field>
-        )}
-
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between gap-2 border-t px-6 py-3">
           {editing && !readOnly ? (
-            <button
+            <Button
+              variant="ghost"
               onClick={remove}
               disabled={busy}
               data-testid="event-form-delete-button"
-              className="rounded px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               삭제
-            </button>
+            </Button>
           ) : (
             <span />
           )}
           <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              data-testid="event-form-cancel-button"
-              className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-            >
+            <Button variant="ghost" onClick={onClose} data-testid="event-form-cancel-button">
               {readOnly ? "닫기" : "취소"}
-            </button>
+            </Button>
             {!readOnly && (
-              <button
+              <Button
                 onClick={save}
                 disabled={busy || !title.trim() || !calendarId}
                 data-testid="event-form-save-button"
-                className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
               >
                 저장
-              </button>
+              </Button>
             )}
           </div>
         </div>
       </div>
     </div>
-
     {showRecurEdit && (
       <div
         className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
@@ -620,22 +636,25 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
   )
 }
 
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string
-  hint?: string
-  children: React.ReactNode
-}) {
+const fieldClass =
+  "h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/20 disabled:opacity-70 read-only:bg-muted/50"
+
+function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-gray-600">
-        {label}
-        {hint && <span className="ml-2 text-gray-400">{hint}</span>}
-      </label>
+    <div className="space-y-1.5">
+      <p className="text-[11px] font-semibold tracking-wide text-muted-foreground">{label}</p>
       {children}
     </div>
+  )
+}
+
+function Badge({ children, testid }: { children: React.ReactNode; testid?: string }) {
+  return (
+    <span
+      data-testid={testid}
+      className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+    >
+      {children}
+    </span>
   )
 }

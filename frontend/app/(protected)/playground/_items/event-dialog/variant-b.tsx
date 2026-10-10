@@ -59,16 +59,13 @@ export function VariantB({ calendars, rooms, onClose, onSubmit }: VariantProps) 
                 ))}
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-2 text-xs text-muted-foreground">
+              <span>시작</span>
               <input type="date" value={d.date} onChange={(e) => set({ date: e.target.value })} className={field} data-testid="proto-b-date" />
-              {!d.allDay && (
-                <input type="time" step={900} value={d.startTime} onChange={(e) => set({ startTime: e.target.value })} className={field} data-testid="proto-b-start" />
-              )}
-              <span className="text-muted-foreground">→</span>
+              <input type="time" step={900} value={d.startTime} disabled={d.allDay} onChange={(e) => set({ startTime: e.target.value })} className={cn(field, d.allDay && "invisible")} data-testid="proto-b-start" />
+              <span>종료</span>
               <input type="date" value={d.endDate} onChange={(e) => set({ endDate: e.target.value })} className={field} data-testid="proto-b-end-date" />
-              {!d.allDay && (
-                <input type="time" step={900} value={d.endTime} onChange={(e) => set({ endTime: e.target.value })} className={field} data-testid="proto-b-end" />
-              )}
+              <input type="time" step={900} value={d.endTime} disabled={d.allDay} onChange={(e) => set({ endTime: e.target.value })} className={cn(field, d.allDay && "invisible")} data-testid="proto-b-end" />
             </div>
           </div>
 

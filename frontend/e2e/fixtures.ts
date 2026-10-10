@@ -58,11 +58,9 @@ export async function createCalendar(
   await page.keyboard.press("Escape")
 }
 
-/** 일정 편집 창에서 캘린더를 이름으로 고른다. 공유 캘린더는 앞에 표시가 붙어 정확히 일치하지 않는다. */
+/** 일정 편집 창에서 캘린더를 이름으로 고른다. */
 export async function selectCalendar(page: Page, name: string): Promise<void> {
-  const select = page.getByTestId("event-form-calendar-select")
-  const value = await select.locator("option", { hasText: name }).getAttribute("value")
-  await select.selectOption(value!)
+  await page.getByTestId("event-form-calendar-select").getByRole("radio", { name }).click()
 }
 
 /**
