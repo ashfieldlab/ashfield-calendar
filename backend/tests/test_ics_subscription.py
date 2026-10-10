@@ -1,4 +1,4 @@
-"""ICS subscription (ADR-0013): 권한·마스킹·회전·비인증 엔드포인트."""
+"""ICS subscription (ADR-0013): 권한, 마스킹, 회전, 비인증 엔드포인트."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -261,7 +261,7 @@ async def test_booking_event_masked_in_subscription_ics(
 async def test_non_booking_event_not_masked(
     client, auth_headers, db_session
 ):
-    """운영자가 직접 만든 일정은 마스킹 X: 제목·설명 그대로."""
+    """운영자가 직접 만든 일정은 마스킹 X: 제목과 설명 그대로."""
     from app.models.calendar import Calendar
     from app.models.calendar_event import CalendarEvent
 

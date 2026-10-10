@@ -18,7 +18,7 @@ interface Props {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-/** 참석자 추가 입력 한 줄: 이름으로 멤버를 검색하거나 이메일을 바로 넣는다. 새 일정·일정 수정이 같이 쓴다. */
+/** 참석자 추가 입력 한 줄: 이름으로 멤버를 검색하거나 이메일을 바로 넣는다. 새 일정과 일정 수정이 같이 쓴다. */
 export function AttendeeInputs({ onAddMember, onAddEmail, busy, testid }: Props) {
   const [text, setText] = useState("")
   const [items, setItems] = useState<WorkspaceMember[]>([])

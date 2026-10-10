@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 }
 
 // 인증 가드: proxy.ts(세션 쿠키 존재, 복귀 주소 보존) → 여기서 Better Auth 세션 유효성 재확인
-// (만료·로그아웃된 쿠키면 /login). 앱 신원·워크스페이스는 /api/v1/me.
+// (만료되거나 로그아웃된 쿠키면 /login). 앱 신원과 워크스페이스는 /api/v1/me.
 //
 // ActiveWorkspaceGate: activeWorkspaceId 부트스트랩 끝나야 children 렌더. 안 그러면
 // useApiGet 가 X-Active-Workspace-Id 헤더 없이 발사돼 422.

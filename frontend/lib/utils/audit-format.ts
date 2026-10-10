@@ -65,7 +65,7 @@ export function metaSummary(item: AuditItemLike): string {
           : null
   const parts: string[] = []
   if (subject) parts.push(`"${subject}"`)
-  return parts.join(" · ")
+  return parts.join(", ")
 }
 
 /**
@@ -84,8 +84,8 @@ export function describe(item: AuditItemLike): string {
         : null
   const entity = entityLabel(item.entity_type)
   const action = actionLabel(item.action)
-  if (subject) return `${actor} · ${subject} ${entity}을(를) ${action}`
-  return `${actor} · ${entity} ${action}`
+  if (subject) return `${actor}, ${subject} ${entity}을(를) ${action}`
+  return `${actor}, ${entity} ${action}`
 }
 
 /** ISO datetime → 상대 시간 ("방금", "3분 전", "2시간 전", "어제", "3일 전"). */

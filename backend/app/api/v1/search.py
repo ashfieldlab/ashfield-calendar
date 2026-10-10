@@ -1,6 +1,6 @@
 """/api/v1/search: 일정 검색.
 
-list_visible_calendars(+초대) 로 권한 정합. 필터: 날짜 범위·calendar_id. FTS 는 보류(ILIKE).
+list_visible_calendars(+초대) 로 권한 정합. 필터: 날짜 범위, calendar_id. FTS 는 보류(ILIKE).
 """
 
 from datetime import datetime

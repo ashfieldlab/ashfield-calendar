@@ -1,4 +1,4 @@
-"""회의실(Room) CRUD·권한 + 이중예약 차단 (ADR-0019)."""
+"""회의실(Room) CRUD, 권한 + 이중예약 차단 (ADR-0019)."""
 
 import pytest
 from httpx import AsyncClient

@@ -48,7 +48,7 @@ _TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _html_to_text(html: str) -> str:
-    """HTML 태그 strip → plain text fallback. <br>·</p> 는 newline 변환."""
+    """HTML 태그 strip → plain text fallback. <br>, </p> 는 newline 변환."""
     s = re.sub(r"(?i)<br\s*/?>", "\n", html)
     s = re.sub(r"(?i)</p\s*>", "\n\n", s)
     s = _TAG_RE.sub("", s)
@@ -386,7 +386,7 @@ def _send_sync(cfg: SmtpRuntime, to_email: str, email: RenderedEmail) -> None:
 
     # tls_mode:
     #   'ssl'      → SMTP_SSL (implicit TLS, 보통 465)
-    #   'starttls' → SMTP plain → starttls() 후 인증·발송 (보통 587)
+    #   'starttls' → SMTP plain → starttls() 후 인증과 발송 (보통 587)
     #   'none'     → 평문 SMTP (보통 25 / 2525: 운영 비추천)
     if cfg.tls_mode == "ssl":
         with SMTP_SSL(cfg.host, cfg.port, timeout=10) as smtp:
@@ -458,8 +458,8 @@ async def send_for_event(
 
     반환값(outbox 스탬프 판정용, #2):
       - "sent"    발송 성공 → emailed_at 스탬프(terminal)
-      - "skipped" 수신거부·주소없음·템플릿없음·본인행동 → 스탬프(terminal, 재시도 무의미)
-      - "failed"  SMTP 미설정·전송 예외 → 스탬프 안 함(relay 가 재시도)
+      - "skipped" 수신거부, 주소없음, 템플릿없음, 본인행동 → 스탬프(terminal, 재시도 무의미)
+      - "failed"  SMTP 미설정, 전송 예외 → 스탬프 안 함(relay 가 재시도)
 
     workspace_id 는 워크스페이스 override resolve 에 사용.
     """

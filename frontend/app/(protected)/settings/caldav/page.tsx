@@ -140,7 +140,7 @@ export default function CalDavTokensPage() {
                     {t.name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    만든 날: {new Date(t.created_at).toLocaleDateString("ko-KR")} ·
+                    만든 날: {new Date(t.created_at).toLocaleDateString("ko-KR")},
                     마지막 사용:{" "}
                     {t.last_used_at
                       ? new Date(t.last_used_at).toLocaleString("ko-KR")

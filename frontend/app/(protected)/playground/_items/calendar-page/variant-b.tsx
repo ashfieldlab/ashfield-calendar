@@ -85,9 +85,9 @@ export function VariantB() {
                             {o.all_day
                               ? "종일"
                               : `${new Date(o.start_at).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" })} – ${new Date(o.end_at).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" })}`}
-                            {" · "}
+                            {", "}
                             {calName(o.calendar_id)}
-                            {o.location ? ` · ${o.location}` : ""}
+                            {o.location ? `, ${o.location}` : ""}
                           </p>
                         </div>
                       </li>

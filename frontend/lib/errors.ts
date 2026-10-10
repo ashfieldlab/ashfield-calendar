@@ -24,7 +24,7 @@ type ErrorMessage = string | ((params: ParamMap) => string)
 
 /**
  * HTTP status 별 기본 한국어. code 가 없거나 unknown 일 때 fallback.
- * 추가·변경은 한 곳에서.
+ * 추가와 변경은 한 곳에서.
  */
 export const HTTP_STATUS_MESSAGES: Record<number, string> = {
   // 4xx: 클라이언트 측 문제
@@ -101,7 +101,7 @@ export const ERROR_MESSAGES: Record<string, ErrorMessage> = {
 
   // ───── 캘린더 ─────
   EVENT_LINKED_TO_BOOKING:
-    "예약과 연결된 일정입니다. 예약 페이지에서 변경·취소해주세요.",
+    "예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.",
 }
 
 export interface ApiErrorBody {

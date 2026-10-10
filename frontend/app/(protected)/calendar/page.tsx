@@ -83,7 +83,7 @@ export default function CalendarPage() {
   const events: EventInput[] = useMemo(
     () =>
       (occList?.occurrences ?? []).map((occ) => {
-        // 예약 연결·외부 캘린더 일정은 드래그 이동/리사이즈 불가.
+        // 예약 연결과 외부 캘린더 일정은 드래그 이동/리사이즈 불가.
         const locked = !!occ.booking_id || readonlyCalIds.has(occ.calendar_id)
         return {
           id: `${occ.event_id}-${occ.start_at}`,
@@ -132,7 +132,7 @@ export default function CalendarPage() {
     setView(info.view.type)
   }
 
-  // 월·연 보기에서 날짜 칸을 누르면 그날 일정 목록, 주·일 보기는 그 시각으로 새 일정.
+  // 월과 연 보기에서 날짜 칸을 누르면 그날 일정 목록, 주와 일 보기는 그 시각으로 새 일정.
   function handleDateClick(info: DateClickArg) {
     if (info.view.type === "dayGridMonth" || info.view.type === "multiMonthYear") {
       setDayPop({ date: info.date, rect: info.dayEl.getBoundingClientRect() })
@@ -159,7 +159,7 @@ export default function CalendarPage() {
   function openOccurrence(occ: EventOccurrence) {
     setDayPop(null)
     if (occ.booking_id) {
-      toast.error("예약과 연결된 일정입니다. 예약 페이지에서 변경·취소해주세요.")
+      toast.error("예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.")
       return
     }
     setFormState({ mode: "edit", eventId: occ.event_id, start: new Date(occ.start_at) })
@@ -172,7 +172,7 @@ export default function CalendarPage() {
     const bookingId = info.event.extendedProps.bookingId as string | null
     if (bookingId) {
       toast.error(
-        "예약과 연결된 일정입니다. 예약 페이지에서 변경·취소해주세요.",
+        "예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.",
       )
       return
     }
@@ -183,7 +183,7 @@ export default function CalendarPage() {
     })
   }
 
-  // 드래그 이동·리사이즈 공통: 반복이면 범위 선택 모달, 아니면 바로 저장.
+  // 드래그 이동과 리사이즈 공통: 반복이면 범위 선택 모달, 아니면 바로 저장.
   function handleEventChange(info: EventDropArg | EventResizeDoneArg) {
     const eventId = info.event.extendedProps.eventId as string
     const isRecurring = info.event.extendedProps.isRecurring as boolean

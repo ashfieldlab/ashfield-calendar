@@ -70,7 +70,7 @@ async def _booking_id_for_event(db: AsyncSession, event_id: str) -> str | None:
 
 
 async def _assert_not_booking_linked(db: AsyncSession, event_id: str) -> None:
-    """예약-연결 캘린더 이벤트는 캘린더 화면에서 직접 편집·삭제 불가.
+    """예약-연결 캘린더 이벤트는 캘린더 화면에서 직접 편집과 삭제 불가.
 
     Why: booking 과 event 가 어긋나면 고객은 예전 시간으로 안내받고 운영자는 새 시간을
     보는 데이터 분기 위험. 변경은 예약 페이지의 'reschedule', 삭제는 예약 취소를 통해서만.
@@ -80,7 +80,7 @@ async def _assert_not_booking_linked(db: AsyncSession, event_id: str) -> None:
         raise BusinessError(
             "EVENT_LINKED_TO_BOOKING",
             status=409,
-            message="예약과 연결된 일정입니다. 예약 페이지에서 변경·취소해주세요.",
+            message="예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.",
             params={"booking_id": bid},
         )
 

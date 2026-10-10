@@ -14,7 +14,7 @@ interface Props {
   onDone: () => void
 }
 
-/** 운영자가 booking 의 시간·메모를 변경. force=true 면 양식 외 시간도 가능. */
+/** 운영자가 booking 의 시간과 메모를 변경. force=true 면 양식 외 시간도 가능. */
 export function RescheduleModal({
   bookingTypeId,
   booking,
@@ -91,7 +91,7 @@ export function RescheduleModal({
             </p>
             <p>
               <span className="text-muted-foreground">고객:</span>{" "}
-              {booking.customer_name ?? "-"} · {booking.customer_email ?? "-"}
+              {booking.customer_name ?? "-"}, {booking.customer_email ?? "-"}
             </p>
           </div>
 
@@ -124,7 +124,7 @@ export function RescheduleModal({
               className="mt-0.5"
             />
             <span>
-              <strong>가용 시간 외 강제</strong> · 요일·시간·정원 검증 생략
+              <strong>가용 시간 외 강제</strong>: 요일, 시간, 정원 검증 생략
             </span>
           </label>
 

@@ -7,7 +7,7 @@
   POST   /booking/cancel/{cancel_token}      : 취소
 
 노출 정보 최소화 (ADR-0011): 워크스페이스 이름 + 양식 title/description/duration 만.
-운영자 신원·이메일 노출 X. 다른 예약자 정보 노출 X.
+운영자 신원과 이메일 노출 X. 다른 예약자 정보 노출 X.
 
 보호: honeypot 필드 + rate limit (IP + email) + audit log.
 """
@@ -62,7 +62,7 @@ class PublicBookingTypeResponse(BaseModel):
     minimum_notice_minutes: int
     lookahead_days: int
     privacy_policy_url: str | None
-    # 워크스페이스 이름만 (운영자 이름·이메일은 X)
+    # 워크스페이스 이름만 (운영자 이름과 이메일은 X)
     organization_name: str
 
 

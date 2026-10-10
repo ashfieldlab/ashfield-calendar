@@ -168,7 +168,7 @@ export function SearchModal({
                       <p className="truncate text-foreground">{e.title}</p>
                       <p className="truncate text-[11px] text-muted-foreground">
                         {formatDateTime(e.start_at)}
-                        {e.location && ` · ${e.location}`}
+                        {e.location && `, ${e.location}`}
                       </p>
                     </div>
                   </Link>

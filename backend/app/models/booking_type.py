@@ -1,6 +1,6 @@
 """BookingType: 외부 고객 예약 양식 (ADR-0012).
 
-운영자가 정의: 공개 URL · 가용 시간 · duration · capacity · 충돌 체크 캘린더 ·
+운영자가 정의: 공개 URL, 가용 시간, duration, capacity, 충돌 체크 캘린더,
 booking 알림 받을 사람. 공개 페이지(`/book/{public_key}`) 에서 슬롯 계산 후
 고객이 선택 → Booking 생성.
 

@@ -1,4 +1,4 @@
-/* react-datepicker 를 앱 토큰으로 (라이트·다크 공통). 기본 CSS 다음에 import 한다. */
+/* react-datepicker 를 앱 토큰으로 (라이트와 다크 공통). 기본 CSS 다음에 import 한다. */
 
 .react-datepicker {
   font-family: inherit;

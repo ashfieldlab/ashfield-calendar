@@ -126,7 +126,7 @@ export default function PublicBookPage({
         const body = await res.json().catch(() => ({}))
         const msg = friendlyError(body, res.status)
         setSubmitError(msg)
-        // 슬롯 충돌·만석·가용외 → 선택 초기화 + 슬롯 재로드
+        // 슬롯 충돌, 만석, 가용외 → 선택 초기화 + 슬롯 재로드
         const slotRelated = [
           "BOOKING_SLOT_FULL",
           "BOOKING_SLOT_BLOCKED",
@@ -180,7 +180,7 @@ export default function PublicBookPage({
           일시: {formatLocal(success.slot_start_at)}
         </p>
         <p className="text-sm text-foreground/80">
-          입력하신 이메일로 안내 메일을 발송했습니다. 변경·취소가 필요하시면
+          입력하신 이메일로 안내 메일을 발송했습니다. 변경이나 취소가 필요하시면
           메일의 링크를 사용해주세요.
         </p>
         <p className="text-xs text-muted-foreground">감사합니다.</p>
@@ -326,7 +326,7 @@ interface DayBucket {
  * 캘린더 월 그리드 (데스크탑) / 가로 날짜 칩 (모바일) + 선택된 날짜의 시간 슬롯 패널.
  *
  * - slots 를 로컬 YYYY-MM-DD 로 그룹핑 → 가용 날짜 set
- * - 사용자가 선택한 날짜의 시간 슬롯만 우측·하단에 표시
+ * - 사용자가 선택한 날짜의 시간 슬롯만 우측과 하단에 표시
  * - 캘린더는 월 단위 네비게이션, 가용한 달까지만 이동 가능
  */
 const SlotGrid = memo(function SlotGrid({
@@ -683,10 +683,10 @@ function ConsentBox({
         className="mt-0.5 shrink-0"
       />
       <span>
-        <strong>(필수)</strong> 개인정보 수집·이용에 동의합니다.
+        <strong>(필수)</strong> 개인정보 수집과 이용에 동의합니다.
         <br />
-        수집 항목: 이름, 이메일, 메시지 · 이용 목적: 예약 확정 안내, 변경·취소 통지
-        · 보관 기간: 예약 종료일로부터 30일 자동 삭제. 동의 거부 시 예약 접수가 불가합니다.
+        수집 항목: 이름, 이메일, 메시지. 이용 목적: 예약 확정 안내, 변경과 취소 통지.
+        보관 기간: 예약 종료일로부터 30일 자동 삭제. 동의 거부 시 예약 접수가 불가합니다.
         {privacyUrl && (
           <>
             {" "}

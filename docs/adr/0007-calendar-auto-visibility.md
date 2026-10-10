@@ -29,5 +29,5 @@ Google Calendar 스타일 사이드바, 체크박스 hidden 토글:
 ## Phase
 
 - **Phase 1**: native multi-calendar, personal/shared scope, 자동 가시성, hidden 토글
-- **Phase 1.5**: 캘린더별 권한 세분화, 명시적 사용자 간 공유, 이벤트 초대·참석자
+- **Phase 1.5**: 캘린더별 권한 세분화, 명시적 사용자 간 공유, 이벤트 초대와 참석자
 - **Phase 2**: 외부 ICS inbound 구독, ICS export, 그룹 단위 가시성, 알림

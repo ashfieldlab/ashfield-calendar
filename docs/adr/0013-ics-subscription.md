@@ -5,7 +5,7 @@
 
 ## 컨텍스트
 
-운영자가 자체 호스팅하는 Nextcloud / 외부 캘린더 클라이언트(Google·Apple·Outlook)에서
+운영자가 자체 호스팅하는 Nextcloud / 외부 캘린더 클라이언트(Google, Apple, Outlook)에서
 Ashfield 일정을 일방향 미러링하려는 요구. CalDAV 풀구현은 헤비(RFC 4791, 별도 서버)
 이지만 ICS subscription 은 대부분 외부 캘린더 앱이 지원하는 단방향 사용 케이스에 충분.
 
@@ -13,7 +13,7 @@ Ashfield 일정을 일방향 미러링하려는 요구. CalDAV 풀구현은 헤�
 - **자격 증명 부재**: 외부 캘린더 클라이언트는 OAuth/세션 인증을 못 보냄.
   토큰-in-URL 만 가능 (Google Calendar private ICS URL, Outlook publish URL 패턴 동일).
 - **고객 PII**: booking 으로부터 만든 `CalendarEvent` 의 title/description 에
-  외부 고객의 이름·자유 텍스트 메시지가 들어 있음. 그대로 노출하면
+  외부 고객의 이름과 자유 텍스트 메시지가 들어 있음. 그대로 노출하면
   PIPA "수집 목적 외 이용" 위반 (고객은 "예약 처리" 동의했지 "운영자의 외부 캘린더 앱
   서버로 전송" 까지 동의 X).
 
@@ -35,7 +35,7 @@ CalDAV 는 양방향 sync 가 정말 필요해질 때 별도 ADR.
 | 비활성화 | 토큰 null + endpoint 404 |
 | Rate limit | public IP rate limit 재사용 ([ADR-0011](0011-public-route-carveout.md)) |
 | Cache-Control | `private, max-age=900` (외부 캐시 금지, 클라이언트만 캐시) |
-| Audit | 활성화·회전·비활성화 모두 `audit_logs` 기록 |
+| Audit | 활성화, 회전, 비활성화 모두 `audit_logs` 기록 |
 
 ### 3. 권한 분기
 
@@ -63,8 +63,8 @@ ICS subscription 응답에서 `Booking.calendar_event_id` 로 연결된 `Calenda
 ### 5. 운영자에게 노출되는 카피
 
 - "이 URL 은 비밀번호와 같이 다루세요. 유출 시 캘린더 일정이 외부에 노출됩니다."
-- "외부 고객 예약 정보(이름·메시지)는 자동으로 가려져 시간·제목만 노출됩니다."
-- "Google·Apple 같은 외부 서비스 캘린더에도 등록 가능하지만, 자체 호스팅 캘린더
+- "외부 고객 예약 정보(이름과 메시지)는 자동으로 가려져 시간과 제목만 노출됩니다."
+- "Google, Apple 같은 외부 서비스 캘린더에도 등록 가능하지만, 자체 호스팅 캘린더
   (Nextcloud 등)에 사용을 권장합니다."
 
 ## 대안 비교
@@ -73,7 +73,7 @@ ICS subscription 응답에서 `Booking.calendar_event_id` 로 연결된 `Calenda
 |---|---|---|
 | CalDAV 풀구현 (RFC 4791) | X | 헤비, 양방향 sync 미요구. 별도 서버(Radicale 등) 도입 필요 |
 | 토글로 풀모드 / 마스킹 선택 | X | PIPA 회복 불가능한 위반 위험. 운영자 실수 차단 |
-| 토큰 in `?token=` 쿼리스트링 | X | 서버 로그·referer 노출 위험. 경로(.ics) 가 표준 |
+| 토큰 in `?token=` 쿼리스트링 | X | 서버 로그, referer 노출 위험. 경로(.ics) 가 표준 |
 | Bearer 헤더 인증 | X | 외부 캘린더 클라이언트가 헤더 인증 미지원 |
 
 ## 결과

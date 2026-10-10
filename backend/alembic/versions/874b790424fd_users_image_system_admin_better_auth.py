@@ -1,4 +1,4 @@
-"""users image·system admin (Better Auth)
+"""users image, system admin (Better Auth)
 
 Revision ID: 874b790424fd
 Revises: c92c11f1f6aa

@@ -36,7 +36,7 @@ class Calendar(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     color: Mapped[str] = mapped_column(String(16), nullable=False, default="#4f46e5")
 
-    # 시스템 관리형 캘린더(공휴일 등). 자동 시드되며 사용자가 편집·삭제 불가(숨김만 가능).
+    # 시스템 관리형 캘린더(공휴일 등). 자동 시드되며 사용자가 편집과 삭제 불가(숨김만 가능).
     managed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"
     )

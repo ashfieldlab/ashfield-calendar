@@ -25,7 +25,7 @@ interface Props {
  * 캘린더 ICS subscription 관리 모달 (ADR-0013).
  *
  * - 활성화/비활성화 토글, URL 표시 + 복사, 토큰 회전
- * - 보안·PIPA 마스킹 경고 카피
+ * - 보안, PIPA 마스킹 경고 카피
  */
 export function SubscriptionModal({ calendar, onClose }: Props) {
   const { toast } = useToast()

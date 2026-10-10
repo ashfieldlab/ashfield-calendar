@@ -431,7 +431,7 @@ async def operator_cancel_booking(
             meta={"by": "operator"},
         )
         await db.commit()
-        # 고객·운영자에게 취소 통지 메일
+        # 고객과 운영자에게 취소 통지 메일
         from app.models.workspace import Workspace
         from app.services.booking import (
             dispatch_booking_cancelled_emails,

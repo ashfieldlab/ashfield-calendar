@@ -16,7 +16,7 @@ export function proxy(req: NextRequest) {
 }
 
 // 제외: API(BFF 가 자체 401, /api/public 은 비로그인), Next 정적 자원, 외부 고객용 공개 페이지
-// (예약 /book, 취소 /cancel, 초대 응답 /rsvp), 아이콘·매니페스트 등 public 파일.
+// (예약 /book, 취소 /cancel, 초대 응답 /rsvp), 아이콘과 매니페스트 등 public 파일.
 export const config = {
   matcher: ["/((?!api/|_next/|book/|cancel/|rsvp/|icons/|logos/|favicon|manifest-|.*\\.(?:png|ico|svg|webmanifest)$).*)"],
 }

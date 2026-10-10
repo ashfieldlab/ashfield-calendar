@@ -1,18 +1,18 @@
 # Ashfield Calendar: Implementation Spec
 
-이 문서는 Ashfield Calendar의 구현 spec: 초기 스켈레톤에서 상속된 기반(§1~§8) + 도메인 모델(§9~). 일부 기반 절(NextAuth·Item 예제·파일 스토리지)은 역사적 기록이며 현재 코드와 다를 수 있다.
+이 문서는 Ashfield Calendar의 구현 spec: 초기 스켈레톤에서 상속된 기반(§1~§8) + 도메인 모델(§9~). 일부 기반 절(NextAuth, Item 예제, 파일 스토리지)은 역사적 기록이며 현재 코드와 다를 수 있다.
 
-> **인증 개정 (2026-10)**: 인증·테넌시 관련 절(§2.1~2.2 NextAuth/Keycloak, §3.3~3.9 JWKS·revocation·lazy upsert, §4.4~4.5 `SKIP_AUTH`·dev-keys)은 **Better Auth + JWKS** 로 대체되었다: [ADR-0023](docs/adr/0023-better-auth-jwks.md), 개정된 [ADR-0003](docs/adr/0003-backend-jwt-validation-and-redis-revocation.md)·[ADR-0004](docs/adr/0004-tenancy-via-jwt-groups-with-lazy-upsert-cache.md). `SKIP_AUTH`·dev-keys·게이트웨이 세션·Keycloak 은 더 이상 없다. 아래 해당 절은 역사적 기록이다.
+> **인증 개정 (2026-10)**: 인증과 테넌시 관련 절(§2.1~2.2 NextAuth/Keycloak, §3.3~3.9 JWKS, revocation, lazy upsert, §4.4~4.5 `SKIP_AUTH`, dev-keys)은 **Better Auth + JWKS** 로 대체되었다: [ADR-0023](docs/adr/0023-better-auth-jwks.md), 개정된 [ADR-0003](docs/adr/0003-backend-jwt-validation-and-redis-revocation.md), [ADR-0004](docs/adr/0004-tenancy-via-jwt-groups-with-lazy-upsert-cache.md). `SKIP_AUTH`, dev-keys, 게이트웨이 세션, Keycloak 은 더 이상 없다. 아래 해당 절은 역사적 기록이다.
 도메인 용어는 [CONTEXT.md](CONTEXT.md), 핵심 아키텍처 결정은 [docs/adr/](docs/adr/) 참조.
 
 ---
 
 ## 0. Scope
 
-**대상**: 멀티테넌트 워크스페이스 앱: 일정·예약 (파일은 별도 레포 ashfield-drive). self-host 그룹웨어 대체.
+**대상**: 멀티테넌트 워크스페이스 앱: 일정과 예약 (파일은 별도 레포 ashfield-drive). self-host 그룹웨어 대체.
 **기반**: 초기 스켈레톤 (JWT 다이렉트 + Multi-tenant + Redis revocation).
-**외부 시스템 의존**: OIDC IdP(인증), S3 호환 Object Storage(파일 앱), 외부 admin 도구(회원·워크스페이스 관리).
-**원칙**: JWT만 신뢰. 회원가입·워크스페이스 관리·빌링 자체 구현 없음.
+**외부 시스템 의존**: OIDC IdP(인증), S3 호환 Object Storage(파일 앱), 외부 admin 도구(회원과 워크스페이스 관리).
+**원칙**: JWT만 신뢰. 회원가입, 워크스페이스 관리, 빌링 자체 구현 없음.
 
 > §1~§8은 스켈레톤에서 상속된 기반 spec (참조용: Item 예제는 무시).
 > §9부터가 본 도메인 모델.
@@ -23,7 +23,7 @@
 
 ```
 ashfield-calendar/
-├── CLAUDE.md                      ← 모노레포 공통 규칙 (커밋·도메인 언어 포인터)
+├── CLAUDE.md                      ← 모노레포 공통 규칙 (커밋과 도메인 언어 포인터)
 ├── CONTEXT.md                     ← 도메인 용어 정의
 ├── SPEC.md                        ← 본 문서
 ├── README.md                      ← 빠른 시작 가이드
@@ -74,7 +74,7 @@ ashfield-calendar/
 │   │   ├── api-client.ts          ← 클라이언트 사이드 fetch
 │   │   ├── env.ts
 │   │   ├── session.ts
-│   │   ├── auth/                  ← Better Auth (server.ts·session.ts·client.ts)
+│   │   ├── auth/                  ← Better Auth (server.ts, session.ts, client.ts)
 │   │   ├── constants/
 │   │   ├── types/
 │   │   ├── hooks/
@@ -287,7 +287,7 @@ interface AppContextType {
 
 **Toast 구현**: sonner: `components/ui/sonner.tsx` 의 `<Toaster />` (root layout 1회 마운트) + `components/ui-custom/use-toast.ts` 의 `useToast()` 훅 (4 variants: success/error/info/warning).
 
-**확인창·앱 셸**: `components/ui-custom/use-confirm.tsx` (shadcn AlertDialog), `components/ui-custom/app-frame.tsx` (헤더·사이드바 프레임), `user-menu.tsx`, `app-icon.tsx`: 모두 shadcn/ui 기반 로컬 구현.
+**확인창과 앱 셸**: `components/ui-custom/use-confirm.tsx` (shadcn AlertDialog), `components/ui-custom/app-frame.tsx` (헤더와 사이드바 프레임), `user-menu.tsx`, `app-icon.tsx`: 모두 shadcn/ui 기반 로컬 구현.
 
 ### 2.7 로거 (`lib/utils/logger.ts`)
 
@@ -828,9 +828,9 @@ chore(deps): Pretendard 업데이트
 
 ### 5.5 CLAUDE.md 계층
 
-- 루트: 모노레포 공통 (커밋·브랜치·CI 정책)
-- `frontend/CLAUDE.md`: NextAuth·API·testid·로깅 규칙
-- `backend/CLAUDE.md`: dependencies·logger·Alembic 규칙
+- 루트: 모노레포 공통 (커밋, 브랜치, CI 정책)
+- `frontend/CLAUDE.md`: NextAuth, API, testid, 로깅 규칙
+- `backend/CLAUDE.md`: dependencies, logger, Alembic 규칙
 
 ---
 
@@ -878,7 +878,7 @@ make frontend   # localhost:3000
 
 ## 7. Migration Plan: 현재 → 목표
 
-별도 grill 세션에서 결정. 아래는 작업 단위만 미리 식별 (실제 순서·범위는 다음 세션에서 grill):
+별도 grill 세션에서 결정. 아래는 작업 단위만 미리 식별 (실제 순서와 범위는 다음 세션에서 grill):
 
 | # | 작업 | 영향 |
 |---|------|------|
@@ -902,7 +902,7 @@ make frontend   # localhost:3000
 | # | 항목 | 본 문서 섹션 |
 |---|------|------|
 | 1 | 프로젝트 정체성 | 0 |
-| 2 | ~~NextAuth + JWT 다이렉트~~ → Better Auth (Google·GitHub) + BFF JWT | ADR-0023 |
+| 2 | ~~NextAuth + JWT 다이렉트~~ → Better Auth (Google, GitHub) + BFF JWT | ADR-0023 |
 | 3 | 모노레포 frontend/+backend/ | 1, ADR-0002 |
 | 4 | 백엔드 JWT 검증 (JWKS): Redis revocation 폐기 | ADR-0003, ADR-0023 |
 | 5 | ~~sid 기반 back-channel logout~~ (폐기, JWT 5분) | ADR-0003 |
@@ -942,7 +942,7 @@ nodes (Phase 1) ADR-0006
   ├── id (uuid v7), kind: file|folder, name
   ├── parent_id → nodes (NULL=루트)
   ├── workspace_id → workspaces
-  ├── owner_id → users (만든 사람·소유자)
+  ├── owner_id → users (만든 사람과 소유자)
   ├── scope: personal|shared
   ├── storage_key (file만), size_bytes, mime
   ├── created_at, updated_at, deleted_at
@@ -1052,7 +1052,7 @@ S3_REGION=kr-standard | us-east-1
 3. POST /api/v1/nodes/{id}/complete
    백엔드:
      a. S3 head_object → 실제 업로드 확인
-     b. size·etag 갱신
+     b. size, etag 갱신
      c. status: pending → ready
      d. audit_log INSERT (action='create')
      e. 응답: 전체 node row
@@ -1096,9 +1096,9 @@ POST   /api/v1/nodes/{id}/restore                  (휴지통 복원)
 
 GET    /api/v1/calendars                           (자동 가시 + 본인 personal)
 POST   /api/v1/calendars                           (생성)
-PATCH  /api/v1/calendars/{id}                      (이름·색 수정)
+PATCH  /api/v1/calendars/{id}                      (이름과 색 수정)
 DELETE /api/v1/calendars/{id}                      (soft delete)
-PATCH  /api/v1/calendars/{id}/preferences          (hidden·color_override)
+PATCH  /api/v1/calendars/{id}/preferences          (hidden, color_override)
 
 GET    /api/v1/events?from=&to=&calendar_ids=      (범위 내 occurrence 풀어서)
 POST   /api/v1/events
@@ -1163,16 +1163,16 @@ ESLint custom rule (skeleton ADR) 그대로 적용.
 skeleton의 6 카테고리 그대로 사용:
 - `auth`: JWT 검증, revocation
 - `authz`: node 접근 거부, 워크스페이스 미멤버
-- `api`: 요청·응답 일반
-- `db`: 무거운 쿼리·트랜잭션
+- `api`: 요청과 응답 일반
+- `db`: 무거운 쿼리와 트랜잭션
 - `cache`: Redis (revocation, throttle)
-- `biz`: 파일·이벤트 CRUD, share·external-link 생성
+- `biz`: 파일과 이벤트 CRUD, share, external-link 생성
 
 ### 9.8 의존성 추가 (skeleton 위에)
 
 **Backend**:
 - `aioboto3`: S3-compatible storage
-- `python-dateutil`: RRULE 파싱·expand
+- `python-dateutil`: RRULE 파싱, expand
 - `icalendar` (선택, Phase 2 ICS export)
 
 **Frontend**:
@@ -1229,6 +1229,6 @@ make frontend
 - 파일 다운로드 → 정상
 - 휴지통으로 이동 → /files/trash에 노출 → 복원
 - /calendar → 월 뷰. 새 이벤트 추가. 표시.
-- 다른 dev 사용자(같은 워크스페이스)로 재로그인 → shared 캘린더·shared 폴더 자동 보임
+- 다른 dev 사용자(같은 워크스페이스)로 재로그인 → shared 캘린더, shared 폴더 자동 보임
 ```
 

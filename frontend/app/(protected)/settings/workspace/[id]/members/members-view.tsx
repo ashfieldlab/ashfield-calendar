@@ -22,7 +22,7 @@ interface MemberListResponse {
 }
 
 /**
- * 워크스페이스 멤버 조회 (읽기 전용). 추가·제거·역할 변경은 Ashfield 계정 서버에서 하고,
+ * 워크스페이스 멤버 조회 (읽기 전용). 추가, 제거, 역할 변경은 Ashfield 계정 서버에서 하고,
  * 바뀐 소속은 다음 토큰 갱신(최대 15분) 또는 재로그인 때 이 앱에 반영된다.
  */
 export default function WorkspaceMembersView({

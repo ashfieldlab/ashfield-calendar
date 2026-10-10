@@ -10,7 +10,7 @@ import type { NotificationResponse } from "@/lib/types/api"
 interface RenderedNotification {
   /** 한 줄 제목: 무엇이 일어났는지. */
   title: string
-  /** 한 줄 부연: 대상의 이름·시간·세부. 없으면 빈 문자열. */
+  /** 한 줄 부연: 대상의 이름, 시간, 세부. 없으면 빈 문자열. */
   subtitle: string
   /** 클릭 시 이동할 URL. */
   href: string
@@ -46,7 +46,7 @@ export function renderNotification(
         : ""
       return {
         title: `${who}님이 일정에 초대했습니다`,
-        subtitle: start ? `${title} · ${start}` : title,
+        subtitle: start ? `${title}, ${start}` : title,
         href: "/calendar",
       }
     }
@@ -72,7 +72,7 @@ export function renderNotification(
         : ""
       return {
         title: `일정 시작 ${mins}분 전`,
-        subtitle: start ? `${title} · ${start}` : title,
+        subtitle: start ? `${title}, ${start}` : title,
         href: "/calendar",
       }
     }
@@ -83,7 +83,7 @@ export function renderNotification(
       const btId = (p.booking_type_id as string) || ""
       return {
         title: `새 예약: ${title}`,
-        subtitle: slot ? `${name} · ${slot}` : name,
+        subtitle: slot ? `${name}, ${slot}` : name,
         href: btId ? `/booking-types/${btId}` : "/booking-types",
       }
     }
@@ -94,7 +94,7 @@ export function renderNotification(
       const btId = (p.booking_type_id as string) || ""
       return {
         title: `예약 시간 변경: ${title}`,
-        subtitle: newSlot ? `${name} · ${newSlot}` : name,
+        subtitle: newSlot ? `${name}, ${newSlot}` : name,
         href: btId ? `/booking-types/${btId}` : "/booking-types",
       }
     }
@@ -105,7 +105,7 @@ export function renderNotification(
       const btId = (p.booking_type_id as string) || ""
       return {
         title: `예약 취소: ${title}`,
-        subtitle: slot ? `${name} · ${slot}` : name,
+        subtitle: slot ? `${name}, ${slot}` : name,
         href: btId ? `/booking-types/${btId}` : "/booking-types",
       }
     }

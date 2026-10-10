@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-// 예약 양식 = 일정 앱의 일부 → 탭 파비콘·제목을 'calendar' 브랜드로 (사이드바 브랜드는 app-shell).
+// 예약 양식 = 일정 앱의 일부 → 탭 파비콘과 제목을 'calendar' 브랜드로 (사이드바 브랜드는 app-shell).
 export const metadata: Metadata = {
   title: "예약 양식",
   icons: {

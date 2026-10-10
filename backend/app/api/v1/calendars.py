@@ -141,7 +141,7 @@ async def create_calendar(
 @router.patch(
     "/{calendar_id}",
     response_model=CalendarResponse,
-    summary="캘린더 메타 수정 (이름·색·설명)",
+    summary="캘린더 메타 수정 (이름, 색, 설명)",
     responses={
         403: {"description": "write 권한 없음: personal 의 owner 아님"},
         404: {"description": "없거나 다른 워크스페이스"},

@@ -237,7 +237,7 @@ export function BookingTypeForm({
           />
         </Row>
       </div>
-      <Row label="가용 요일·시간">
+      <Row label="가용 요일과 시간">
         <WeeklyScheduleEditor value={weekly} onChange={setWeekly} />
       </Row>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

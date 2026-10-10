@@ -21,15 +21,15 @@
 ```
 [공개 페이지] /book/{public_key}
    │
-   │ 슬롯 선택 + 이름·이메일·(선택)메시지 + 동의 체크
+   │ 슬롯 선택 + 이름, 이메일, (선택)메시지 + 동의 체크
    ▼
 [POST /api/public/v1/booking/submit]
-   │ ① honeypot · rate limit · 동의 검증
+   │ ① honeypot, rate limit, 동의 검증
    │ ② Postgres advisory lock (event_type_id, slot_start)
    │ ③ 충돌 검사 (existing Booking + blocking_calendar 이벤트)
    │ ④ Booking + CalendarEvent INSERT (한 트랜잭션)
    │ ⑤ 운영자에게 in-app + 이메일 (기존 SMTP resolve)
-   │ ⑥ 고객에게 안내 이메일 ("예약 접수했습니다: 일시·취소 링크")
+   │ ⑥ 고객에게 안내 이메일 ("예약 접수했습니다: 일시와 취소 링크")
    ▼
 "감사합니다: 안내 메일 발송했습니다" 페이지
 ```
@@ -39,14 +39,14 @@
 | Nextcloud A 의 명분 | 우리 B 에서의 대응 |
 |---|---|
 | 이메일 owner 검증 (위장 등록 방지) | rate limit (이메일 분당 1개) + 잘못된 이메일은 어차피 운영자가 사후 인지 (메일 bounce). B2B 예약 시나리오에선 위장 등록 동기 낮음. |
-| 봇/스팸 차단 | Honeypot + rate limit. 어뷰즈 늘어나면 Turnstile 활성 (env flag). cal.com·SavvyCal 등 시장 검증 |
+| 봇/스팸 차단 | Honeypot + rate limit. 어뷰즈 늘어나면 Turnstile 활성 (env flag). cal.com, SavvyCal 등 시장 검증 |
 | GDPR/PIPA 명시 동의 | 폼 안 동의 체크박스 1개 (필수). 미동의 시 제출 차단. agreed_at 컬럼에 시각 기록 |
-| 취소·변경 채널 전달 | 즉시 등록 후 보내는 안내 메일에 cancel 토큰 동봉 (응답 메일이 곧 토큰 운반체) |
+| 취소와 변경 채널 전달 | 즉시 등록 후 보내는 안내 메일에 cancel 토큰 동봉 (응답 메일이 곧 토큰 운반체) |
 
 → A 의 모든 가치는 다른 메커니즘으로 회수 가능. 그 비용:
-- 사용자 마찰 1단계 ↓ (메일 확인·클릭 생략)
+- 사용자 마찰 1단계 ↓ (메일 확인과 클릭 생략)
 - 이메일 인박스 접근 지연으로 인한 예약 누락 0
-- "메일이 안 와요" 컴플레인 줄 (스팸 폴더·도메인 차단 등)
+- "메일이 안 와요" 컴플레인 줄 (스팸 폴더와 도메인 차단 등)
 
 ## 즉시 등록의 race condition
 
@@ -55,16 +55,16 @@
 - **capacity=1**: `UNIQUE (booking_type_id, slot_start_at)` constraint. 두 번째 INSERT → IntegrityError → 클라이언트 409 + 슬롯 새로고침 안내
 - **capacity>1**: `pg_advisory_xact_lock(hash(booking_type_id, slot_start))` + `SELECT count(*) < capacity` + INSERT 한 트랜잭션. 락은 트랜잭션 종료 시 자동 해제
 
-## 동의·보관
+## 동의와 보관
 
-PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권리)을 폼 안에 인라인 표시. 별도 약관 페이지 X: 워크스페이스 측 부담 최소화. 동의 미체크 시 제출 차단. `Booking.agreed_at` 에 timestamp 기록.
+PIPA 제15조 4 항목(수집 항목, 이용 목적, 보관 기간, 거부 권리)을 폼 안에 인라인 표시. 별도 약관 페이지 X: 워크스페이스 측 부담 최소화. 동의 미체크 시 제출 차단. `Booking.agreed_at` 에 timestamp 기록.
 
 보관 기간은 `slot_end_at + 30일`. `purge_expired_booking_pii` cron (기존 trash purge 패턴) 이 매일 1회 만료 row 의 `customer_name/customer_email/message/cancel_token` NULL 로 마스킹: row 자체는 통계용 보존.
 
 ## 대안
 
 ### A. 컨펌 메일 흐름 (Nextcloud)
-- 이메일 검증 자연: 하지만 사용자 마찰·예약 누락이 단점
+- 이메일 검증 자연: 하지만 사용자 마찰과 예약 누락이 단점
 - 마케팅 부서의 일관된 불만 (Nextcloud GitHub issue 다수)
 - 기각
 
@@ -80,8 +80,8 @@ PIPA 제15조 4 항목(수집 항목·이용 목적·보관 기간·거부 권�
 ## 의도된 결과
 
 - 외부 고객의 예약 마찰 최소
-- 우리 알림·SMTP·audit 인프라 재사용 (별도 시스템 X)
-- 데이터 통제 우리 손 안에 (cal.com·Calendly 같은 외부 SaaS 의존 0)
+- 우리 알림, SMTP, audit 인프라 재사용 (별도 시스템 X)
+- 데이터 통제 우리 손 안에 (cal.com, Calendly 같은 외부 SaaS 의존 0)
 
 ## 영향
 

@@ -2,7 +2,7 @@
 
 핵심:
   - generate_candidate_slots: BookingType 의 weekly_schedule × duration → 후보 slot 목록 (UTC).
-                              minimum_notice / available_from·to 반영.
+                              minimum_notice / available_from, to 반영.
   - available_slots: 후보에서 (이미 잡힌 booking + blocking_calendar 이벤트) 제외.
                      반환은 (slot_start_utc, remaining_capacity).
   - create_booking: pg_advisory_xact_lock 으로 race 차단. capacity 검증 + blocking 검증 +
@@ -38,7 +38,7 @@ def generate_candidate_slots(
 ) -> list[datetime]:
     """BookingType 의 가용 규칙에서 [range_from, range_to) UTC 안의 slot 시작 시각들.
 
-    minimum_notice_minutes / available_from / available_to 반영. 정렬·중복 제거됨.
+    minimum_notice_minutes / available_from / available_to 반영. 정렬과 중복 제거됨.
     """
     if range_to <= range_from:
         return []
@@ -462,7 +462,7 @@ async def dispatch_booking_cancelled_emails(
 
 
 def public_base_url() -> str:
-    """예약 공개 페이지(/book·/cancel) base URL. 공개 라우트라 아무 호스트나 되지만
+    """예약 공개 페이지(/book, /cancel) base URL. 공개 라우트라 아무 호스트나 되지만
     예약은 calendar 앱 기능이므로 calendar 도메인으로 통일."""
     return settings.calendar_base_url
 
@@ -479,7 +479,7 @@ async def reschedule_booking(
 ) -> Booking:
     """운영자가 booking 의 시간 (선택적으로 메모) 을 변경.
 
-    force=False: 가용 규칙·capacity·blocking 검증. 양식 안의 가용 슬롯만.
+    force=False: 가용 규칙, capacity, blocking 검증. 양식 안의 가용 슬롯만.
     force=True: 검증 skip: 운영자가 양식 밖 시각으로도 강제 이동 가능
                 (예: 고객과 합의 후 정규 슬롯 외 시간 잡기).
 
@@ -500,7 +500,7 @@ async def reschedule_booking(
     new_slot_end_at = new_slot_start_at + duration
     now = now or datetime.now(UTC)
 
-    # 시간 동일·메모만 바꾸는 경우: 검증 skip
+    # 시간은 동일하고 메모만 바꾸는 경우: 검증 skip
     time_changing = new_slot_start_at != booking.slot_start_at
 
     if time_changing and not force:

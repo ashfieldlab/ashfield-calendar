@@ -7,7 +7,7 @@
 
 ## 컨텍스트
 
-[ADR-0013](0013-ics-subscription.md) 의 ICS subscription 으로 단방향 read 는 커버되지만, 운영자가 본인 자체 호스팅 Nextcloud / Apple Calendar / Thunderbird 에서 일정을 **만들고·수정**하길 원하는 요구. 양방향 sync 가 필요.
+[ADR-0013](0013-ics-subscription.md) 의 ICS subscription 으로 단방향 read 는 커버되지만, 운영자가 본인 자체 호스팅 Nextcloud / Apple Calendar / Thunderbird 에서 일정을 **만들고 수정**하길 원하는 요구. 양방향 sync 가 필요.
 
 핵심 제약:
 - **외부 CalDAV 클라이언트는 HTTP Basic 만 보냄** (OAuth 받는 클라이언트 거의 없음: DAVx5 일부 제외). 웹 로그인용 JWT(Better Auth, 5분 수명) 직접 전송 불가.
@@ -19,7 +19,7 @@
 
 ### 1. Sabre/DAV (PHP) + Custom Backend
 
-Sabre 의 12년치 클라이언트 quirk 패치 (Nextcloud·iCloud 기반) 그대로 활용. 별도 PHP 컨테이너로 운영. FastAPI 와 같은 PostgreSQL DB 공유.
+Sabre 의 12년치 클라이언트 quirk 패치 (Nextcloud, iCloud 기반) 그대로 활용. 별도 PHP 컨테이너로 운영. FastAPI 와 같은 PostgreSQL DB 공유.
 
 ```
 외부 캘린더 앱 ──CalDAV──▶ nginx ─┬─▶ /caldav/* → Sabre (PHP, php-fpm)
@@ -30,7 +30,7 @@ Sabre 의 12년치 클라이언트 quirk 패치 (Nextcloud·iCloud 기반) 그�
 
 ### 2. 인증 = DB-backed App Token (웹 로그인 JWT 와 별도)
 
-외부 클라이언트가 OAuth 못 보내므로 long-lived 토큰 발급 모델. GitHub PAT·Nextcloud App Password 패턴.
+외부 클라이언트가 OAuth 못 보내므로 long-lived 토큰 발급 모델. GitHub PAT, Nextcloud App Password 패턴.
 
 ```
 CalDavToken {
@@ -94,7 +94,7 @@ private function currentUserSub(): ?string {
 - 운영자가 본인 자격으로 본인 데이터 받음 (데이터 컨트롤러가 자기 인가한 채널)
 - destination 책임 = 운영자 (어느 캘린더 앱에 토큰 박을지 본인 결정)
 
-→ 풀 데이터 응답. 마스킹 없음. customer 이름·메시지 그대로 노출. 운영자가 약관에 동의 시 본인 책임.
+→ 풀 데이터 응답. 마스킹 없음. customer 이름과 메시지 그대로 노출. 운영자가 약관에 동의 시 본인 책임.
 
 대신 안전장치:
 - 토큰 발급 시 약관 명시: "이 토큰은 운영자 본인의 트러스트 안에서만 사용. 외부 SaaS (Google/Apple iCloud) 에 등록 시 PIPA 위탁 검토 필요"
@@ -104,7 +104,7 @@ private function currentUserSub(): ?string {
 ### 5. write 경로 정책
 
 외부 클라이언트 → Sabre → DB:
-- 일반 native event: 자유 (생성·수정·삭제 모두 OK)
+- 일반 native event: 자유 (생성, 수정, 삭제 모두 OK)
 - **booking-linked event = 외부 수정 차단 (403)**: booking 시스템과의 일관성 유지. read 만 허용
 - external_ics calendar 도 외부 write 차단 (기존 정책 유지)
 - 모든 mutation audit_logs 기록
@@ -133,7 +133,7 @@ private function currentUserSub(): ?string {
 | Python 으로 CalDAV 풀구현 | X | 1-2개월 + 클라이언트 quirk 매트릭스. Sabre 12년치 무시 |
 | App Token 대신 웹 로그인 JWT 직전송 | X | 외부 클라 OAuth 못 함, exp 짧음 |
 | App Token 대신 self-contained JWT | X | revoke 어려움 (blacklist 운영 부담) |
-| 워크스페이스 격리 = 모든 워크스페이스 통합 view | X | 같은 user 가 워크스페이스 A·B 멤버일 때 캘린더 섞임. 토큰 분리가 명확 |
+| 워크스페이스 격리 = 모든 워크스페이스 통합 view | X | 같은 user 가 워크스페이스 A, B 멤버일 때 캘린더 섞임. 토큰 분리가 명확 |
 
 ## 결과
 
@@ -164,7 +164,7 @@ private function currentUserSub(): ?string {
 
 ### Trade-off
 
-- PHP 운영 환경 추가 (디버그·로그·배포 한 단계 더)
+- PHP 운영 환경 추가 (디버그, 로그, 배포 한 단계 더)
 - Sabre/DAV 라이브러리 패치 follow-up
 - 양방향 sync 의 정합성 책임 (booking-linked write 차단 같은 정책 hook 위치 잘 박기)
 

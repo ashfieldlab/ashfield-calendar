@@ -1,4 +1,4 @@
-"""공개 booking 라우트: 비인증, 동의·honeypot·rate limit (E-3)."""
+"""공개 booking 라우트: 비인증, 동의, honeypot, rate limit (E-3)."""
 
 from datetime import UTC, datetime, timedelta
 

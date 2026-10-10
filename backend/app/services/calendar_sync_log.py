@@ -1,7 +1,7 @@
 """CalDAV sync REPORT (RFC 6578) 용 변경 로그: CalendarEvent ORM 이벤트 hook.
 
 외부 캘린더 앱이 sync_token=N 이후 변경분만 받기 위해 호출하는 sync REPORT 에 응답
-하려면, 우리 FastAPI 가 만든·수정한·삭제한 이벤트도 `calendar_object_changes` 에
+하려면, 우리 FastAPI 가 만든, 수정한, 삭제한 이벤트도 `calendar_object_changes` 에
 기록돼야 한다 (ADR-0014).
 
 Sabre PHP 측 mutation 은 자체 `recordChange` 가 처리. 이 모듈은 Python 측 ORM
@@ -13,7 +13,7 @@ mutation 만 hook.
                   그 외엔 op=2 (modified)
   - after_delete: hard delete 는 거의 없지만 op=3 처리
 
-같은 connection·트랜잭션 안에서 raw SQL 로 실행 → atomicity 유지.
+같은 connection, 트랜잭션 안에서 raw SQL 로 실행 → atomicity 유지.
 """
 
 from __future__ import annotations

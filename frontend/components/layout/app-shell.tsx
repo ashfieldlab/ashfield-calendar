@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         user={{ name: authUser.name ?? authUser.email ?? undefined }}
         isServiceAdmin={isSystemAdmin}
         onLogout={async () => {
-          // Better Auth 세션 종료 후 받은 주소로 하드 이동 (가드·AppContext 를 새로 태움).
+          // Better Auth 세션 종료 후 받은 주소로 하드 이동 (가드, AppContext 를 새로 태움).
           window.location.href = await signOutAction()
         }}
         onBasicSettings={() => router.push("/settings")}

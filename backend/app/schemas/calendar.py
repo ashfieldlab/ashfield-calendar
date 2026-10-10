@@ -18,7 +18,7 @@ class CalendarResponse(BaseModel):
     name: str
     description: str | None
     color: str
-    # 시스템 관리형(공휴일 등): 편집·삭제 불가, 숨김만 가능.
+    # 시스템 관리형(공휴일 등): 편집과 삭제 불가, 숨김만 가능.
     managed: bool = False
     external_ics_url: str | None = None
     external_ics_refresh_at: datetime | None = None

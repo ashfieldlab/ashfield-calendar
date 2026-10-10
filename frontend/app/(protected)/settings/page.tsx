@@ -11,7 +11,7 @@ import type { EmailPreferenceResponse } from "@/lib/types/api"
 
 // 백엔드 _TYPE_CATEGORY(email.py)와 키 일치. event_reminder 등은 게이팅 없음.
 const EMAIL_CATEGORIES = [
-  { key: "event", label: "일정 초대·응답" },
+  { key: "event", label: "일정 초대와 응답" },
   { key: "booking", label: "예약" },
 ] as const
 

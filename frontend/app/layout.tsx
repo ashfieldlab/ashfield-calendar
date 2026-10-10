@@ -20,7 +20,7 @@ const pretendard = localFont({
 
 export const metadata: Metadata = {
   title: env.appName,
-  description: "Ashfield Calendar. 일정·회의실·예약.",
+  description: "Ashfield Calendar. 일정, 회의실, 예약.",
   icons: {
     icon: [
       { url: "/icons/ashfield/favicon.ico", sizes: "any" },

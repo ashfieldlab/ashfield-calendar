@@ -192,7 +192,7 @@ export function InvitationsPanel({ event }: Props) {
 }
 
 /**
- * 참석자 일정 겹침 경고용 이름 목록. 업무 일정(초대·워크스페이스 캘린더·주최 회의)만 보고,
+ * 참석자 일정 겹침 경고용 이름 목록. 업무 일정(초대, 워크스페이스 캘린더, 주최 회의)만 보고,
  * 저장은 막지 않는다. 반복 일정은 저장된 첫 회차 시각 기준.
  */
 function useAttendeeConflicts(

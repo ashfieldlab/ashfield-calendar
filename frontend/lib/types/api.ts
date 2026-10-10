@@ -27,7 +27,7 @@ export interface CalendarResponse {
   name: string
   description: string | null
   color: string
-  // 시스템 관리형(공휴일 등): 편집·삭제 불가, 숨김만 가능.
+  // 시스템 관리형(공휴일 등): 편집과 삭제 불가, 숨김만 가능.
   managed: boolean
   external_ics_url: string | null
   external_ics_refresh_at: string | null

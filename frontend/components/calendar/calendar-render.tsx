@@ -31,7 +31,7 @@ export function renderDayCellContent(arg: DayCellContentArg) {
   return arg.date.getDate()
 }
 
-/** 주·일 보기 머리: 요일 + 큰 날짜 숫자 (오늘은 녹색 원). */
+/** 주와 일 보기 머리: 요일 + 큰 날짜 숫자 (오늘은 녹색 원). */
 export function renderDayHeaderContent(arg: DayHeaderContentArg) {
   if (!arg.view.type.startsWith("timeGrid")) return arg.text
   return (

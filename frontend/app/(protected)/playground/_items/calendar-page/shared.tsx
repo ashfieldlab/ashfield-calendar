@@ -1,6 +1,6 @@
 "use client"
 
-// 플레이그라운드: 일정 메인 화면 안 비교. 실제 캘린더·일정을 읽기만 한다.
+// 플레이그라운드: 일정 메인 화면 안 비교. 실제 캘린더와 일정을 읽기만 한다.
 
 import { useMemo, useState } from "react"
 import type { EventInput } from "@fullcalendar/core"

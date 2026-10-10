@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = False
     smtp_from: str = "noreply@ashfield.local"
     smtp_from_name: str = "Ashfield"
-    # 이메일·구독·CalDAV 링크 base URL (ashfield-calendar 앱 origin).
+    # 이메일, 구독, CalDAV 링크 base URL (ashfield-calendar 앱 origin).
     calendar_base_url: str = "http://localhost:3100"
     # SMTP 비밀번호 등 민감 컬럼 암호화 키: Fernet 32 bytes base64.
     # 분실해도 SMTP 재설정만 하면 복구. 운영은 secret manager 에서 주입.
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     job_run_retention_days: int = 14
 
     # 공개 라우트 (ADR-0011) rate limit. 0 = 비활성.
-    # IP 분당 한도: CGNAT(모바일 캐리어·공유 WiFi) 고려해 넉넉히. 실제 어뷰즈
+    # IP 분당 한도: CGNAT(모바일 캐리어와 공유 WiFi) 고려해 넉넉히. 실제 어뷰즈
     # 방어선은 per-email + honeypot. 운영 관찰 후 줄여도 무방.
     public_rate_limit_per_ip: int = 1000
     public_rate_limit_per_email: int = 1      # booking 제출 시 같은 이메일 분당 수
@@ -82,7 +82,7 @@ class Settings(BaseSettings):
             self.auth_jwks_url and self.auth_issuer and self.auth_audience
         ):
             raise RuntimeError(
-                "AUTH_JWKS_URL·AUTH_ISSUER·AUTH_AUDIENCE 는 운영에서 필수입니다 (안전 가드)"
+                "AUTH_JWKS_URL, AUTH_ISSUER, AUTH_AUDIENCE 는 운영에서 필수입니다 (안전 가드)"
             )
         return self
 
