@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { AlertTriangle, Mail, X } from "lucide-react"
 
-import { UserAutocomplete } from "@/components/ui-custom/user-autocomplete"
 import { api } from "@/lib/api-client"
+
+import { AttendeeInputs } from "./attendee-inputs"
 import type { AttendeeConflictsResponse, WorkspaceMember } from "@/lib/types/api"
 
 /** 저장 전 일정의 참석자. 일정이 만들어진 뒤 초대 API 로 보낸다. */
@@ -20,21 +21,17 @@ interface Props {
 }
 
 export function DraftAttendees({ value, onChange, startAt, endAt }: Props) {
-  const [pickerKey, setPickerKey] = useState(0)
-  const [email, setEmail] = useState("")
   const conflicts = useDraftConflicts(value, startAt, endAt)
 
   function addMember(sub: string, member: WorkspaceMember | null) {
     if (!sub || value.some((a) => a.kind === "member" && a.sub === sub)) return
     onChange([...value, { kind: "member", sub, label: member?.name || member?.email || sub }])
-    setPickerKey((k) => k + 1)
   }
 
-  function addEmail() {
-    const e = email.trim().toLowerCase()
-    if (!e || !e.includes("@") || value.some((a) => a.kind === "email" && a.email === e)) return
+  function addEmail(raw: string) {
+    const e = raw.trim().toLowerCase()
+    if (!e.includes("@") || value.some((a) => a.kind === "email" && a.email === e)) return
     onChange([...value, { kind: "email", email: e, label: e }])
-    setEmail("")
   }
 
   return (
@@ -44,33 +41,7 @@ export function DraftAttendees({ value, onChange, startAt, endAt }: Props) {
         {value.length > 0 && <span className="text-xs text-muted-foreground">{value.length}명</span>}
       </div>
 
-      <UserAutocomplete key={pickerKey} value="" onChange={addMember} testId="event-form-attendee-member-input" />
-
-      <div className="flex gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              addEmail()
-            }
-          }}
-          placeholder="외부 이메일"
-          data-testid="event-form-attendee-email-input"
-          className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition focus:border-ring focus:ring-3 focus:ring-ring/20"
-        />
-        <button
-          type="button"
-          onClick={addEmail}
-          disabled={!email.trim()}
-          data-testid="event-form-attendee-email-add"
-          className="h-9 rounded-lg border border-input px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"
-        >
-          추가
-        </button>
-      </div>
+      <AttendeeInputs testid="event-form-attendee" onAddMember={addMember} onAddEmail={addEmail} />
 
       {conflicts.length > 0 && (
         <div

@@ -30,10 +30,9 @@ test.describe("event invitations", () => {
     await page.getByText(title).first().click()
     await expect(page.getByTestId("event-form")).toBeVisible()
     await page
-      .getByTestId("invitation-grantee-input")
+      .getByTestId("invitation-input")
       .fill(E2E_USERS.member_a.email.split("@")[0])
-    await page.getByTestId(`user-autocomplete-option-${memberSub}`).click()
-    await page.getByTestId("invitation-add-button").click()
+    await page.getByTestId(`invitation-option-${memberSub}`).click()
     await expect(
       page.locator(`[data-testid^="invitation-row-"]`).first(),
     ).toBeVisible()
@@ -66,8 +65,8 @@ test.describe("event invitations", () => {
     await page.getByTestId("calendar-new-event-button").click()
     await page.getByTestId("event-form-title-input").fill(title)
     await selectCalendar(page, calName)
-    await page.getByTestId("event-form-attendee-email-input").fill(guest)
-    await page.getByTestId("event-form-attendee-email-add").click()
+    await page.getByTestId("event-form-attendee-input").fill(guest)
+    await page.getByTestId("event-form-attendee-add").click()
     await expect(page.getByTestId("event-form-attendee-list")).toContainText(guest)
     await page.getByTestId("event-form-save-button").click()
     await expect(page.getByTestId("event-form")).toHaveCount(0)

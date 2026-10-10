@@ -7,7 +7,8 @@ import { api } from "@/lib/api-client"
 import { useAppContext } from "@/components/providers/app-context"
 import { useApiGet, invalidateApi } from "@/lib/hooks/use-api"
 import { useToast } from "@/components/ui-custom/use-toast"
-import { UserAutocomplete } from "@/components/ui-custom/user-autocomplete"
+
+import { AttendeeInputs } from "./attendee-inputs"
 import type {
   AttendeeConflictsResponse,
   EventInvitationList,
@@ -32,8 +33,6 @@ export function InvitationsPanel({ event }: Props) {
   const { toast } = useToast()
   const path = `/api/v1/events/${event.id}/invitations`
   const { data, mutate } = useApiGet<EventInvitationList>(path)
-  const [newSub, setNewSub] = useState("")
-  const [newEmail, setNewEmail] = useState("")
   const [busy, setBusy] = useState(false)
 
   const isCreator = authUser?.id === event.created_by_sub
@@ -42,12 +41,10 @@ export function InvitationsPanel({ event }: Props) {
     (i) => i.invitee_sub === authUser?.id,
   )
 
-  async function invite() {
-    if (!newSub.trim()) return
+  async function invite(sub: string) {
     setBusy(true)
     try {
-      await api(path, { method: "POST", body: { invitee_sub: newSub.trim() } })
-      setNewSub("")
+      await api(path, { method: "POST", body: { invitee_sub: sub } })
       toast.success("초대했습니다")
       void mutate()
     } catch (e) {
@@ -57,13 +54,10 @@ export function InvitationsPanel({ event }: Props) {
     }
   }
 
-  async function inviteEmail() {
-    const email = newEmail.trim()
-    if (!email) return
+  async function inviteEmail(email: string) {
     setBusy(true)
     try {
       await api(path, { method: "POST", body: { invitee_email: email } })
-      setNewEmail("")
       toast.success("초대 메일을 보냈습니다")
       void mutate()
     } catch (e) {
@@ -98,58 +92,21 @@ export function InvitationsPanel({ event }: Props) {
   }
 
   return (
-    <div className="space-y-2 border-t border-gray-200 pt-3">
+    <div className="space-y-2" data-testid="invitations-panel">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-600">참석자</span>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs font-medium text-muted-foreground">참석자</span>
+        <span className="text-xs text-muted-foreground">
           {data?.invitations.length ?? 0}명
         </span>
       </div>
 
       {isCreator && (
-        <div className="space-y-1.5">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <UserAutocomplete
-                value={newSub}
-                onChange={(sub) => setNewSub(sub)}
-                testId="invitation-grantee-input"
-              />
-            </div>
-            <button
-              onClick={invite}
-              disabled={busy || !newSub.trim()}
-              data-testid="invitation-add-button"
-              className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-            >
-              초대
-            </button>
-          </div>
-          <div className="flex items-end gap-2">
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  void inviteEmail()
-                }
-              }}
-              placeholder="외부 이메일로 초대"
-              data-testid="invitation-email-input"
-              className="flex-1 rounded border border-gray-300 px-2.5 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            <button
-              onClick={inviteEmail}
-              disabled={busy || !newEmail.trim()}
-              data-testid="invitation-email-add-button"
-              className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              메일 초대
-            </button>
-          </div>
-        </div>
+        <AttendeeInputs
+          testid="invitation"
+          busy={busy}
+          onAddMember={(sub) => invite(sub)}
+          onAddEmail={(email) => inviteEmail(email)}
+        />
       )}
 
       {myInvitation && (
@@ -193,7 +150,7 @@ export function InvitationsPanel({ event }: Props) {
       )}
 
       {(data?.invitations ?? []).length > 0 && (
-        <ul className="divide-y divide-gray-100 rounded border border-gray-200 text-sm">
+        <ul className="divide-y rounded-lg border text-sm">
           {data!.invitations.map((inv) => (
             <li
               key={inv.id}
@@ -202,7 +159,7 @@ export function InvitationsPanel({ event }: Props) {
             >
               <div className="flex min-w-0 items-baseline gap-2">
                 <span
-                  className="truncate font-medium text-gray-800"
+                  className="truncate font-medium"
                   title={inv.invitee_name ?? inv.invitee_email ?? inv.invitee_sub ?? ""}
                 >
                   {inv.invitee_name ?? inv.invitee_email ?? inv.invitee_sub}
@@ -212,7 +169,7 @@ export function InvitationsPanel({ event }: Props) {
                     외부
                   </span>
                 )}
-                <span className="shrink-0 text-xs text-gray-500">
+                <span className="shrink-0 text-xs text-muted-foreground">
                   {RESPONSE_LABELS[inv.response]}
                 </span>
               </div>
@@ -220,7 +177,7 @@ export function InvitationsPanel({ event }: Props) {
                 <button
                   onClick={() => remove(inv)}
                   data-testid={`invitation-row-${inv.id}-remove`}
-                  className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-rose-600"
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
                   title="제거"
                 >
                   <Trash2 size={12} />
