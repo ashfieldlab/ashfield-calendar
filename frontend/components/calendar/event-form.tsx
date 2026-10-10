@@ -276,8 +276,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
             className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
             data-testid="event-form-recur-notice"
           >
-            반복 일정입니다. 저장할 때 <b>이 회차만</b> 또는 <b>전체 회차</b>에
-            적용할지 선택합니다.
+            반복 일정
           </div>
         )}
 

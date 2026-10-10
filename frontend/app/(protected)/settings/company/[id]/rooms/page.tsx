@@ -95,10 +95,6 @@ export default function RoomsSettingsPage() {
         <DoorOpen size={20} className="text-gray-600" />
         <h1 className="text-2xl font-bold text-gray-900">회의실 관리</h1>
       </header>
-      <p className="text-xs text-gray-500">
-        회의실을 등록하면 일정에서 방을 지정할 수 있고, 같은 시간에 이미 잡힌 방은
-        중복 예약이 차단됩니다.
-      </p>
 
       <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex-1 min-w-[10rem]">
@@ -144,7 +140,7 @@ export default function RoomsSettingsPage() {
         <div className="text-sm text-gray-500">불러오는 중…</div>
       ) : rooms.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
-          등록된 회의실이 없습니다. 위에서 추가해주세요.
+          등록된 회의실이 없습니다.
         </div>
       ) : (
         <ul

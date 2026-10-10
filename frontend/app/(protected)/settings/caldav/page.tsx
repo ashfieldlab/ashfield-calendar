@@ -102,18 +102,12 @@ export default function CalDavTokensPage() {
         </h1>
       </header>
 
-      <p className="text-xs text-gray-500">
-        평소 쓰는 Apple Calendar·Thunderbird·Nextcloud 같은 캘린더 앱에서 우리 일정을
-        함께 보고 편집할 수 있게 연결합니다. 발급된 비밀번호를 캘린더 앱에 한 번
-        입력하면 끝입니다.
-      </p>
-
       <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
         <p className="font-medium">⚠ 사용 전 확인</p>
         <ul className="mt-1 list-disc space-y-0.5 pl-4">
-          <li>비밀번호는 발급 시 한 번만 보입니다. 캘린더 앱에 입력한 뒤 화면을 닫으세요.</li>
-          <li>이 비밀번호는 현재 회사({activeCompanyId})의 일정만 연결합니다. 다른 회사 일정은 별도로 만들어주세요.</li>
-          <li>비밀번호를 잃어버렸거나 노출됐다면 바로 폐기하고 새로 만드세요.</li>
+          <li>비밀번호는 발급 시 한 번만 보입니다.</li>
+          <li>현재 회사({activeCompanyId})의 일정만 연결됩니다.</li>
+          <li>노출됐다면 바로 폐기하세요.</li>
         </ul>
       </div>
 
@@ -182,7 +176,7 @@ export default function CalDavTokensPage() {
               새 비밀번호 발급
             </h3>
             <label className="mb-1 block text-xs font-medium text-gray-600">
-              어디에 쓸 건지 알아볼 수 있게 이름을 적어주세요
+              이름
             </label>
             <input
               type="text"
@@ -225,8 +219,7 @@ export default function CalDavTokensPage() {
               비밀번호가 만들어졌습니다
             </h3>
             <p className="mb-4 text-xs text-rose-700">
-              ⚠ 이 비밀번호는 이 화면에서만 보입니다. 캘린더 앱에 입력한 뒤
-              닫아주세요. 잃어버리면 새로 만들어야 합니다.
+              ⚠ 이 비밀번호는 이 화면에서만 보입니다.
             </p>
             <div className="space-y-3">
               <Field
@@ -255,7 +248,7 @@ export default function CalDavTokensPage() {
                 data-testid="caldav-token-show-close"
                 className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
               >
-                캘린더 앱에 입력했어요, 닫기
+                닫기
               </button>
             </div>
           </div>

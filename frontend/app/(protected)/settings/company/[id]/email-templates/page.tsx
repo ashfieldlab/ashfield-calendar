@@ -195,11 +195,6 @@ export default function EmailTemplatesPage({
         <h1 className="text-2xl font-bold text-gray-900">이메일 템플릿</h1>
       </div>
 
-      <p className="text-xs text-gray-500">
-        예약 기능이 외부 고객에게 보내는 이메일의 제목·본문을 회사별로 커스텀.
-        저장하지 않으면 시스템 기본 템플릿이 사용됩니다.
-      </p>
-
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
         {/* 좌측: 이벤트 종류 리스트 */}
         <nav
@@ -328,7 +323,7 @@ export default function EmailTemplatesPage({
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">
-                사용 가능한 변수 (클릭해서 본문에 삽입)
+                사용 가능한 변수
               </label>
               <div className="flex flex-wrap gap-1">
                 {detail.variables.map((v) => (
@@ -369,7 +364,7 @@ export default function EmailTemplatesPage({
                 data-testid="email-templates-preview"
               >
                 <div className="mb-1 text-xs font-medium text-gray-500">
-                  미리보기 (샘플 변수로 렌더링)
+                  미리보기
                 </div>
                 <div className="mb-2 font-semibold text-gray-900">
                   {preview.subject}

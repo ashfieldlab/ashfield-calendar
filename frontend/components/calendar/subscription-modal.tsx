@@ -48,7 +48,7 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
   }
 
   async function rotate() {
-    if (!(await confirm({ title: "구독 URL 재발급", description: "기존 URL 이 즉시 무효화됩니다. 외부 캘린더에 등록된 구독을 다시 설정해야 합니다. 계속할까요?", confirmText: "재발급", variant: "destructive" })))
+    if (!(await confirm({ title: "구독 URL 재발급", description: "기존 URL 이 즉시 무효화되어 등록된 구독을 다시 설정해야 합니다.", confirmText: "재발급", variant: "destructive" })))
       return
     setBusy(true)
     try {
@@ -63,7 +63,7 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
   }
 
   async function disable() {
-    if (!(await confirm({ title: "외부 구독 끄기", description: "외부 구독을 끄면 등록된 캘린더 앱들이 더 이상 일정을 받지 못합니다. 계속할까요?", confirmText: "끄기", variant: "destructive" })))
+    if (!(await confirm({ title: "외부 구독 끄기", description: "등록된 캘린더 앱이 더 이상 일정을 받지 못합니다.", confirmText: "끄기", variant: "destructive" })))
       return
     setBusy(true)
     try {
@@ -111,7 +111,6 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
             <p className="font-medium">⚠ 사용 전 확인</p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4">
               <li>URL 은 비밀번호처럼 다뤄주세요. 유출 시 캘린더 일정이 외부에 노출됩니다.</li>
-              <li>외부 고객 예약 정보(이름·메시지)는 자동으로 가려져 시간·제목만 노출됩니다.</li>
               <li>가능하면 자체 호스팅 캘린더(Nextcloud 등)에만 등록하세요.</li>
             </ul>
           </div>
@@ -121,8 +120,7 @@ export function SubscriptionModal({ calendar, onClose }: Props) {
           ) : !data.enabled ? (
             <div className="space-y-2">
               <p className="text-gray-700">
-                현재 외부 구독이 <strong>꺼져 있습니다</strong>. 활성화하면 토큰
-                URL 이 발급됩니다.
+                외부 구독이 꺼져 있습니다.
               </p>
               <button
                 onClick={enable}

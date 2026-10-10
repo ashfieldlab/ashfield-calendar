@@ -83,7 +83,7 @@ export default function BookingTypeDetailPage({
     if (
       !(await confirm({
         title: "공개 URL 재발급",
-        description: "공개 URL 을 재발급하면 기존 URL 은 즉시 무효화됩니다. 진행할까요?",
+        description: "기존 공개 URL 은 즉시 무효화됩니다.",
         confirmText: "재발급",
         variant: "destructive",
       }))

@@ -106,12 +106,10 @@ export default function CompanyProfilePage({
       </header>
 
       <p className="text-xs text-gray-500">
-        외부 고객에게 보내는 예약 이메일 등에 표시되는 회사 로고입니다. 회사
-        홈페이지·CDN 의 공개 이미지 URL 을 등록하세요. 이메일 템플릿에서{" "}
+        템플릿 변수{" "}
         <code className="rounded bg-gray-100 px-1 font-mono text-gray-700">
           {"{organization_logo_url}"}
-        </code>{" "}
-        변수로 사용 가능합니다.
+        </code>
       </p>
 
       <section className="space-y-3 rounded-lg border border-gray-200 bg-white p-5">
@@ -150,7 +148,7 @@ export default function CompanyProfilePage({
               <span className="text-xs text-gray-400">
                 {imgError
                   ? "이미지를 불러올 수 없습니다. URL을 확인하세요."
-                  : "URL 을 입력하면 여기에 표시됩니다."}
+                  : "미리보기"}
               </span>
             )}
           </div>

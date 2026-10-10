@@ -164,7 +164,7 @@ export default function RsvpPage({
           data-testid="rsvp-page-saved"
         >
           <CheckCircle2 size={16} className="shrink-0" />
-          <span>응답이 저장되었습니다. 언제든 다시 바꿀 수 있습니다.</span>
+          <span>응답이 저장되었습니다.</span>
         </div>
       )}
       {actionError && (

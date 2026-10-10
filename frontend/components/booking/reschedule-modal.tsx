@@ -124,8 +124,7 @@ export function RescheduleModal({
               className="mt-0.5"
             />
             <span>
-              <strong>가용 시간 외 강제</strong>. 양식의 요일·시간과 정원 검증을 건너뜁니다.
-              합의된 임의 시간으로 옮길 때.
+              <strong>가용 시간 외 강제</strong> · 요일·시간·정원 검증 생략
             </span>
           </label>
 
@@ -137,7 +136,7 @@ export function RescheduleModal({
               data-testid="reschedule-modal-notify"
               className="mt-0.5"
             />
-            <span>고객에게 변경 안내 이메일 발송 (권장)</span>
+            <span>고객에게 변경 안내 이메일 발송</span>
           </label>
         </div>
 

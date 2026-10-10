@@ -358,8 +358,8 @@ export function BookingTypeForm({
         ) : (
           <p className="text-xs text-gray-500">
             {ownerType === "user"
-              ? "본인이 받습니다 (개인 양식)."
-              : "회사 멤버가 로그인 후 표시됩니다."}
+              ? "본인"
+              : "선택할 멤버가 없습니다."}
           </p>
         )}
       </Row>

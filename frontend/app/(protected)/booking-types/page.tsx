@@ -47,9 +47,6 @@ export default function BookingTypesPage() {
           <Plus size={14} /> 새 양식
         </Link>
       </header>
-      <p className="text-sm text-gray-500">
-        외부 고객을 위한 일정 예약 양식을 생성합니다.
-      </p>
 
       {error ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -62,7 +59,7 @@ export default function BookingTypesPage() {
           className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500"
           data-testid="booking-types-empty"
         >
-          아직 예약 양식이 없습니다. 우측 상단의 <strong>새 양식</strong> 을 눌러 만들어보세요.
+          아직 예약 양식이 없습니다.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">

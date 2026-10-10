@@ -61,9 +61,6 @@ export default function CancelPage({
       <h1 className="text-base font-semibold text-gray-900">
         예약을 취소하시겠습니까?
       </h1>
-      <p className="text-sm text-gray-600">
-        취소를 진행하면 동일한 슬롯이 다시 가용 상태로 돌아갑니다.
-      </p>
       {error && (
         <div
           className="flex items-start gap-2 rounded border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"

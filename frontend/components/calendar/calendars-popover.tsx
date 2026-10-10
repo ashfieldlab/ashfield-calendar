@@ -183,7 +183,7 @@ export function CalendarsPopover({ calendars }: Props) {
             />
             {calendars.length === 0 && (
               <p className="px-2 py-4 text-center text-xs text-gray-500">
-                캘린더가 없습니다. + 로 추가해보세요.
+                캘린더가 없습니다.
               </p>
             )}
           </div>

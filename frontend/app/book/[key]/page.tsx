@@ -254,7 +254,7 @@ export default function PublicBookPage({
               required
             />
           </Field>
-          <Field label="메시지 (선택)" hint="미리 전달할 내용이 있다면 적어주세요">
+          <Field label="메시지 (선택)">
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
