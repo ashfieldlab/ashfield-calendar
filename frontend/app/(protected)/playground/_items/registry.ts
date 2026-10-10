@@ -1,5 +1,6 @@
 import type { ComponentType } from "react"
 
+import { CalendarPageItem, calendarPageVariants } from "./calendar-page"
 import { EventDialogItem, eventDialogVariants } from "./event-dialog"
 
 export interface PlaygroundVariant {
@@ -19,6 +20,14 @@ export interface PlaygroundItem {
 
 /** 새 항목은 _items/<slug>/ 에 만들고 여기에 한 줄 추가한다. */
 export const PLAYGROUND_ITEMS: PlaygroundItem[] = [
+  {
+    slug: "calendar-page",
+    title: "일정 메인",
+    group: "페이지",
+    stage: "page",
+    variants: calendarPageVariants,
+    Component: CalendarPageItem,
+  },
   {
     slug: "event-dialog",
     title: "새 일정",
