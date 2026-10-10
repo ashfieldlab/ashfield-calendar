@@ -373,7 +373,7 @@ export function EventForm({ calendars, initialStart, editing, onClose }: Props) 
                 placeholder="메모"
                 rows={5}
                 data-testid="event-form-description-input"
-                className="w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
+                className="w-full resize-none rounded-xl border border-input bg-background px-3.5 py-3 text-sm leading-relaxed outline-none transition placeholder:text-muted-foreground hover:border-ring/50 focus:border-ring focus:ring-3 focus:ring-ring/20 read-only:bg-muted/40"
               />
             )}
 
