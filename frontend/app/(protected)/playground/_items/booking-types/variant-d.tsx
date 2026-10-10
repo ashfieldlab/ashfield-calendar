@@ -167,6 +167,17 @@ function Expanded({ bt, onEdit }: { bt: MockBookingType; onEdit: () => void }) {
                   ))}
                 </div>
                 <span className="text-[11px] text-muted-foreground">{dayLabel(d)}</span>
+                <div className="flex flex-col items-center text-[10.5px] leading-4 tabular-nums">
+                  {(bt.weekly[d] ?? []).length ? (
+                    bt.weekly[d]!.map(([s, e], i) => (
+                      <span key={i} className="whitespace-nowrap">
+                        {s}~{e}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground/60">-</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
