@@ -23,6 +23,12 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui-custom/use-toast"
 
 import { EventForm } from "@/components/calendar/event-form"
+import {
+  renderDayCellContent,
+  renderDayHeaderContent,
+  renderEventContent,
+} from "@/components/calendar/calendar-render"
+import "@/components/calendar/calendar-theme.css"
 import { api } from "@/lib/api-client"
 import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
 import type {
@@ -87,6 +93,7 @@ export default function CalendarPage() {
           backgroundColor: colorOf.get(occ.calendar_id) ?? "#6b7280",
           borderColor: colorOf.get(occ.calendar_id) ?? "#6b7280",
           extendedProps: {
+            color: colorOf.get(occ.calendar_id) ?? "#6b7280",
             eventId: occ.event_id,
             bookingId: occ.booking_id,
             isRecurring: occ.is_recurring,
@@ -345,7 +352,7 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <section className="min-h-0 flex-1 px-4 pb-4">
+        <section className="cal-theme min-h-0 flex-1 px-4 pb-4">
           <FullCalendar
             ref={calendarRef}
             plugins={[
@@ -365,6 +372,11 @@ export default function CalendarPage() {
             slotMinTime="06:00:00"
             slotMaxTime="22:00:00"
             events={events}
+            nowIndicator
+            allDayText="종일"
+            eventContent={renderEventContent}
+            dayCellContent={renderDayCellContent}
+            dayHeaderContent={renderDayHeaderContent}
             editable
             eventDrop={handleEventChange}
             eventResize={handleEventChange}

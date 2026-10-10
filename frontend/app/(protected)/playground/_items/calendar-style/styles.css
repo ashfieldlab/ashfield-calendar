@@ -1,7 +1,7 @@
 /* 플레이그라운드: 달력 스타일 비교. .cal-s 아래에서만 적용된다. */
 
 .cal-s .fc {
-  --fc-border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  --fc-border-color: var(--border);
   --fc-today-bg-color: transparent;
   --fc-page-bg-color: transparent;
   --fc-neutral-bg-color: transparent;
