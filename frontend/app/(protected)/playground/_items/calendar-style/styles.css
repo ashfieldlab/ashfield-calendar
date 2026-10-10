@@ -1,0 +1,161 @@
+/* 플레이그라운드: 달력 스타일 비교. .cal-s 아래에서만 적용된다. */
+
+.cal-s .fc {
+  --fc-border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  --fc-today-bg-color: transparent;
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: transparent;
+  --fc-now-indicator-color: var(--primary);
+}
+
+/* 바깥 테두리와 요일 배경 제거 */
+.cal-s .fc .fc-scrollgrid {
+  border: 0;
+}
+.cal-s .fc .fc-scrollgrid-section > * {
+  border-right: 0;
+}
+.cal-s .fc .fc-col-header-cell {
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  padding: 0 0 0.375rem;
+}
+.cal-s .fc .fc-col-header-cell-cushion {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* 날짜 숫자: 왼쪽 위, 오늘은 녹색 원 */
+.cal-s .fc .fc-daygrid-day-top {
+  flex-direction: row;
+}
+.cal-s .fc .fc-daygrid-day-number {
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  margin: 0.375rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cal-s .fc .fc-dayGridMonth-view .fc-day-today .fc-daygrid-day-number {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 9999px;
+  font-weight: 700;
+  margin: 0.375rem;
+  padding: 0;
+}
+.cal-s .fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 0.35;
+}
+.cal-s .fc .fc-day-sat,
+.cal-s .fc .fc-day-sun {
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+}
+.cal-s .fc .fc-col-header-cell.fc-day-sat,
+.cal-s .fc .fc-col-header-cell.fc-day-sun {
+  background: transparent;
+}
+
+/* 칸에 마우스를 올리면 오른쪽 위에 + */
+.cal-s .fc .fc-daygrid-day-frame {
+  position: relative;
+}
+.cal-s .fc .fc-daygrid-day:hover .fc-daygrid-day-frame::after {
+  content: "+";
+  position: absolute;
+  top: 0.375rem;
+  right: 0.5rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+
+/* 일정 기본 리셋: 모양은 eventContent 가 그린다 */
+.cal-s .fc .fc-event,
+.cal-s .fc .fc-daygrid-event {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 1px 4px;
+  box-shadow: none;
+}
+.cal-s .fc .fc-daygrid-event-harness {
+  margin-top: 2px;
+}
+.cal-s .fc .fc-event:hover {
+  filter: none;
+}
+.cal-s .fc .fc-timegrid-event .fc-event-main,
+.cal-s .fc .fc-daygrid-event .fc-event-main {
+  padding: 0;
+  height: 100%;
+}
+.cal-s .fc .fc-daygrid-more-link {
+  margin-left: 4px;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+
+/* 주 보기 */
+.cal-s .fc .fc-timegrid-slot {
+  height: 2.5rem;
+}
+.cal-s .fc .fc-timegrid-slot-minor {
+  border-top-style: dashed;
+}
+.cal-s .fc .fc-timegrid-slot-label-cushion {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+.cal-s .fc .fc-timegrid-now-indicator-line {
+  border-color: var(--primary);
+  border-width: 2px 0 0;
+}
+.cal-s .fc .fc-timegrid-now-indicator-arrow {
+  border: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.25rem;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+.cal-s .fc .fc-timegrid-col.fc-day-today {
+  background: color-mix(in oklab, var(--primary) 4%, transparent);
+}
+.cal-s .fc .fc-timegrid-event-harness-inset .fc-timegrid-event {
+  box-shadow: 0 0 0 1px var(--background);
+}
+
+/* 안 A: 미니멀 (선 거의 없음) */
+.cal-s.minimal .fc {
+  --fc-border-color: color-mix(in oklab, var(--border) 40%, transparent);
+}
+.cal-s.minimal .fc .fc-day-sat,
+.cal-s.minimal .fc .fc-day-sun {
+  background: transparent;
+}
+
+/* 주 보기: 종일 줄은 낮게, 빈 날짜 숫자 자리 숨김 */
+.cal-s .fc .fc-timegrid .fc-daygrid-day-top {
+  display: none;
+}
+.cal-s .fc .fc-timegrid .fc-daygrid-body .fc-daygrid-day-frame {
+  min-height: 2rem;
+}
+.cal-s .fc .fc-timegrid-axis-cushion {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}

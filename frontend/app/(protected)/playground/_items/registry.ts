@@ -1,6 +1,7 @@
 import type { ComponentType } from "react"
 
 import { CalendarPageItem, calendarPageVariants } from "./calendar-page"
+import { CalendarStyleItem, calendarStyleVariants } from "./calendar-style"
 import { EventDialogItem, eventDialogVariants } from "./event-dialog"
 
 export interface PlaygroundVariant {
@@ -27,6 +28,14 @@ export const PLAYGROUND_ITEMS: PlaygroundItem[] = [
     stage: "page",
     variants: calendarPageVariants,
     Component: CalendarPageItem,
+  },
+  {
+    slug: "calendar-style",
+    title: "달력 스타일",
+    group: "페이지",
+    stage: "page",
+    variants: calendarStyleVariants,
+    Component: CalendarStyleItem,
   },
   {
     slug: "event-dialog",
