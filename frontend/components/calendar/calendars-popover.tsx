@@ -90,7 +90,7 @@ export function CalendarsPopover({ calendars }: Props) {
         </PopoverTrigger>
         <PopoverContent
           align="end"
-          className="w-72 p-3"
+          className="max-h-[var(--radix-popover-content-available-height)] w-72 overflow-y-auto p-3"
           data-testid="calendars-popover-content"
         >
           <div className="mb-2 flex items-center justify-between">
