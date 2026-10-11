@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------
 # Deps
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN npm ci
 # -----------------------------------------------------------------------------
 # Builder
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 # Runtime
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS runtime
+FROM node:24-alpine AS runtime
 
 WORKDIR /app
 
@@ -67,6 +67,6 @@ USER nextjs
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-    CMD wget --spider -q http://localhost:3000/ || exit 1
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/login || exit 1
 
 CMD ["node", "server.js"]

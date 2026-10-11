@@ -1,19 +1,51 @@
-# 운영 배포: 단일 호스트 docker compose.
+# 운영 배포: 단일 호스트 docker compose (docs/deploy.md).
 #
-# 인프라(redis, postgres) + 앱(backend, worker, frontend, caldav) 모두 컨테이너로.
-# 모든 서비스 `restart: unless-stopped`: 죽으면 즉시 재시작 (운영 supervision).
-#
-# 시작:
-#   1. .env.prod 작성 (예시는 .env.prod.example)
-#   2. cd ashfield-calendar && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-#   3. docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
-#
-# 또는 Makefile: make prod-up / prod-migrate / prod-logs / prod-down.
+# 서버에서 scripts/prod.sh 가 이 파일로 빌드, 마이그레이션, 기동을 한다 (로컬: make deploy).
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod ...
+# 밖으로 여는 포트는 frontend 와 caldav-nginx 둘: 앞단 리버스 프록시(다른 기계)가 LAN 으로 받아 TLS 를 끝낸다.
+# backend 는 frontend(BFF)만 내부 네트워크로 부르므로 포트를 열지 않는다.
 
 name: ${COMPOSE_PROJECT_NAME:-ashfield-calendar-prod}
 
 x-restart-policy: &restart_policy
   restart: unless-stopped
+
+# backend, worker 가 같이 쓰는 값 (worker 도 ENVIRONMENT=production 이라 AUTH_* 가 없으면 부팅 거부).
+x-backend-env: &backend_env
+  ENVIRONMENT: production
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  REDIS_URL: redis://redis:6379
+  # 이메일, 구독(ICS), CalDAV 링크의 기준 주소 = 이 앱의 공개 주소
+  CALENDAR_BASE_URL: ${BETTER_AUTH_URL:?BETTER_AUTH_URL 필요}
+  # 인증: Ashfield 계정 서버 액세스 토큰 검증 (ADR-0024). iss = ACCOUNT_URL, aud 에 이 앱 공개 주소.
+  AUTH_JWKS_URL: ${ACCOUNT_URL:?ACCOUNT_URL 필요}/api/auth/jwks
+  AUTH_ISSUER: ${ACCOUNT_URL}
+  AUTH_AUDIENCE: ${BETTER_AUTH_URL}
+  SYSTEM_ADMIN_EMAILS: ${SYSTEM_ADMIN_EMAILS:-}
+  SMTP_ENABLED: ${SMTP_ENABLED:-false}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
+  SMTP_FROM: ${SMTP_FROM:-}
+  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Ashfield}
+  SMTP_ENCRYPTION_KEY: ${SMTP_ENCRYPTION_KEY:-}
+  HOLIDAYS_ICS_URL: ${HOLIDAYS_ICS_URL:-}
+  PUBLIC_RATE_LIMIT_PER_IP: ${PUBLIC_RATE_LIMIT_PER_IP:-1000}
+  PUBLIC_RATE_LIMIT_PER_EMAIL: ${PUBLIC_RATE_LIMIT_PER_EMAIL:-1}
+  BOOKING_PII_RETENTION_DAYS: ${BOOKING_PII_RETENTION_DAYS:-30}
+  LOG_CATEGORIES: ${LOG_CATEGORIES:-}
+
+# frontend, auth-migrate 가 같이 쓰는 값 (Better Auth = 계정 서버 OIDC 클라이언트, ADR-0024)
+x-frontend-env: &frontend_env
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET 필요}
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  ACCOUNT_URL: ${ACCOUNT_URL}
+  ASHFIELD_CLIENT_ID: ${ASHFIELD_CLIENT_ID:-ashfield-calendar}
+  ASHFIELD_CLIENT_SECRET: ${ASHFIELD_CLIENT_SECRET:?ASHFIELD_CLIENT_SECRET 필요}
+  BACKEND_INTERNAL_URL: http://backend:8000
 
 services:
   # ───── 인프라 ─────
@@ -46,134 +78,49 @@ services:
     build:
       context: ./backend
     <<: *restart_policy
-    environment:
-      ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379
-      # presigned URL 유효기간: 대용량 다운로드/미리보기 시작 여유 (기본 30s 는 빠듯)
-      PRESIGN_DOWNLOAD_TTL_SECONDS: ${PRESIGN_DOWNLOAD_TTL_SECONDS:-300}
-      PRESIGN_PREVIEW_TTL_SECONDS: ${PRESIGN_PREVIEW_TTL_SECONDS:-300}
-      # SMTP / 인증 / 기타: .env.prod 에서 docker 가 자동 전달
-      SMTP_ENABLED: ${SMTP_ENABLED:-false}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
-      SMTP_FROM: ${SMTP_FROM:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Ashfield}
-      SMTP_ENCRYPTION_KEY: ${SMTP_ENCRYPTION_KEY:-}
-      # 인증: Ashfield 계정 서버 액세스 토큰 검증 (ADR-0024). iss = ACCOUNT_URL, aud ∋ 이 앱 공개 주소.
-      AUTH_JWKS_URL: ${ACCOUNT_URL:?ACCOUNT_URL 필요}/api/auth/jwks
-      AUTH_ISSUER: ${ACCOUNT_URL}
-      AUTH_AUDIENCE: ${BETTER_AUTH_URL}
-      SYSTEM_ADMIN_EMAILS: ${SYSTEM_ADMIN_EMAILS:-}
-      PUBLIC_RATE_LIMIT_PER_IP: ${PUBLIC_RATE_LIMIT_PER_IP:-1000}
-      PUBLIC_RATE_LIMIT_PER_EMAIL: ${PUBLIC_RATE_LIMIT_PER_EMAIL:-1}
-      CALENDAR_BASE_URL: ${CALENDAR_BASE_URL}
-      BOOKING_PII_RETENTION_DAYS: ${BOOKING_PII_RETENTION_DAYS:-30}
-      LOG_CATEGORIES: ${LOG_CATEGORIES:-}
-    ports:
-      - "127.0.0.1:${BACKEND_HOST_PORT:-8000}:8000"
+    environment: *backend_env
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()",
-        ]
-      interval: 30s
-      timeout: 3s
-      start_period: 10s
-      retries: 3
 
-  # arq worker: 같은 backend 이미지, CMD 만 다름. 동일 env 공유.
+  # arq worker: 같은 backend 이미지, CMD 만 다름.
   worker:
     build:
       context: ./backend
     <<: *restart_policy
     command: ["python", "-m", "arq", "app.jobs.worker.WorkerSettings"]
-    environment:
-      ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379
-      PRESIGN_DOWNLOAD_TTL_SECONDS: ${PRESIGN_DOWNLOAD_TTL_SECONDS:-300}
-      PRESIGN_PREVIEW_TTL_SECONDS: ${PRESIGN_PREVIEW_TTL_SECONDS:-300}
-      SMTP_ENABLED: ${SMTP_ENABLED:-false}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
-      SMTP_FROM: ${SMTP_FROM:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Ashfield}
-      SMTP_ENCRYPTION_KEY: ${SMTP_ENCRYPTION_KEY:-}
-      CALENDAR_BASE_URL: ${CALENDAR_BASE_URL}
-      BOOKING_PII_RETENTION_DAYS: ${BOOKING_PII_RETENTION_DAYS:-30}
-      LOG_CATEGORIES: ${LOG_CATEGORIES:-}
+    environment: *backend_env
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+    # 이미지 HEALTHCHECK 는 uvicorn :8000 용이라 worker 엔 맞지 않는다. arq 가 죽으면 컨테이너가 끝나고 재시작된다.
     healthcheck:
-      # arq 자체는 health 엔드포인트 없음: 프로세스 생존만 점검.
-      # Redis 연결 ping 시도로 갈음. 실패 시 docker 가 재시작.
-      test: ["CMD-SHELL", "pgrep -f 'arq app.jobs' || exit 1"]
-      interval: 30s
-      timeout: 5s
-      start_period: 15s
-      retries: 3
+      disable: true
 
   frontend:
     build:
       context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
-        NEXT_PUBLIC_API_TIMEOUT_MS: ${NEXT_PUBLIC_API_TIMEOUT_MS:-10000}
-        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Ashfield}
-        NEXT_PUBLIC_COOKIE_NS: ${NEXT_PUBLIC_COOKIE_NS:-ashfield-calendar}
-        NEXT_PUBLIC_COOKIE_DOMAIN: ${NEXT_PUBLIC_COOKIE_DOMAIN:-}
     <<: *restart_policy
-    environment:
-      # 인증 (Better Auth = Ashfield 계정 서버 OIDC 클라이언트, ADR-0024). 런타임 서버 변수라 빌드 arg 아님.
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET 필요}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?BETTER_AUTH_URL 필요}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      ACCOUNT_URL: ${ACCOUNT_URL:?ACCOUNT_URL 필요}
-      ASHFIELD_CLIENT_ID: ${ASHFIELD_CLIENT_ID:-ashfield-calendar}
-      ASHFIELD_CLIENT_SECRET: ${ASHFIELD_CLIENT_SECRET:?ASHFIELD_CLIENT_SECRET 필요}
-      BACKEND_INTERNAL_URL: http://backend:8000
+    environment: *frontend_env
     ports:
-      - "127.0.0.1:${FRONTEND_HOST_PORT:-3000}:3000"
+      - "${FRONTEND_HOST_PORT:-3100}:3000"
     depends_on:
-      - postgres
-      - redis
+      backend: { condition: service_healthy }
 
-  # Better Auth 테이블 생성과 갱신 (스키마 auth): 일회성. `make prod-auth-migrate`.
+  # Better Auth 테이블 생성과 갱신 (스키마 auth): 일회성 (scripts/prod.sh up 이 매 배포 실행).
   # 런타임 이미지엔 CLI 가 없어 builder 단계 이미지(전체 node_modules + 소스)로 실행.
   auth-migrate:
     build:
       context: ./frontend
       target: builder
     profiles: ["tools"]
-    command: ["npx", "auth", "migrate", "--config", "lib/auth/server.ts", "--yes"]
-    environment:
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: ["node_modules/.bin/auth", "migrate", "--config", "lib/auth/server.ts", "--yes"]
+    environment: *frontend_env
     depends_on:
       postgres: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 3s
-      start_period: 20s
-      retries: 3
 
   # ───── CalDAV (Sabre/DAV PHP): ADR-0014. 같은 Postgres 공유.
+  # 앞단 프록시가 ${BETTER_AUTH_URL}/caldav/ 와 /.well-known/caldav 를 caldav-nginx 로 넘긴다.
   caldav-php:
     build:
       context: ./caldav
@@ -182,8 +129,6 @@ services:
       CALDAV_DB_DSN: "pgsql:host=postgres;port=5432;dbname=${POSTGRES_DB};user=${POSTGRES_USER};password=${POSTGRES_PASSWORD}"
     depends_on:
       postgres: { condition: service_healthy }
-    expose:
-      - "9000"
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f php-fpm || exit 1"]
       interval: 30s
@@ -192,27 +137,20 @@ services:
       retries: 3
 
   caldav-nginx:
-    image: nginx:alpine
+    build:
+      context: ./caldav/nginx
     <<: *restart_policy
-    volumes:
-      - ./caldav/nginx/caldav.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "127.0.0.1:${CALDAV_HOST_PORT:-18080}:80"
+      - "${CALDAV_HOST_PORT:-3101}:80"
     depends_on:
       - caldav-php
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost/"]
+      # 인증 없는 요청은 401 이 정상: nginx 와 php-fpm 이 응답하는지만 본다.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/caldav/ 2>&1 | grep -q '401' || wget -q -O /dev/null http://127.0.0.1/caldav/"]
       interval: 30s
       timeout: 3s
       start_period: 10s
       retries: 3
-
-networks:
-  default:
-    ipam:
-      config:
-        # 호스트 LAN 대역과 겹치지 않도록 사설 대역 고정 (환경에 맞게 조정)
-        - subnet: 172.61.0.0/24
 
 volumes:
   pgdata:

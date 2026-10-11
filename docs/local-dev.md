@@ -68,7 +68,7 @@ make frontend    # http://localhost:3100
 | backend | `AUTH_AUDIENCE` | `${BETTER_AUTH_URL}` (토큰 `aud` 배열에 포함돼야 함) |
 | backend | `SYSTEM_ADMIN_EMAILS` | System Admin 이메일, 쉼표 구분 (선택) |
 
-로그인 수단(Google, GitHub), 허용 이메일, DEV 비밀번호 로그인은 계정 서버 설정이다. 운영은 `.env.prod.example` 의 `ACCOUNT_URL`, `ASHFIELD_CLIENT_SECRET` 을 채운다.
+로그인 수단(Google, GitHub), 허용 이메일, DEV 비밀번호 로그인은 계정 서버 설정이다. 운영 배포는 [deploy.md](deploy.md).
 
 ## E2E
 
