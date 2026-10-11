@@ -17,7 +17,12 @@ from app.auth.dependencies import get_current_user, require_active_workspace
 from app.core.db import get_db
 from app.models.room import Room
 from app.models.user_workspace_membership import UserWorkspaceMembership
-from app.services.rooms import get_room_or_404, new_room_id
+from app.services.rooms import (
+    conflict_params,
+    find_room_conflicts,
+    get_room_or_404,
+    new_room_id,
+)
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -41,6 +46,26 @@ class RoomResponse(BaseModel):
 
 class RoomListResponse(BaseModel):
     rooms: list[RoomResponse]
+
+
+class RoomConflictsRequest(BaseModel):
+    start_at: datetime
+    end_at: datetime
+    # 수정 중인 일정 자신은 겹침에서 뺀다
+    exclude_event_id: str | None = None
+
+
+class RoomConflict(BaseModel):
+    room_id: str
+    start_at: datetime
+    end_at: datetime
+    all_day: bool
+    # 요청자가 읽을 수 있는 일정일 때만
+    title: str | None = None
+
+
+class RoomConflictsResponse(BaseModel):
+    conflicts: list[RoomConflict]
 
 
 async def _assert_workspace_admin(
@@ -68,6 +93,36 @@ async def list_rooms(
     return RoomListResponse(
         rooms=[RoomResponse.model_validate(r, from_attributes=True) for r in rows]
     )
+
+
+@router.post(
+    "/conflicts",
+    response_model=RoomConflictsResponse,
+    summary="[start, end) 에 사용 중인 회의실과 겹친 일정 (이벤트 폼 미리보기)",
+)
+async def room_conflicts(
+    body: RoomConflictsRequest,
+    user: UserContext = Depends(get_current_user),
+    workspace_id: str = Depends(require_active_workspace),
+    db: AsyncSession = Depends(get_db),
+) -> RoomConflictsResponse:
+    room_ids = list(
+        (await db.execute(select(Room.id).where(Room.workspace_id == workspace_id))).scalars()
+    )
+    found = await find_room_conflicts(
+        db,
+        room_ids=room_ids,
+        start_at=body.start_at,
+        end_at=body.end_at,
+        exclude_event_id=body.exclude_event_id,
+    )
+    conflicts = [
+        RoomConflict.model_validate(
+            {"room_id": rid, **await conflict_params(db, ev, user=user, workspace_id=workspace_id)}
+        )
+        for rid, ev in found.items()
+    ]
+    return RoomConflictsResponse(conflicts=conflicts)
 
 
 @router.post("", response_model=RoomResponse, status_code=201, summary="회의실 생성")

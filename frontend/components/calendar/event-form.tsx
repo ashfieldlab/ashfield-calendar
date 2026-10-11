@@ -13,11 +13,15 @@ import { cn } from "@/lib/utils"
 import { useConfirm } from "@/components/ui-custom/use-confirm"
 import { InvitationsPanel } from "@/components/calendar/invitations-panel"
 import { DraftAttendees, sendDraftInvitations, type DraftAttendee } from "@/components/calendar/draft-attendees"
+import { RoomConflictCard } from "@/components/calendar/room-conflict-card"
+import { useRoomConflicts } from "@/components/calendar/use-room-conflicts"
 import { useToast } from "@/components/ui-custom/use-toast"
+import { ApiError } from "@/lib/errors"
 import { invalidateApi, useApiGet } from "@/lib/hooks/use-api"
 import type {
   CalendarResponse,
   EventResponse,
+  RoomConflict,
   RoomListResponse,
 } from "@/lib/types/api"
 
@@ -127,6 +131,11 @@ export function EventForm({ calendars, initialStart, editing, scope: presetScope
     seed?.reminder_minutes_before ?? null,
   )
   const [busy, setBusy] = useState(false)
+  // 저장 시 백엔드가 돌려준 회의실 겹침: 같은 방, 같은 시각일 때만 표시 (key 로 판별)
+  const [savedRoomConflict, setSavedRoomConflict] = useState<{
+    key: string
+    params: Record<string, unknown>
+  } | null>(null)
   const [attendees, setAttendees] = useState<DraftAttendee[]>([])
   // 반복 일정 삭제 시 "이 일정만 / 전체" 선택 모달
   const [showRecurDelete, setShowRecurDelete] = useState(false)
@@ -151,6 +160,17 @@ export function EventForm({ calendars, initialStart, editing, scope: presetScope
     }
     return { start: startAt, end: endAt }
   }
+
+  const range = buildStartEnd()
+  const roomConflicts = useRoomConflicts(range.start, range.end, {
+    excludeEventId: editing?.id,
+    enabled: !readOnly && rooms.length > 0,
+  })
+  const roomKey = `${roomId}|${range.start.toISOString()}|${range.end.toISOString()}`
+  const roomConflict = roomId
+    ? (roomConflicts.get(roomId) ??
+      (savedRoomConflict?.key === roomKey ? toRoomConflict(roomId, savedRoomConflict.params) : null))
+    : null
 
   function buildRrule(): string | null {
     if (repeatPreset === "none") return null
@@ -232,11 +252,12 @@ export function EventForm({ calendars, initialStart, editing, scope: presetScope
       invalidateApi("/api/v1/events")
       onClose()
     } catch (e) {
-      // 회의실 이중예약(409)은 메시지 그대로, 그 외는 "저장 실패:" 접두.
-      const err = e as { code?: string; message: string }
-      toast.error(
-        err.code === "ROOM_CONFLICT" ? err.message : `저장 실패: ${err.message}`,
-      )
+      // 회의실 이중예약(409)은 모달 안 회의실 칸에 표시, 그 외는 toast.
+      if (e instanceof ApiError && e.code === "ROOM_CONFLICT") {
+        setSavedRoomConflict({ key: roomKey, params: e.params })
+      } else {
+        toast.error(`저장 실패: ${(e as Error).message}`)
+      }
     } finally {
       setBusy(false)
       setShowRecurEdit(false)
@@ -448,7 +469,8 @@ export function EventForm({ calendars, initialStart, editing, scope: presetScope
                   onChange={(e) => setRoomId(e.target.value)}
                   disabled={readOnly}
                   data-testid="event-form-room-select"
-                  className={cn(fieldClass, "w-full")}
+                  aria-invalid={roomConflict ? true : undefined}
+                  className={cn(fieldClass, "w-full", roomConflict && "border-rose-400 dark:border-rose-700")}
                 >
                   <option value="">없음</option>
                   {rooms.map((r) => (
@@ -458,6 +480,14 @@ export function EventForm({ calendars, initialStart, editing, scope: presetScope
                     </option>
                   ))}
                 </select>
+                {roomConflict && (
+                  <RoomConflictCard
+                    conflict={roomConflict}
+                    formStart={range.start}
+                    freeRooms={rooms.filter((r) => r.id !== roomId && !roomConflicts.has(r.id))}
+                    onPick={setRoomId}
+                  />
+                )}
               </Prop>
             )}
 
@@ -668,6 +698,18 @@ export function EventForm({ calendars, initialStart, editing, scope: presetScope
     )}
     </>
   )
+}
+
+/** 저장 시 백엔드 ROOM_CONFLICT params → 미리보기와 같은 모양 */
+function toRoomConflict(roomId: string, p: Record<string, unknown>): RoomConflict | null {
+  if (typeof p.start_at !== "string" || typeof p.end_at !== "string") return null
+  return {
+    room_id: roomId,
+    start_at: p.start_at,
+    end_at: p.end_at,
+    all_day: p.all_day === true,
+    title: typeof p.title === "string" ? p.title : null,
+  }
 }
 
 const fieldClass =

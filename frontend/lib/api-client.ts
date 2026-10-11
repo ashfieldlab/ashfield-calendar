@@ -130,7 +130,7 @@ export async function api<T = unknown>(
         typeof body.detail === "object" &&
         !Array.isArray(body.detail)
       ) {
-        // 구조화 detail ({code, message, ...}): 예: ROOM_CONFLICT
+        // 구조화 detail ({code, message, ...}): legacy HTTPException 호환
         const d = body.detail as { message?: string; code?: string }
         if (d.message) body.message = d.message
         if (d.code && !body.code) body.code = d.code

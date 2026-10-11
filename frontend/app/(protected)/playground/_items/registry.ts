@@ -20,6 +20,7 @@ import {
 import { SettingsPageItem, settingsPageVariants } from "./settings-page";
 import { CalendarDialogItem, calendarDialogVariants } from "./calendar-dialog";
 import { CalendarShareItem, calendarShareVariants } from "./calendar-share";
+import { RoomConflictItem, roomConflictVariants } from "./room-conflict";
 
 export interface PlaygroundVariant {
   key: string;
@@ -149,6 +150,14 @@ export const PLAYGROUND_ITEMS: PlaygroundItem[] = [
     stage: "modal",
     variants: calendarShareVariants,
     Component: CalendarShareItem,
+  },
+  {
+    slug: "room-conflict",
+    title: "회의실 겹침",
+    group: "모달",
+    stage: "modal",
+    variants: roomConflictVariants,
+    Component: RoomConflictItem,
   },
 ];
 

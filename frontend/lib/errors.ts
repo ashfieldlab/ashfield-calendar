@@ -18,6 +18,8 @@
  *   3. 한국어 톤 일관 유지: "방금 다른 분이 …" 같은 친화 카피
  */
 
+import { rangeText } from "./utils/day-format"
+
 type ParamMap = Record<string, unknown>
 
 type ErrorMessage = string | ((params: ParamMap) => string)
@@ -58,6 +60,20 @@ export const HTTP_STATUS_MESSAGES: Record<number, string> = {
   504: "응답 시간이 초과되었습니다.",
   507: "저장 공간이 부족합니다.",
   511: "네트워크 인증이 필요합니다.",
+}
+
+/**
+ * 회의실 겹침 안내 (마침표 없음): 저장 실패 toast 와 이벤트 폼 미리보기가 같이 쓴다.
+ * title 은 요청자가 그 일정을 읽을 수 있을 때만 온다 (백엔드 services/rooms.py).
+ */
+export function roomConflictText(p: ParamMap): string {
+  const when =
+    typeof p.start_at === "string"
+      ? rangeText(p.start_at, p.end_at as string | undefined, p.all_day === true)
+      : ""
+  const at = when ? ` (${when})` : ""
+  if (typeof p.title === "string" && p.title) return `회의실이 '${p.title}'${at} 일정과 겹칩니다`
+  return `회의실이 이미 예약된 시간입니다${at}`
 }
 
 export const ERROR_MESSAGES: Record<string, ErrorMessage> = {
@@ -102,6 +118,7 @@ export const ERROR_MESSAGES: Record<string, ErrorMessage> = {
   // ───── 캘린더 ─────
   EVENT_LINKED_TO_BOOKING:
     "예약과 연결된 일정입니다. 예약 페이지에서 변경 또는 취소해주세요.",
+  ROOM_CONFLICT: (p) => `${roomConflictText(p)}. 다른 시간이나 회의실을 선택해주세요.`,
 }
 
 export interface ApiErrorBody {

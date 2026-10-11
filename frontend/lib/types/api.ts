@@ -168,6 +168,20 @@ export interface RoomListResponse {
   rooms: Room[]
 }
 
+/** POST /rooms/conflicts: 이벤트 폼에서 회의실 사용 중 미리보기. */
+export interface RoomConflict {
+  room_id: string
+  start_at: string
+  end_at: string
+  all_day: boolean
+  /** 요청자가 읽을 수 있는 일정일 때만. */
+  title: string | null
+}
+
+export interface RoomConflictsResponse {
+  conflicts: RoomConflict[]
+}
+
 // 참석자 일정 겹침: 업무 일정끼리만, 겹치는 사람만 (제목 없음)
 export interface AttendeeConflictsResponse {
   conflicts: { sub: string; name: string | null }[]

@@ -51,6 +51,32 @@ def assert_calendar_access(
     _ = permission
 
 
+async def can_read_event(
+    db: AsyncSession,
+    ev: CalendarEvent,
+    cal: Calendar,
+    *,
+    user: UserContext,
+    workspace_id: str,
+) -> bool:
+    """읽기 권한: 캘린더 접근 권한이 있거나, 이 일정에 초대받은 사람.
+
+    Why: 초대받은 일정은 남의 개인 캘린더에 있어도 occurrence 목록에 보이므로
+    상세, 참석자, .ics 도 열 수 있어야 한다. declined 여도 열람은 허용.
+    """
+    if cal.workspace_id != workspace_id:
+        return False
+    if cal.scope != "personal" or cal.owner_id == user.sub:
+        return True
+    invited = await db.scalar(
+        select(CalendarEventInvitation.id).where(
+            CalendarEventInvitation.event_id == ev.id,
+            CalendarEventInvitation.invitee_sub == user.sub,
+        )
+    )
+    return invited is not None
+
+
 async def get_event_with_calendar_or_404(
     db: AsyncSession, event_id: str
 ) -> tuple[CalendarEvent, Calendar]:

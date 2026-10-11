@@ -49,6 +49,7 @@ from app.services.attendee_conflicts import busy_subs
 from app.services.audit import write_audit
 from app.services.calendars import (
     assert_calendar_access,
+    can_read_event,
     get_calendar_or_404,
     get_event_with_calendar_or_404,
     list_occurrences,
@@ -97,25 +98,11 @@ async def _assert_event_readable(
     user: UserContext,
     workspace_id: str,
 ) -> None:
-    """읽기 권한: 캘린더 접근 권한이 있거나, 이 일정에 초대받은 사람.
-
-    Why: 초대받은 일정은 남의 개인 캘린더에 있어도 occurrence 목록에 보이므로
-    상세, 참석자, .ics 도 열 수 있어야 한다. declined 여도 열람은 허용.
-    """
+    """읽을 수 없으면 404 (다른 워크스페이스) 또는 403. 기준은 can_read_event."""
     if cal.workspace_id != workspace_id:
         raise HTTPException(404, "Event not found")
-    try:
-        assert_calendar_access(cal, user=user, workspace_id=workspace_id, permission="read")
-        return
-    except HTTPException:
-        invited = await db.scalar(
-            select(CalendarEventInvitation.id).where(
-                CalendarEventInvitation.event_id == ev.id,
-                CalendarEventInvitation.invitee_sub == user.sub,
-            )
-        )
-        if invited is None:
-            raise
+    if not await can_read_event(db, ev, cal, user=user, workspace_id=workspace_id):
+        raise HTTPException(403, "Forbidden")
 
 
 async def _detail_response(db: AsyncSession, ev: CalendarEvent, cal: Calendar) -> EventResponse:
@@ -270,6 +257,7 @@ async def create_event(
             start_at=body.start_at,
             end_at=body.end_at,
             workspace_id=workspace_id,
+            user=user,
         )
     ev = CalendarEvent(
         id=new_id(),
@@ -414,6 +402,7 @@ async def patch_event(
             start_at=ev.start_at,
             end_at=ev.end_at,
             workspace_id=workspace_id,
+            user=user,
             exclude_event_id=ev.id,
         )
     change = await event_changes.diff(db, before, ev)
@@ -495,6 +484,7 @@ async def _detach_occurrence(
             start_at=new_ev.start_at,
             end_at=new_ev.end_at,
             workspace_id=workspace_id,
+            user=user,
         )
     # 바뀐 내용: 이 회차의 원래 값(master + 회차 시각) 대비
     before = {
