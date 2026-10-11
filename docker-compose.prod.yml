@@ -105,6 +105,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # 헤더의 파일 앱 링크 (빌드 때 굳는다). 비우면 숨김.
+        NEXT_PUBLIC_DRIVE_URL: ${NEXT_PUBLIC_DRIVE_URL:-}
     <<: *restart_policy
     environment: *frontend_env
     ports:
@@ -118,6 +121,8 @@ services:
     build:
       context: ./frontend
       target: builder
+      args:
+        NEXT_PUBLIC_DRIVE_URL: ${NEXT_PUBLIC_DRIVE_URL:-}
     profiles: ["tools"]
     command: ["node_modules/.bin/auth", "migrate", "--config", "lib/auth/server.ts", "--yes"]
     environment: *frontend_env

@@ -15,6 +15,7 @@ import { AppIcon } from "@/components/ui-custom/app-icon"
 import { UserMenu } from "@/components/ui-custom/user-menu"
 
 import { useAppContext } from "@/components/providers/app-context"
+import { AppCrossLink } from "@/components/layout/app-cross-link"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { NotificationBell } from "@/components/layout/notification-bell"
 import { CalendarSidebar } from "@/components/calendar/calendar-sidebar"
@@ -64,6 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // 헤더 우측 전체를 대체하므로, 우리 실데이터 위젯을 여기서 직접 조립한다.
   const headerTrailing = authUser ? (
     <div className="flex items-center gap-2">
+      <AppCrossLink />
       <GlobalSearch />
       <NotificationBell />
       <UserMenu

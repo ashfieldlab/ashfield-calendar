@@ -11,6 +11,9 @@ export const env = {
   apiUrl: (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, ""),
   apiTimeoutMs: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 10_000),
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Ashfield",
+  // 파일 앱(ashfield-drive) origin. 헤더 크로스링크에 사용, 빈 값이면 숨김.
+  // 예: https://drive.example.com
+  driveUrl: (process.env.NEXT_PUBLIC_DRIVE_URL || "").replace(/\/$/, ""),
   /** 개발용 UI 플레이그라운드(/playground). 개발 모드는 항상, 운영은 NEXT_PUBLIC_PLAYGROUND=true 일 때만. */
   playground: process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_PLAYGROUND === "true",
 }

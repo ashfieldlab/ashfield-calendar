@@ -63,6 +63,7 @@ make frontend    # http://localhost:3100
 | frontend | `DATABASE_URL` | 백엔드와 같은 Postgres. Better Auth 테이블은 스키마 `auth` |
 | frontend | `ACCOUNT_URL` | 계정 서버 주소(issuer). 기본 `http://localhost:3300` |
 | frontend | `ASHFIELD_CLIENT_ID` / `ASHFIELD_CLIENT_SECRET` | 계정 서버에 등록된 client (`ashfield-calendar`) |
+| frontend | `NEXT_PUBLIC_DRIVE_URL` | 헤더의 파일 앱 링크 (dev 기본 `http://localhost:3200`) |
 | backend | `AUTH_JWKS_URL` | `${ACCOUNT_URL}/api/auth/jwks` |
 | backend | `AUTH_ISSUER` | `${ACCOUNT_URL}` (정확히 일치) |
 | backend | `AUTH_AUDIENCE` | `${BETTER_AUTH_URL}` (토큰 `aud` 배열에 포함돼야 함) |
