@@ -32,7 +32,6 @@ from app.middleware.rate_limit import (
 )
 from app.models.booking import Booking
 from app.models.booking_type import BookingType
-from app.models.user import User
 from app.models.workspace import Workspace
 from app.services.audit import write_audit
 from app.services.booking import (
@@ -125,12 +124,8 @@ async def _organization_branding(
         if c is not None:
             return c.name, c.logo_url
         return bt.owner_workspace_id, None
-    # user-owned: 운영자 이름 노출 X. 도메인만 fallback, logo 없음.
-    if bt.owner_user_sub:
-        u = await db.get(User, bt.owner_user_sub)
-        if u and u.email:
-            return u.email.split("@")[-1], None
-    return "Workspace", None
+    # user-owned: 운영자 이름과 이메일(도메인 포함)은 노출하지 않는다. 앱 이름으로 대신, logo 없음.
+    return "Ashfield", None
 
 
 async def _organization_name(db: AsyncSession, bt: BookingType) -> str:
